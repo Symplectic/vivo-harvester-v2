@@ -17,10 +17,6 @@ import java.util.Set;
 public class DeletionService {
     public DeletionService() {}
 
-    public void delete(File toDelete) {
-        DeletionServiceImpl.delete(toDelete);
-    }
-
     public void deleteOnExit(File toDelete) {
         DeletionServiceImpl.deleteOnExit(toDelete);
     }
@@ -54,7 +50,7 @@ final class DeletionServiceImpl {
         }
     }
 
-    static synchronized void delete(File toDelete) {
+    private static synchronized void delete(File toDelete) {
         if (filesToKeep.contains(toDelete)) {
             log.debug("Attempting delete on kept file - ignoring: " + getCanonicalPath(toDelete) + " " + getCallingMethod());
         } else {

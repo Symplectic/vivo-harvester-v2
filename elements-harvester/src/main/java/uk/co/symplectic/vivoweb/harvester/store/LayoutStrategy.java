@@ -6,18 +6,16 @@
  ******************************************************************************/
 package uk.co.symplectic.vivoweb.harvester.store;
 
-import uk.co.symplectic.elements.api.ElementsObjectCategory;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsItemInfo;
 
 import java.io.File;
+import java.util.Collection;
 
 public interface LayoutStrategy {
-    public File getObjectFile(File storeDir, ElementsObjectCategory category, String id);
 
-    public File getObjectExtraFile(File storeDir, ElementsObjectCategory category, String id, String type);
+    public File getItemFile(File storeDir, ElementsItemInfo itemInfo, StorableResourceType resourceType);
 
-    public File getResourceFile(File storeDir, ElementsObjectCategory category, String resourceLabel, String id);
-
-    public File getRelationshipFile(File storeDir, String id);
+    public Collection<File> getAllExistingFilesOfType(File storeDir, StorableResourceType resourceType);
 
     public String getRootNodeForType(String type);
 }

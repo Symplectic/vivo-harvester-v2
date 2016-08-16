@@ -11,22 +11,20 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vivoweb.harvester.util.args.UsageException;
-import uk.co.symplectic.elements.api.ElementsAPI;
-import uk.co.symplectic.elements.api.ElementsAPIHttpClient;
-import uk.co.symplectic.elements.api.IgnoreSSLErrorsProtocolSocketFactory;
+import uk.co.symplectic.elements.api.*;
+import uk.co.symplectic.translate.TranslationService;
 import uk.co.symplectic.utils.ExecutorServiceUtils;
 import uk.co.symplectic.vivoweb.harvester.config.Configuration;
-import uk.co.symplectic.vivoweb.harvester.fetch.ElementsExcludedUsersFetch;
-import uk.co.symplectic.vivoweb.harvester.fetch.ElementsFetch;
-import uk.co.symplectic.vivoweb.harvester.fetch.ElementsUserPhotoRetrievalObserver;
-import uk.co.symplectic.vivoweb.harvester.store.ElementsObjectStore;
-import uk.co.symplectic.vivoweb.harvester.store.ElementsRdfStore;
-import uk.co.symplectic.vivoweb.harvester.store.ElementsStoreFactory;
+import uk.co.symplectic.vivoweb.harvester.fetch.*;
+import uk.co.symplectic.vivoweb.harvester.model.*;
+import uk.co.symplectic.vivoweb.harvester.store.*;
 import uk.co.symplectic.vivoweb.harvester.translate.ElementsObjectTranslateObserver;
 import uk.co.symplectic.vivoweb.harvester.translate.ElementsRelationshipTranslateObserver;
+import uk.co.symplectic.vivoweb.harvester.translate.ElementsVivoIncludeMonitor;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 public class ElementsFetchAndTranslate {
@@ -52,18 +50,18 @@ public class ElementsFetchAndTranslate {
 
                 ElementsAPI elementsAPI = ElementsFetchAndTranslate.getElementsAPI();
 
-                ElementsExcludedUsersFetch excludedUserFetcher = new ElementsExcludedUsersFetch(elementsAPI);
-                excludedUserFetcher.setGroupsToExclude(Configuration.getGroupsToExclude());
-                excludedUserFetcher.execute();
-                Set<String> excludedUsers = excludedUserFetcher.getExcludedUsers();
+                List<ElementsObjectCategory> aList = new ArrayList<ElementsObjectCategory>();
+                aList.add(ElementsObjectCategory.USER);
 
-                ElementsFetch fetcher = new ElementsFetch(elementsAPI);
-                fetcher.setGroupsToHarvest(Configuration.getGroupsToHarvest());
-                fetcher.setObjectsToHarvest(Configuration.getObjectsToHarvest());
-                fetcher.setObjectsPerPage(Configuration.getApiObjectsPerPage());
-                fetcher.setRelationshipsPerPage(Configuration.getApiRelationshipsPerPage());
+                ElementsObjectCollection excludedUserStore = new ElementsObjectCollection();
+                if(!StringUtils.isEmpty(Configuration.getGroupsToExclude())){
+                    ElementsFetch.ObjectConfig objConfig = new ElementsFetch.ObjectConfig(100, ElementsObjectCategory.USER);
+                    ElementsFetch excludedUserFetcher = new ElementsFetch(elementsAPI, excludedUserStore, objConfig, null, Configuration.getGroupsToExclude(), false);
+                    excludedUserFetcher.execute();
+                }
+                Set<ElementsObjectId> excludedUsers = excludedUserStore.get(ElementsObjectCategory.USER);
 
-                ElementsObjectStore objectStore = ElementsStoreFactory.getObjectStore();
+                ElementsObjectFileStore objectStore = ElementsStoreFactory.getObjectStore();
                 ElementsRdfStore rdfStore = ElementsStoreFactory.getRdfStore();
 
                 boolean currentStaffOnly = Configuration.getCurrentStaffOnly();
@@ -73,21 +71,76 @@ public class ElementsFetchAndTranslate {
                 File vivoImageDir = ElementsFetchAndTranslate.getVivoImageDir(Configuration.getVivoImageDir());
                 String vivoBaseURI = Configuration.getBaseURI();
 
-                ElementsObjectTranslateObserver objectObserver = new ElementsObjectTranslateObserver(rdfStore, xslFilename);
-                objectObserver.setCurrentStaffOnly(currentStaffOnly);
-                objectObserver.setExcludedUsers(excludedUsers);
-                objectObserver.addObserver(new ElementsUserPhotoRetrievalObserver(elementsAPI, objectStore, rdfStore, vivoImageDir, vivoBaseURI));
-                fetcher.addObjectObserver(objectObserver);
+                ElementsFetch.ObjectConfig objConfig = new ElementsFetch.ObjectConfig(Configuration.getApiObjectsPerPage(), Configuration.getCategoriesToHarvest());
+                ElementsFetch.RelationshipConfig relConfig = new ElementsFetch.RelationshipConfig(Configuration.getApiRelationshipsPerPage());
+                //Configure a fetcher to go to the elements API, pull across the requested data and drop the outputs into the object store
+                ElementsFetch fetcher = new ElementsFetch(elementsAPI, objectStore, objConfig, relConfig, Configuration.getGroupsToHarvest(), true);
 
-                ElementsRelationshipTranslateObserver relationshipObserver = new ElementsRelationshipTranslateObserver(objectStore, rdfStore, xslFilename);
-                relationshipObserver.setCurrentStaffOnly(currentStaffOnly);
-                relationshipObserver.setVisibleLinksOnly(visibleLinksOnly);
-                fetcher.addRelationshipObserver(relationshipObserver);
+                //Hook item observers to the object store so that translations happen for any objects and relationships that arrive in that store
+                //translations are configured to output to the rdfStore;
+                ElementsObjectTranslateObserver objectObserver = new ElementsObjectTranslateObserver(rdfStore, xslFilename, currentStaffOnly, excludedUsers);
+                ElementsRelationshipTranslateObserver relationshipObserver = new ElementsRelationshipTranslateObserver(rdfStore, xslFilename, currentStaffOnly, visibleLinksOnly);
+                objectStore.addItemObserver(objectObserver);
+                objectStore.addItemObserver(relationshipObserver);
 
+                //Hook a photo retrieval observer onto the rdf store so that photos will be fetched and dropped in the object store for any translated users.
+                rdfStore.addItemObserver(new ElementsUserPhotoRetrievalObserver(elementsAPI, objectStore));
+                //Hook a photo RDF generating observer onto the object store so that any fetched photos have corresponding "rdf" created in the translated output.
+                ElementsUserPhotoRdfGeneratingObserver userExtraPhotoRdfGenerator = new ElementsUserPhotoRdfGeneratingObserver(rdfStore, vivoImageDir, vivoBaseURI, null);
+                objectStore.addItemObserver(userExtraPhotoRdfGenerator);
+
+                //Hook a monitor to the object store to work out which objects and relationships we want to send to vivo
+                ElementsVivoIncludeMonitor monitor = new ElementsVivoIncludeMonitor(excludedUsers, currentStaffOnly, visibleLinksOnly);
+                objectStore.addItemObserver(monitor);
+
+                //Now we have wired up all
                 fetcher.execute();
 
+                //Initiate the shutdown of the asynchronous translation engine - note this will actually block until
+                //the engine has completed all its enqueued tasks - think of it as "await completion".
+                TranslationService.shutdown();
+
+                //TODO: make this cleanly use layout strategy instead of being hacky and make prune relationships properly too now
+//                for (ElementsObjectCategory category : Configuration.getCategoriesToHarvest()) {
+//                    if (category != null && category != ElementsObjectCategory.USER) {
+//                        // Delete the RDF objects not marked to be kept
+//                        rdfStore.pruneExcept(category, monitor.getIncludedObjects().get(category));
+//                    }
+//                }
+
+
+
+                BufferedWriter writer = null;
+                try {
+                    writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("fileList.txt"), "utf-8"));
+                    //collects all objects in relationships - if want obj not in rels (e.g. users in include with no links) then need to add to this output..
+                    for (ElementsObjectCategory category : Configuration.getCategoriesToHarvest()) {
+                        for (ElementsObjectId id : monitor.getIncludedObjects().get(category)) {
+                            ElementsObjectInfo objInfo = ElementsObjectInfoCache.get(id.getCategory(), id.getId());
+                            if (objInfo == null)
+                                objInfo = ElementsItemInfo.createObjectItem(id.getCategory(), id.getId());
+                            //TODO: restrict to certain output resource types?
+                            for (ElementsStoredItem item : rdfStore.retrieveAllItems(objInfo)) {
+                                writer.write(item.getFile().getAbsolutePath());
+                            }
+                        }
+                    }
+
+                    //add included relationships.
+                    for (ElementsRelationshipInfo relInfo : monitor.getIncludedRelationships()) {
+                        //TODO: restrict to certain output resource types?
+                        for (ElementsStoredItem item : rdfStore.retrieveAllItems(relInfo)) {
+                            writer.write(item.getFile().getAbsolutePath());
+                        }
+                    }
+
+                }
+                finally{
+                    if(writer != null) writer.close();
+                }
+
             } catch (IOException e) {
-                System.err.println("Caught IOExcpetion initialising ElementsFetchAndTranslate");
+                System.err.println("Caught IOException initialising ElementsFetchAndTranslate");
                 e.printStackTrace(System.err);
                 caught = e;
             }
@@ -98,10 +151,14 @@ public class ElementsFetchAndTranslate {
                 log.info("Printing Usage:");
                 System.out.println(Configuration.getUsage());
             } else {
-                System.err.println("Caught UsageExcpetion initialising ElementsFetchAndTranslate");
+                System.err.println("Caught UsageException initialising ElementsFetchAndTranslate");
                 e.printStackTrace(System.err);
             }
-        } finally {
+        } catch(Exception e) {
+            log.error("Unhandled Exception occurred during processing - terminating application", e);
+            caught = e;
+        }
+        finally {
             log.debug("ElementsFetch: End");
             if (caught != null) {
                 System.exit(1);
@@ -120,16 +177,9 @@ public class ElementsFetchAndTranslate {
         String apiUsername = Configuration.getApiUsername();
         String apiPassword = Configuration.getApiPassword();
 
-        boolean apiIsSecure;
-        if (apiEndpoint != null && apiEndpoint.toLowerCase().startsWith("http://")) {
-            apiIsSecure = false;
-        } else {
-            apiIsSecure = true;
-        }
-
         int soTimeout = Configuration.getApiSoTimeout();
         if (soTimeout > 4999 && soTimeout < (30 * 60 * 1000)) {
-            ElementsAPIHttpClient.setSoTimeout(soTimeout);
+            ElementsAPIHttpClient.setSocketTimeout(soTimeout);
         }
 
         int requestDelay = Configuration.getApiRequestDelay();
@@ -137,13 +187,7 @@ public class ElementsFetchAndTranslate {
             ElementsAPIHttpClient.setRequestDelay(requestDelay);
         }
 
-        ElementsAPI api = ElementsAPI.getAPI(apiVersion, apiEndpoint, apiIsSecure);
-        if (apiIsSecure) {
-            api.setUsername(apiUsername);
-            api.setPassword(apiPassword);
-        }
-
-        return api;
+        return new ElementsAPI(ElementsAPIVersion.parse(apiVersion), apiEndpoint, apiUsername, apiPassword);
     }
 
     private static File getVivoImageDir(String imageDir) {

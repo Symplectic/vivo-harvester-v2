@@ -145,4 +145,14 @@
             <xsl:value-of select="." />
         </xsl:element>
     </xsl:template>
+
+    <xsl:template match="api:decimal" mode="renderForProperty">
+        <xsl:param name="propertyName" />
+        <xsl:param name="fieldName" />
+
+        <xsl:element name="{$propertyName}">
+            <xsl:value-of select="." />
+        </xsl:element>
+    </xsl:template>
+
 </xsl:stylesheet>

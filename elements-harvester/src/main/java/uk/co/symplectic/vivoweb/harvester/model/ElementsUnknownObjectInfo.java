@@ -6,9 +6,8 @@
  ******************************************************************************/
 package uk.co.symplectic.vivoweb.harvester.model;
 
-import uk.co.symplectic.elements.api.ElementsObjectCategory;
-
 public class ElementsUnknownObjectInfo extends ElementsObjectInfo {
+    //package private as should only ever be created by calls to create on ItemInfo superclass
     ElementsUnknownObjectInfo(ElementsObjectCategory category, String id) {
         super(category, id);
     }

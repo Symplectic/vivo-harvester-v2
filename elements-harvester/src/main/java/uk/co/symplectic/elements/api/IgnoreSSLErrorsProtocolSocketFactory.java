@@ -1,6 +1,5 @@
 package uk.co.symplectic.elements.api;
 
-import org.apache.commons.httpclient.ConnectTimeoutException;
 import org.apache.commons.httpclient.HttpClientError;
 import org.apache.commons.httpclient.params.HttpConnectionParams;
 import org.apache.commons.httpclient.protocol.SecureProtocolSocketFactory;
@@ -18,22 +17,21 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
-//  Protocol.registerProtocol("https", new Protocol("https", new IgnoreSSLErrorsProtocolSocketFactory(), 443));
 public class IgnoreSSLErrorsProtocolSocketFactory implements SecureProtocolSocketFactory {
     private SSLContext sslcontext = null;
 
     @Override
-    public Socket createSocket(Socket socket, String host, int port, boolean autoClose) throws IOException, UnknownHostException {
+    public Socket createSocket(Socket socket, String host, int port, boolean autoClose) throws IOException {
         return getSSLContext().getSocketFactory().createSocket(socket, host, port, autoClose);
     }
 
     @Override
-    public Socket createSocket(String host, int port, InetAddress clientHost, int clientPort) throws IOException, UnknownHostException {
+    public Socket createSocket(String host, int port, InetAddress clientHost, int clientPort) throws IOException {
         return getSSLContext().getSocketFactory().createSocket(host, port, clientHost, clientPort);
     }
 
     @Override
-    public Socket createSocket(String host, int port, InetAddress localAddress, int localPort, HttpConnectionParams params) throws IOException, UnknownHostException, ConnectTimeoutException {
+    public Socket createSocket(String host, int port, InetAddress localAddress, int localPort, HttpConnectionParams params) throws IOException {
         if (params == null) {
             throw new IllegalArgumentException("Parameters may not be null");
         }
@@ -53,7 +51,7 @@ public class IgnoreSSLErrorsProtocolSocketFactory implements SecureProtocolSocke
     }
 
     @Override
-    public Socket createSocket(String host, int port) throws IOException, UnknownHostException {
+    public Socket createSocket(String host, int port) throws IOException {
         return getSSLContext().getSocketFactory().createSocket(host, port);
     }
 
@@ -90,6 +88,7 @@ public class IgnoreSSLErrorsProtocolSocketFactory implements SecureProtocolSocke
             if (trustmanagers.length == 0) {
                 throw new NoSuchAlgorithmException("no trust manager found");
             }
+            this.standardTrustManager = (X509TrustManager) trustmanagers[0];
         }
 
         @Override

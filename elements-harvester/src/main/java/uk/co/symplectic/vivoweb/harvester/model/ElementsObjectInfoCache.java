@@ -6,8 +6,6 @@
  ******************************************************************************/
 package uk.co.symplectic.vivoweb.harvester.model;
 
-import uk.co.symplectic.elements.api.ElementsObjectCategory;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -16,7 +14,7 @@ import java.util.Map;
  * For now, just a simple map, and only caching "user" info
  */
 public class ElementsObjectInfoCache {
-    private static final Map<String, ElementsObjectInfo> userInfoMap = new HashMap<String, ElementsObjectInfo>();
+    private static final Map<String, ElementsUserInfo> userInfoMap = new HashMap<String, ElementsUserInfo>();
 
     private ElementsObjectInfoCache() {}
 
@@ -24,13 +22,17 @@ public class ElementsObjectInfoCache {
         if (ElementsObjectCategory.USER == category) {
             return userInfoMap.get(id);
         }
-
         return null;
     }
 
     public static void put(ElementsObjectInfo info) {
         if (ElementsObjectCategory.USER == info.getCategory()) {
-            userInfoMap.put(info.getId(), info);
+            //only update the cache if this is the first time we have seen it - otherwise keep the original one.
+            ElementsUserInfo userInfo = (ElementsUserInfo) info;
+            ElementsUserInfo currentlyStoredInfo = userInfoMap.get(userInfo.getId());
+            if(currentlyStoredInfo == null || (!currentlyStoredInfo.isFullyPopulated() && userInfo.isFullyPopulated())) {
+                userInfoMap.put(info.getId(), userInfo);
+            }
         }
     }
 }

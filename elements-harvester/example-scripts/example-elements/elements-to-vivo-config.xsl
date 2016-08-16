@@ -32,6 +32,7 @@
     <xsl:param name="useSympNS" />
 
     <xsl:param name="externalPersons">true</xsl:param>
+    <xsl:param name="externalPersonStyle">vcard</xsl:param>
     <xsl:param name="externalPersonLabelPrefix">[</xsl:param>
     <xsl:param name="externalPersonLabelSuffix">]</xsl:param>
 
@@ -82,7 +83,8 @@
             <config:record-precedence>manual</config:record-precedence>
         </config:record-precedences>
         <config:record-precedences for="grant" select-by="field">
-            <config:record-precedence>symplectic</config:record-precedence>
+            <config:record-precedence>dimensions</config:record-precedence>
+            <config:record-precedence>source-3</config:record-precedence>
             <config:record-precedence>manual</config:record-precedence>
         </config:record-precedences>
         <config:record-precedences for="default" select-by="field">

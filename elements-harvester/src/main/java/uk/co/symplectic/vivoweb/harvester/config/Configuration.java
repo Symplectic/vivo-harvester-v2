@@ -14,12 +14,14 @@ import org.vivoweb.harvester.util.args.ArgParser;
 import org.vivoweb.harvester.util.args.UsageException;
 import org.w3c.dom.*;
 import org.xml.sax.SAXException;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class Configuration {
@@ -42,7 +44,7 @@ public class Configuration {
     private static final String ARG_VIVO_IMAGE_DIR        = "vivoImageDir";
     private static final String ARG_VIVO_BASE_URI         = "vivoBaseURI";
 
-    private static final String ARG_API_QUERY_OBJECTS     = "queryObjects";
+    private static final String ARG_API_QUERY_CATEGORIES  = "queryObjects"; //TODO : rename this input param?
     private static final String ARG_API_PARAMS_GROUPS     = "paramGroups";
     private static final String ARG_API_EXCLUDE_GROUPS    = "excludeGroups";
 
@@ -90,7 +92,7 @@ public class Configuration {
 
         private String groupsToExclude;
         private String groupsToHarvest;
-        private String objectsToHarvest;
+        private List<ElementsObjectCategory> categoriesToHarvest;
 
         private boolean currentStaffOnly = true;
         private boolean visibleLinksOnly = false;
@@ -157,17 +159,11 @@ public class Configuration {
         return values.groupsToHarvest;
     }
 
-    public static String getObjectsToHarvest() {
-        return values.objectsToHarvest;
-    }
+    public static List<ElementsObjectCategory> getCategoriesToHarvest() { return values.categoriesToHarvest; }
 
-    public static boolean getCurrentStaffOnly() {
-        return values.currentStaffOnly;
-    }
+    public static boolean getCurrentStaffOnly() { return values.currentStaffOnly; }
 
-    public static boolean getVisibleLinksOnly() {
-        return values.visibleLinksOnly;
-    }
+    public static boolean getVisibleLinksOnly() { return values.visibleLinksOnly; }
 
     public static boolean getUseFullUTF8() { return values.useFullUTF8; }
 
@@ -200,7 +196,7 @@ public class Configuration {
 
         parser.addArgument(new ArgDef().setShortOption('e').setLongOpt(ARG_ELEMENTS_API_ENDPOINT).setDescription("Elements API endpoint url").withParameter(true, "CONFIG_FILE"));
         parser.addArgument(new ArgDef().setShortOption('s').setLongOpt(ARG_ELEMENTS_API_SECURE).setDescription("Is Elements API secure").withParameter(true, "CONFIG_FILE"));
-        parser.addArgument(new ArgDef().setShortOption('c').setLongOpt(ARG_API_QUERY_OBJECTS).setDescription("Elements API object categories").withParameter(true, "CONFIG_FILE"));
+        parser.addArgument(new ArgDef().setShortOption('c').setLongOpt(ARG_API_QUERY_CATEGORIES).setDescription("Elements API object categories").withParameter(true, "CONFIG_FILE"));
         parser.addArgument(new ArgDef().setShortOption('v').setLongOpt(ARG_ELEMENTS_API_VERSION).setDescription("Elements API version").withParameter(true, "CONFIG_FILE"));
 
         parser.addArgument(new ArgDef().setShortOption('u').setLongOpt(ARG_ELEMENTS_API_USERNAME).setDescription("Elements API username").withParameter(true, "CONFIG_FILE"));
@@ -246,7 +242,7 @@ public class Configuration {
             values.groupsToExclude = getString(ARG_API_EXCLUDE_GROUPS);
 
             values.groupsToHarvest = getString(ARG_API_PARAMS_GROUPS);
-            values.objectsToHarvest = getString(ARG_API_QUERY_OBJECTS);
+            values.categoriesToHarvest = getCategories(ARG_API_QUERY_CATEGORIES);
 
             values.apiObjectsPerPage  = getInt(ARG_API_OBJECTS_PER_PAGE, OBJECTS_PER_PAGE);
             values.apiRelationshipsPerPage  = getInt(ARG_API_RELS_PER_PAGE, RELATIONSHIPS_PER_PAGE);
@@ -265,6 +261,15 @@ public class Configuration {
 
             values.ignoreSSLErrors = getBoolean(ARG_IGNORE_SSL_ERRORS, false);
         }
+    }
+
+    private static List<ElementsObjectCategory> getCategories(String key){
+        List<ElementsObjectCategory> categories = new ArrayList<ElementsObjectCategory>();
+        for (String category : argList.get(key).split("\\s*,\\s*")) {
+            if(category == null) {} // TODO Add to error list
+            categories.add(ElementsObjectCategory.valueOf(category));
+        }
+        return categories;
     }
 
     private static boolean getBoolean(String key, boolean defValue) {
@@ -315,7 +320,6 @@ public class Configuration {
         if (parser != null) {
             return parser.getUsage();
         }
-
         return "Error generating usage string";
     }
 
@@ -343,21 +347,23 @@ public class Configuration {
 
     private static String getRawFileDirFromConfig(String filename, String defValue) {
         try {
-            File file = new File(filename);
-            if (file.exists()) {
-                DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-                DocumentBuilder db = dbf.newDocumentBuilder();
+            if(filename != null) {
+                File file = new File(filename);
+                if (file.exists()) {
+                    DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+                    DocumentBuilder db = dbf.newDocumentBuilder();
 
-                Document doc = db.parse(file);
-                if (doc != null) {
-                    doc.getDocumentElement().normalize();
-                    NodeList nodes = doc.getDocumentElement().getChildNodes();
-                    for (int i = 0; i < nodes.getLength(); i++) {
-                        Node node = nodes.item(i);
-                        if (node.hasAttributes()) {
-                            Node nameAttr = node.getAttributes().getNamedItem("name");
-                            if (nameAttr != null && "fileDir".equals( nameAttr.getTextContent() )) {
-                                return node.getTextContent();
+                    Document doc = db.parse(file);
+                    if (doc != null) {
+                        doc.getDocumentElement().normalize();
+                        NodeList nodes = doc.getDocumentElement().getChildNodes();
+                        for (int i = 0; i < nodes.getLength(); i++) {
+                            Node node = nodes.item(i);
+                            if (node.hasAttributes()) {
+                                Node nameAttr = node.getAttributes().getNamedItem("name");
+                                if (nameAttr != null && "fileDir".equals(nameAttr.getTextContent())) {
+                                    return node.getTextContent();
+                                }
                             }
                         }
                     }

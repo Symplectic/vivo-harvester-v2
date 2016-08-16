@@ -6,67 +6,56 @@
  ******************************************************************************/
 package uk.co.symplectic.vivoweb.harvester.translate;
 
+import org.apache.commons.lang.NullArgumentException;
 import org.apache.commons.lang.StringUtils;
 import uk.co.symplectic.translate.TemplatesHolder;
 import uk.co.symplectic.translate.TranslationService;
-import uk.co.symplectic.vivoweb.harvester.fetch.ElementsObjectsInRelationships;
-import uk.co.symplectic.vivoweb.harvester.fetch.ElementsRelationshipObserver;
-import uk.co.symplectic.vivoweb.harvester.store.ElementsObjectStore;
-import uk.co.symplectic.vivoweb.harvester.store.ElementsRdfStore;
-import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredRelationship;
+import uk.co.symplectic.vivoweb.harvester.config.Configuration;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsRelationshipInfo;
+import uk.co.symplectic.vivoweb.harvester.store.*;
 
-import javax.xml.transform.Templates;
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-
-public class ElementsRelationshipTranslateObserver implements ElementsRelationshipObserver {
+public class ElementsRelationshipTranslateObserver extends IElementsStoredItemObserver.ElementsStoredRelationshipObserver {
     private final TranslationService translationService = new TranslationService();
     private TemplatesHolder templatesHolder = null;
-
-    private ElementsObjectStore objectStore = null;
     private ElementsRdfStore rdfStore = null;
 
     private boolean currentStaffOnly = true;
     private boolean visibleLinksOnly = true;
 
-    public ElementsRelationshipTranslateObserver(ElementsObjectStore objectStore, ElementsRdfStore rdfStore, String xslFilename) {
-        this.objectStore = objectStore;
+    public ElementsRelationshipTranslateObserver(ElementsRdfStore rdfStore, String xslFilename, boolean currentStaffOnly, boolean visibleLinksOnly) {
+        super(StorableResourceType.RAW_RELATIONSHIP);
+        if(rdfStore == null) throw new NullArgumentException("rdfStore");
+        if(xslFilename == null) throw new NullArgumentException("xslFilename");
+
         this.rdfStore = rdfStore;
+
+        //TODO: is this sensible - may want an ILLEGAL ARG instead
         if (!StringUtils.isEmpty(xslFilename)) {
             templatesHolder = new TemplatesHolder(xslFilename);
-            translationService.setIgnoreFileNotFound(true);
+            translationService.getConfig().setIgnoreFileNotFound(true);
+            //TODO : migrate these Configuration access bits somehow?
+            translationService.getConfig().addXslParameter("baseURI", Configuration.getBaseURI());
+            translationService.getConfig().addXslParameter("recordDir", Configuration.getRawOutputDir());
+            translationService.getConfig().setUseFullUTF8(Configuration.getUseFullUTF8());
         }
-    }
 
-    public void setCurrentStaffOnly(boolean currentStaffOnly) {
         this.currentStaffOnly = currentStaffOnly;
-    }
-
-    public void setVisibleLinksOnly(boolean visibleLinksOnly) {
         this.visibleLinksOnly = visibleLinksOnly;
     }
 
-    public void observe(ElementsStoredRelationship relationship, ElementsObjectsInRelationships objectsInRelationships) {
-        File outFile = rdfStore.getRelationshipFile(relationship.getRelationshipInfo());
+    @Override
+    public void observeStoredRelationship(ElementsRelationshipInfo info, ElementsStoredItem item) {
 
-        /**
-         * Note that the translation service is designed to be asynchronous. Which means, when the translate() method
-         * call returns, we are not guaranteed that the translation will have completed (in fact, we can be almost certain
-         * that is WON'T have finished translating by the time that the method call returns.
-         *
-         * As a result, we can't do anything that relies on the translation having been completed by coding it after the
-         * method call. For example, cleaning up empty files output from the translation.
-         *
-         * In order to get round this, a callback object can be supplied, which will execute after the translation code
-         * has completed.
-         *
-         * In this case, we supply an object that will clean up any empty translation output.
-         */
-        ElementsRelationshipTranslationCallback callback = new ElementsRelationshipTranslationCallback(relationship, outFile, objectsInRelationships, objectStore);
-        callback.setCurrentStaffOnly(currentStaffOnly);
-        callback.setVisibleLinksOnly(visibleLinksOnly);
-        translationService.translate(relationship.getFile(), outFile, templatesHolder, callback);
+        //TODO : probably rip this out and move into the translation layer [behaviour doesn't really make sense as it stands]
+        boolean includeRelationship = true;
+        if (visibleLinksOnly && includeRelationship) {
+            //ensure we only ever make it false once
+            includeRelationship = includeRelationship && info.getIsVisible();
+        }
+
+        if(includeRelationship) {
+            //TODO : SHOULD account for current staff and excluded users - NOT DOING SO MEANS BEHAVIOUR IS SLIGHTLY DIFFERENT AS MONITOR DOES NOT DELETE RELATIONSHIP FILES
+            translationService.translate(item, rdfStore, templatesHolder);
+        }
     }
 }

@@ -6,199 +6,169 @@
  ******************************************************************************/
 package uk.co.symplectic.elements.api;
 
+import org.apache.commons.httpclient.HttpException;
+import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.NullArgumentException;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.co.symplectic.xml.StAXUtils;
-import uk.co.symplectic.xml.XMLStreamFragmentReader;
+import uk.co.symplectic.xml.XMLEventProcessor;
 
-import javax.xml.stream.XMLInputFactory;
-import javax.xml.stream.XMLStreamConstants;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamReader;
+import javax.xml.stream.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URISyntaxException;
+import java.text.MessageFormat;
+import java.util.*;
 
 /**
  * Main Elements API Client class
  */
 public class ElementsAPI {
-    // Definitions of available API versions
-    // IF you add any value here, you must update getAPI()
-    public static final String VERSION_3_7    = "3.7";
-    public static final String VERSION_3_7_16 = "3.7.16";
-    public static final String VERSION_4_6 = "4.6";
-    public static final String VERSION_4_9 = "4.9";
+
+    public static long timeSpentInNetwork = 0;
+    public static long timeSpentInProcessing = 0;
+    public static void resetTimers(){
+        timeSpentInNetwork = 0;
+        timeSpentInProcessing = 0;
+    }
+
+    public static class APIResponseFilter{
+        private final XMLEventProcessor.EventFilter filter;
+        private final List<ElementsAPIVersion> supportedVersions = new ArrayList<ElementsAPIVersion>();
+
+        public APIResponseFilter(XMLEventProcessor.EventFilter filter,ElementsAPIVersion... supportedVersions){
+            if(filter == null) throw new NullArgumentException("filter");
+            this.filter = filter;
+
+            for(ElementsAPIVersion version : supportedVersions){
+                if(version != null) this.supportedVersions.add(version);
+            }
+            if(this.supportedVersions.size() == 0) throw new IllegalArgumentException("Must supply at least one supported ElementsAPIVersion");
+        }
+
+        public boolean supports(ElementsAPIVersion version){
+            return supportedVersions.contains(version);
+        }
+
+        public XMLEventProcessor.EventFilter getEventFilter() { return filter; }
+    }
 
     /**
      * SLF4J Logger
      */
     private static final Logger log = LoggerFactory.getLogger(ElementsAPI.class);
 
-    // The API version URL builder (needs to be turned into an template to handle multiple categories).
-    private ElementsAPIURLBuilder urlBuilder = null;
+    private final ElementsAPIVersion version;
 
-    private String url = null;
-
-    private String username = null;
-    private String password = null;
-
-    private boolean isSecured = true;
+    private final String url;
+    private final String username;
+    private final String password;
 
     private int maxRetries = 5;
     private int retryDelayMillis = 500;
 
-    /**
-     * Factory method to obtain a handle to the API class, configured for a specific API version
-     *
-     * Throws IllegalStateException if the URL is invalid, or IllegalArgumentException if the version is unknown
-     *
-     * @param version
-     * @param url
-     * @param isSecured
-     * @return
-     */
-    public static ElementsAPI getAPI(String version, String url, boolean isSecured) {
-        ElementsAPI api = getAPI(version);
-        api.setUrl(url);
-        api.setIsSecured(isSecured);
-
-        ElementsAPIURLValidator validator = new ElementsAPIURLValidator(api.url, api.isSecured);
-        if (!validator.isValid()) {
-            throw new IllegalStateException(validator.getLastValidationMessage());
-        }
-
-        return api;
+    public ElementsAPI(ElementsAPIVersion version, String url){
+        this(version, url, null, null);
     }
 
-    /**
-     * Factory method to obtain a handle to the API class, configured for a specific API version
-     *
-     * Throws IllegalStateException if the URL is invalid, or IllegalArgumentException if the version is unknown
-     *
-     * @param version
-     * @param url
-     * @return
-     */
-    public static ElementsAPI getAPI(String version, String url) {
-        ElementsAPI api = getAPI(version);
-        api.setUrl(url);
-
-        ElementsAPIURLValidator validator = new ElementsAPIURLValidator(api.url, api.isSecured);
-        if (!validator.isValid()) {
-            throw new IllegalStateException(validator.getLastValidationMessage());
+    public ElementsAPI(ElementsAPIVersion version, String url, String username, String password) {
+        if(version == null){
+            log.error("provided version must not be null on construction");
+            throw new NullArgumentException("version");
         }
 
-        return api;
-    }
+        this.version = version;
 
-    /**
-     * Internal method to get the API object for a specific version.
-     *
-     * Throws IllegalArgumentException if the version is unknown.
-     *
-     * @param version
-     * @return
-     */
-    static ElementsAPI getAPI(String version) {
-        if (version == null) {
-            throw new IllegalArgumentException("No version supplied");
-        }
+        try{
+            ElementsAPIURLValidator validator = new ElementsAPIURLValidator(url);
+            this.url = StringUtils.stripEnd(url, "/") + "/";
 
-        // If the string starts with "v." or "version", etc. then strip that out to the version number
-        if (Character.toLowerCase(version.charAt(0)) == 'v') {
-            int firstDigitIdx = 1;
-            if (version.toLowerCase().startsWith("version")) {
-                firstDigitIdx = 7;
+            if(validator.urlIsSecure()) {
+                if(StringUtils.isBlank(username) || StringUtils.isBlank(password)){
+                    String errorMsg = "Must supply username and password when connecting to a secure api endpoint";
+                    log.error(errorMsg);
+                    throw new IllegalArgumentException(errorMsg);
+                }
+                this.username = username;
+                this.password = password;
             }
-
-            for (; firstDigitIdx < version.length(); firstDigitIdx++) {
-                char currentChar = version.charAt(firstDigitIdx);
-                if (Character.isDigit(currentChar)) {
-                    version = version.substring(firstDigitIdx);
-                    break;
+            else {
+                if (StringUtils.isNotBlank(username) || StringUtils.isNotBlank(password)) {
+                    String warnMsg = MessageFormat.format("Provided API credentials{0} ignored as the API url ({1}) is not secure", (username == null ? "" : "(" + username + ")"), url);
+                    log.warn(warnMsg);
                 }
-
-                if (!Character.isWhitespace(currentChar) && currentChar != '.') {
-                    break;
-                }
+                this.username = null;
+                this.password = null;
             }
         }
-
-        return new ElementsAPI(version);
+        catch(URISyntaxException e){
+            String errorMsg = MessageFormat.format("Provided URL was invalid: {0}", e.getMessage());
+            log.error(errorMsg);
+            throw new IllegalStateException(errorMsg, e);
+        }
     }
 
-    /**
-     * Call the API based on the query supplied. For each object, call the supplied handler
-     *
-     * @param feedQuery
-     * @param handler
-     * @return
-     */
-    public ElementsFeedInfo execute(ElementsAPIFeedObjectQuery feedQuery, ElementsAPIFeedObjectHandler handler) {
-        ElementsFeedInfo info = new ElementsFeedInfo();
-        ElementsAPIFeedEntryObjectParser parser = new ElementsAPIFeedEntryObjectParser(handler, feedQuery.getFullDetails());
+    public void executeQuery(ElementsFeedQuery feedQuery, APIResponseFilter... filters) {
+        List<XMLEventProcessor.EventFilter> eventFilters = new ArrayList<XMLEventProcessor.EventFilter>();
+        for(APIResponseFilter filter : filters){
+            if(!filter.supports(version)){
+                String message = MessageFormat.format("Filter {0} does not support API ElementsAPIVersion {1}", filter.getClass().getName(), version.getVersionName());
+                throw new IllegalStateException(message);
+            }
+            eventFilters.add(filter.getEventFilter());
+        }
+//        XMLEventProcessor processor = new XMLEventProcessor(eventFilters.toArray(new XMLEventProcessor.EventFilter[eventFilters.size()]));
 
-        String queryUrl = urlBuilder.buildObjectFeedQuery(url, feedQuery);
+        String currentQueryUrl = feedQuery.getUrlString(url, version.getUrlBuilder());
+        ElementsFeedPagination pagination = executeInternalQuery(currentQueryUrl, eventFilters);
 
-        ElementsFeedPagination pagination = executeQuery(queryUrl, parser);
+        //todo: decide if keep low level logging.
+        int counter = 1;
+
         if (pagination != null && feedQuery.getProcessAllPages()) {
+            //hack hack
             while (pagination.getNextURL() != null) {
                 // Some versions of Elements incorrectly return the pagination information
                 // Check that the next URL is valid before continuing
-                if (pagination.getNextURL().equals(queryUrl)) {
+                //TODO: make this test if pagination has been retrieved correctly (e.g. test current against last to exit or something?)
+                String nextQueryUrl = pagination.getNextURL();
+                //System.out.println(nextQueryUrl);
+
+                if (nextQueryUrl.equals(currentQueryUrl)) {
                     throw new IllegalStateException("Error in the pagination response from Elements - unable to continue processing");
                 }
+                currentQueryUrl = nextQueryUrl;
+                pagination = executeInternalQuery(currentQueryUrl, eventFilters);
 
-                queryUrl = pagination.getNextURL();
-                pagination = executeQuery(queryUrl, parser);
+                //todo: decide if keep low level logging.
+                counter++;
+                if(counter % 40 == 0){
+                    log.info(MessageFormat.format("{0} items processed: network-time: {1}, processing-time: {2}", counter*25, ElementsAPI.timeSpentInNetwork, ElementsAPI.timeSpentInProcessing));
+                    ElementsAPI.resetTimers();
+                }
+
             }
         }
-
-        return info;
     }
 
-    /**
-     * Call the API based on the query supplied. For each object, call the supplied handler
-     *
-     * @param relationshipFeedQuery
-     * @param handler
-     * @return
-     */
-    public ElementsFeedInfo execute(ElementsAPIFeedRelationshipQuery relationshipFeedQuery, ElementsAPIFeedRelationshipHandler handler) {
-        ElementsFeedInfo info = new ElementsFeedInfo();
-        ElementsAPIFeedEntryRelationshipParser parser = new ElementsAPIFeedEntryRelationshipParser(handler);
-
-        String queryUrl = urlBuilder.buildRelationshipFeedQuery(url, relationshipFeedQuery);
-
-        ElementsFeedPagination pagination = executeQuery(queryUrl, parser);
-        if (pagination != null && relationshipFeedQuery.getProcessAllPages()) {
-            while (pagination.getNextURL() != null) {
-                pagination = executeQuery(pagination.getNextURL(), parser);
-            }
-        }
-
-        return info;
-    }
-
+    //TODO : rationalise with main query call to have common usage of the underlying client with nice retry behaviour etc.
     public boolean fetchResource(String resourceURL, OutputStream outputStream) {
-        InputStream apiResponse = null;
+        ElementsAPIHttpClient.ApiResponse apiResponse = null;
         try {
-            ElementsAPIHttpClient apiClient;
-            if (isSecured) {
-                apiClient = new ElementsAPIHttpClient(resourceURL, username, password);
-            } else {
-                apiClient = new ElementsAPIHttpClient(resourceURL);
-            }
-
+            ElementsAPIHttpClient apiClient = new ElementsAPIHttpClient(resourceURL, username, password);
             apiResponse = apiClient.executeGetRequest();
-            IOUtils.copy(apiResponse, outputStream);
-        } catch (IOException e) {
-        } finally {
+            IOUtils.copy(apiResponse.getResponseStream(), outputStream);
+        }
+        catch (IOException e) { }
+        catch (URISyntaxException e2){ }
+        finally {
             if (apiResponse != null) {
                 try {
-                    apiResponse.close();
+                    apiResponse.dispose();
                 } catch (IOException e) {
 
                 }
@@ -208,28 +178,34 @@ public class ElementsAPI {
         return true;
     }
 
-    /**
-     * Executes a single query. If paginated, may be called multiple times by execute()
-     * @param url
-     * @param parser
-     * @return
-     */
-    private ElementsFeedPagination executeQuery(String url, ElementsFeedEntryParser parser) throws IllegalStateException {
+    private ElementsFeedPagination executeInternalQuery(String url, Collection<XMLEventProcessor.EventFilter> eventFilters) throws IllegalStateException {
         int retryCount = 0;
         do {
-            InputStream apiResponse = null;
+            ElementsAPIHttpClient.ApiResponse apiResponse = null;
             try {
-                ElementsAPIHttpClient apiClient;
-                if (isSecured) {
-                    apiClient = new ElementsAPIHttpClient(url, username, password);
-                } else {
-                    apiClient = new ElementsAPIHttpClient(url);
-                }
-
+                long startTime = System.currentTimeMillis();
+                ElementsAPIHttpClient apiClient = new ElementsAPIHttpClient(url, username, password);
                 apiResponse = apiClient.executeGetRequest();
-                return parseResponse(apiResponse, parser);
-            } catch (IOException e) {
-                log.error("IO Error handling API request", e);
+                long endTime = System.currentTimeMillis();
+                timeSpentInNetwork += (endTime - startTime);
+                return parseEventResponse(apiResponse.getResponseStream(), eventFilters);
+            }
+            catch (URISyntaxException e) {
+                log.error("Invalid API query detected", e);
+                //not going to recover from this so just fail.
+                throw new IllegalStateException(e);
+            }
+            catch (IOException e) {
+                if(e instanceof HttpException){
+                    int statusCode = ((HttpException) e).getReasonCode();
+                    //if forbidden then just jump out here..
+                    if(statusCode == HttpStatus.SC_FORBIDDEN || statusCode == HttpStatus.SC_UNAUTHORIZED) {
+                        throw new IllegalStateException(e.getMessage(), e);
+                    }
+                    log.error(e.getMessage(), e);
+                }
+                else log.error("IO Error handling API request", e);
+
                 if (++retryCount >= maxRetries) {
                     throw new IllegalStateException("IO Error handling API request", e);
                 }
@@ -241,9 +217,9 @@ public class ElementsAPI {
             } finally {
                 if (apiResponse != null) {
                     try {
-                        apiResponse.close();
+                        apiResponse.dispose();
                     } catch (IOException e) {
-
+                        throw new IllegalStateException("IOException attempting to dispose apiResponse", e);
                     }
                 }
             }
@@ -257,97 +233,19 @@ public class ElementsAPI {
         } while (true);
     }
 
-    private ElementsFeedPagination parseResponse(InputStream response, ElementsFeedEntryParser parser) throws XMLStreamException {
-        ElementsFeedPagination pagination = new ElementsFeedPagination();
+    private ElementsFeedPagination parseEventResponse(InputStream response, Collection<XMLEventProcessor.EventFilter> eventFilters) throws XMLStreamException {
+        final long startTime = System.currentTimeMillis();
+        //set up the xml reader
         XMLInputFactory xmlInputFactory = StAXUtils.getXMLInputFactory();
-        XMLStreamReader atomReader = xmlInputFactory.createXMLStreamReader(response);
+        XMLEventReader atomReader = xmlInputFactory.createXMLEventReader(response);
 
-        while (atomReader.hasNext()) {
-            switch (atomReader.getEventType()) {
-                case XMLStreamConstants.START_DOCUMENT:
-                    parser.setEncoding(atomReader.getEncoding());
-                    parser.setVersion(atomReader.getVersion());
-                    break;
+        XMLEventProcessor processor = new XMLEventProcessor(eventFilters.toArray(new XMLEventProcessor.EventFilter[eventFilters.size()]));
+        ElementsAPIVersion.PaginationExtractingFilter paginationFilter = version.getPaginationExtractor();
+        processor.addFilter(paginationFilter);
+        processor.process(atomReader);
 
-                case XMLStreamConstants.START_ELEMENT:
-                    String prefix = atomReader.getPrefix();
-                    String name = atomReader.getLocalName();
-                    if ("entry".equals(name)) {
-                        parser.parseEntry(new XMLStreamFragmentReader(atomReader));
-                    } else if ("api".equals(prefix) && "pagination".equals(name)) {
-                        for (int attIdx = 0; attIdx < atomReader.getAttributeCount(); attIdx++) {
-                            if ("items-per-page".equals(atomReader.getAttributeLocalName(attIdx))) {
-                                pagination.setItemsPerPage(Integer.parseInt(atomReader.getAttributeValue(attIdx)));
-                            }
-                        }
-                    } else if ("api".equals(prefix) && "page".equals(name)) {
-                        String position = null;
-                        String href = null;
-                        for (int attIdx = 0; attIdx < atomReader.getAttributeCount(); attIdx++) {
-                            if ("position".equals(atomReader.getAttributeLocalName(attIdx))) {
-                                position = atomReader.getAttributeValue(attIdx);
-                            } else if ("href".equals(atomReader.getAttributeLocalName(attIdx))) {
-                                href = atomReader.getAttributeValue(attIdx);
-                            }
-                        }
-
-                        if (position != null && href != null) {
-                            if ("first".equals(position)) {
-                                pagination.setFirstURL(href);
-                            } else if ("last".equals(position)) {
-                                pagination.setLastURL(href);
-                            } else if ("previous".equals(position)) {
-                                pagination.setPreviousURL(href);
-                            } else if ("next".equals(position)) {
-                                pagination.setNextURL(href);
-                            }
-                        }
-                    }
-                    break;
-
-                case XMLStreamConstants.END_ELEMENT:
-                    break;
-            }
-
-            if (atomReader.hasNext()) {
-                atomReader.next();
-            }
-        }
-
-        return pagination;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    private ElementsAPI(String version) {
-        if (VERSION_3_7_16.equals(version)) {
-            urlBuilder = new ElementsAPIv3_7_16URLBuilder();
-        } else if (VERSION_3_7.equals(version)) {
-            urlBuilder = new ElementsAPIv3_7URLBuilder();
-        } else if (VERSION_4_6.equals(version)) {
-            urlBuilder = new ElementsAPIv4_XURLBuilder();
-        } else if (VERSION_4_9.equals(version)) {
-            urlBuilder = new ElementsAPIv4_XURLBuilder();
-        } else {
-            throw new IllegalArgumentException("Unsupported version");
-        }
-    }
-
-    private void setUrl(String url) {
-        if (url.endsWith("/")) {
-            this.url = url;
-        } else {
-            this.url = url + "/";
-        }
-    }
-
-    private void setIsSecured(boolean isSecured) {
-        this.isSecured = isSecured;
+        final long endTime = System.currentTimeMillis();
+        timeSpentInProcessing += (endTime - startTime);
+        return paginationFilter.getExtractedItem();
     }
 }

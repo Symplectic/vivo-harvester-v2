@@ -9,6 +9,8 @@ package uk.co.symplectic.vivoweb.harvester.fetch.resources;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.co.symplectic.elements.api.ElementsAPI;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsUserInfo;
+import uk.co.symplectic.vivoweb.harvester.store.ElementsObjectFileStore;
 
 import java.io.File;
 import java.net.MalformedURLException;
@@ -21,16 +23,12 @@ public final class ResourceFetchService {
 
     }
 
-    public void fetchElements(ElementsAPI api, String url, File outputFile) throws MalformedURLException {
-        ResourceFetchServiceImpl.fetchElements(api, url, outputFile, null);
+    public void fetchUserPhoto(ElementsAPI api, ElementsUserInfo userInfo, ElementsObjectFileStore objectStore) throws MalformedURLException {
+        ResourceFetchServiceImpl.fetchUserPhoto(api, userInfo, objectStore);
     }
 
-    public void fetchElements(ElementsAPI api, String url, File outputFile, PostFetchCallback callback) throws MalformedURLException {
-        ResourceFetchServiceImpl.fetchElements(api, url, outputFile, callback);
-    }
-
-    public void fetchExternal(String url, File outputFile, PostFetchCallback callback) throws MalformedURLException {
-        ResourceFetchServiceImpl.fetchExternal(url, outputFile, callback);
+    public void fetchExternal(String url, File outputFile) throws MalformedURLException {
+        ResourceFetchServiceImpl.fetchExternal(url, outputFile);
     }
 
     public static void shutdown() {

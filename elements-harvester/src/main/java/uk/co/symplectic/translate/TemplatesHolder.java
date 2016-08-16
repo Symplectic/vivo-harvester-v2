@@ -13,8 +13,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 
 public class TemplatesHolder {
-    private final TranslationService translationService = new TranslationService();
-
     private String xslFilename;
     private ThreadLocal<Templates> myTemplates = new ThreadLocal<Templates>();
 
@@ -26,7 +24,7 @@ public class TemplatesHolder {
         if (myTemplates.get() == null) {
             File xslFile = new File(xslFilename);
             if (xslFile.exists()) {
-                Templates template = translationService.compileSource(xslFile);
+                Templates template = TranslationService.compileSource(xslFile);
                 myTemplates.set(template);
             } else {
                 throw new IllegalStateException("XSL Translation file not found: " + xslFilename);

@@ -1,38 +1,32 @@
-/*******************************************************************************
- * Copyright (c) 2012 Symplectic Ltd. All rights reserved.
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- ******************************************************************************/
+/*
+ * ******************************************************************************
+ *  * Copyright (c) 2012 Symplectic Ltd. All rights reserved.
+ *  * This Source Code Form is subject to the terms of the Mozilla Public
+ *  * License, v. 2.0. If a copy of the MPL was not distributed with this
+ *  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ *  *****************************************************************************
+ */
 package uk.co.symplectic.xml;
 
-import javax.xml.stream.XMLInputFactory;
-import javax.xml.stream.XMLOutputFactory;
-import javax.xml.stream.XMLStreamConstants;
-import javax.xml.stream.XMLStreamReader;
+import javax.xml.stream.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public final class StAXUtils {
+    private static XMLEventFactory xmlEventFactory = null;
     private static XMLInputFactory xmlInputFactory = null;
     private static XMLOutputFactory xmlOutputFactory = null;
 
-    public static List<XMLAttribute> getAttributes(XMLStreamReader xsr) {
-        if (xsr.getEventType() != XMLStreamConstants.START_ELEMENT) {
-            throw new IllegalStateException();
-        }
 
-        List<XMLAttribute> attributes = new ArrayList<XMLAttribute>();
-
-        for (int attIdx = 0; attIdx < xsr.getAttributeCount(); attIdx++) {
-            if (xsr.getAttributeNamespace(attIdx) != null) {
-                attributes.add(new XMLAttribute(xsr.getAttributeNamespace(attIdx), xsr.getAttributeLocalName(attIdx), xsr.getAttributeValue(attIdx)));
-            } else {
-                attributes.add(new XMLAttribute(xsr.getAttributeLocalName(attIdx), xsr.getAttributeValue(attIdx)));
+    public static XMLEventFactory getXMLEventFactory() {
+        if (xmlEventFactory == null) {
+            synchronized (StAXUtils.class) {
+                if (xmlEventFactory == null) {
+                    xmlEventFactory = XMLEventFactory.newFactory();
+                }
             }
         }
-
-        return attributes;
+        return xmlEventFactory;
     }
 
     public static XMLInputFactory getXMLInputFactory() {
@@ -43,7 +37,6 @@ public final class StAXUtils {
                 }
             }
         }
-
         return xmlInputFactory;
     }
 
@@ -52,10 +45,10 @@ public final class StAXUtils {
             synchronized (StAXUtils.class) {
                 if (xmlOutputFactory == null) {
                     xmlOutputFactory = XMLOutputFactory.newFactory();
+                    xmlOutputFactory.setProperty(XMLOutputFactory.IS_REPAIRING_NAMESPACES, true);
                 }
             }
         }
-
         return xmlOutputFactory;
     }
 }

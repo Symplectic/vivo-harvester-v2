@@ -6,8 +6,14 @@
  ******************************************************************************/
 package uk.co.symplectic.elements.api;
 
-interface ElementsAPIURLBuilder {
+import uk.co.symplectic.elements.api.queries.ElementsAPIFeedGroupQuery;
+import uk.co.symplectic.elements.api.queries.ElementsAPIFeedObjectQuery;
+import uk.co.symplectic.elements.api.queries.ElementsAPIFeedRelationshipQuery;
+
+public interface ElementsAPIURLBuilder {
     public String buildObjectFeedQuery(String endpointUrl, ElementsAPIFeedObjectQuery feedQuery);
 
     public String buildRelationshipFeedQuery(String endpointUrl, ElementsAPIFeedRelationshipQuery feedQuery);
+
+    public String buildGroupQuery(String endpointUrl, ElementsAPIFeedGroupQuery feedQuery);
 }

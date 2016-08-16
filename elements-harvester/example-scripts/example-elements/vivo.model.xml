@@ -10,8 +10,8 @@
     <Param name="dbLayout">layout2</Param>
     <Param name="dbClass">com.mysql.jdbc.Driver</Param>
     <Param name="dbType">MySQL</Param>
-    <Param name="dbUrl">jdbc:mysql://localhost/vivotest</Param>   <!--  the Jdbc connection url to your Vivo instance -->
-    <Param name="dbUser">vivotest</Param>  <!--  database user -->
-    <Param name="dbPass">vivotest</Param> <!--  database password -->
+    <Param name="dbUrl">jdbc:mysql://localhost/vivo</Param>   <!--  the Jdbc connection url to your Vivo instance -->
+    <Param name="dbUser">ajpc2</Param>  <!--  database user -->
+    <Param name="dbPass">test</Param> <!--  database password -->
     <Param name="modelName">http://vitro.mannlib.cornell.edu/default/vitro-kb-2</Param>  <!--  this is the default model name of the live Vivo instance, this is the default -->
 </Model>

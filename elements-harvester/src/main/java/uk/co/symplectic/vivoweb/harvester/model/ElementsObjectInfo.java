@@ -6,44 +6,89 @@
  ******************************************************************************/
 package uk.co.symplectic.vivoweb.harvester.model;
 
-import uk.co.symplectic.elements.api.ElementsObjectCategory;
+import uk.co.symplectic.xml.XMLEventProcessor;
 
-public class ElementsObjectInfo {
-    private ElementsObjectCategory category = null;
-    private String id = null;
+import javax.xml.namespace.QName;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.events.EndElement;
+import javax.xml.stream.events.StartElement;
+import javax.xml.stream.events.XMLEvent;
 
-    protected ElementsObjectInfo(ElementsObjectCategory category, String id) {
-        this.category = category;
-        this.id = id;
-    }
+public class ElementsObjectInfo extends ElementsItemInfo{
 
-    public static ElementsObjectInfo create(ElementsObjectCategory category, String id) {
-        if (ElementsObjectCategory.ACTIVITY == category) {
-            return new ElementsUnknownObjectInfo(category, id);
-        } else if (ElementsObjectCategory.EQUIPMENT == category) {
-            return new ElementsUnknownObjectInfo(category, id);
-        } else if (ElementsObjectCategory.GRANT == category) {
-            return new ElementsUnknownObjectInfo(category, id);
-        } else if (ElementsObjectCategory.ORG_STRUCTURE == category) {
-            return new ElementsUnknownObjectInfo(category, id);
-        } else if (ElementsObjectCategory.TEACHING_ACTIVITY == category) {
-            return new ElementsUnknownObjectInfo(category, id);
-        } else if (ElementsObjectCategory.PROJECT == category) {
-            return new ElementsUnknownObjectInfo(category, id);
-        } else if (ElementsObjectCategory.PUBLICATION == category) {
-            return new ElementsUnknownObjectInfo(category, id);
-        } else if (ElementsObjectCategory.USER == category) {
-            return new ElementsUserInfo(id);
+    public static class Extractor extends XMLEventProcessor.ItemExtractingFilter<ElementsObjectInfo>{
+
+        public static DocumentLocation fileEntryLocation = new DocumentLocation(new QName(atomNS, "entry"), new QName(apiNS, "object"));
+        public static DocumentLocation feedEntryLocation = new DocumentLocation(new QName(atomNS, "feed"), new QName(atomNS, "entry"), new QName(apiNS, "object"));
+
+        private ElementsObjectInfo objectInfo  = null;
+        private ElementsUserInfo.UserExtraData additionalUserData = null;
+
+        private ElementsUserInfo.UserExtraData getAdditionalUserData() {
+            if (additionalUserData == null) additionalUserData = new ElementsUserInfo.UserExtraData();
+            return additionalUserData;
         }
 
-        return new ElementsUnknownObjectInfo(category, id);
+        public Extractor(DocumentLocation location, int maximumAmountExpected){
+            super(location, maximumAmountExpected);
+        }
+
+        @Override
+        protected void initialiseItemExtraction(StartElement initialElement, XMLEventProcessor.ReaderProxy readerProxy) throws XMLStreamException{
+            ElementsObjectCategory objectCategory = ElementsObjectCategory.valueOf(initialElement.getAttributeByName(new QName("category")).getValue());
+            int objectId = Integer.parseInt(initialElement.getAttributeByName(new QName("id")).getValue());
+            objectInfo = ElementsItemInfo.createObjectItem(objectCategory, String.valueOf(objectId));
+            additionalUserData = null;
+        }
+
+        @Override
+        protected void processEvent(XMLEvent event, XMLEventProcessor.ReaderProxy readerProxy) throws XMLStreamException {
+            if (objectInfo instanceof ElementsUserInfo) {
+                ElementsUserInfo userInfo = (ElementsUserInfo) objectInfo;
+                if (event.isStartElement()) {
+                    StartElement startElement = event.asStartElement();
+                    QName name = startElement.getName();
+
+                    if (name.equals(new QName(apiNS, "object"))) {
+                        getAdditionalUserData().setUsername(startElement.getAttributeByName(new QName("username")).getValue());
+                    } else if (name.equals(new QName(apiNS, "is-current-staff"))) {
+                        XMLEvent nextEvent = readerProxy.peek();
+                        if (nextEvent.isCharacters())
+                            getAdditionalUserData().setIsCurrentStaff(Boolean.parseBoolean(nextEvent.asCharacters().getData()));
+                    } else if (name.equals(new QName(apiNS, "photo"))) {
+                        getAdditionalUserData().setPhotoUrl(startElement.getAttributeByName(new QName("href")).getValue());
+                    }
+                }
+            }
+        }
+
+        @Override
+        protected ElementsObjectInfo finaliseItemExtraction(EndElement finalElement, XMLEventProcessor.ReaderProxy readerProxy){
+            if (objectInfo instanceof ElementsUserInfo) {
+                ElementsUserInfo userInfo = (ElementsUserInfo) objectInfo;
+                userInfo.addExtraData(additionalUserData);
+            }
+            return objectInfo;
+        }
     }
 
+    private final ElementsObjectId objectId;
+
+    //package private as should only ever be constructed by create calls into superclass
+    protected ElementsObjectInfo(ElementsObjectCategory category, String id) {
+        super(ElementsItemType.OBJECT);
+        //ObjectID constructor will test params for null.
+        this.objectId = new ElementsObjectId(category, id);
+    }
+
+    public ElementsObjectId getObjectId() {
+        return objectId;
+    }
     public ElementsObjectCategory getCategory() {
-        return category;
+        return objectId.getCategory();
     }
-
+    @Override
     public String getId() {
-        return id;
+        return objectId.getId();
     }
 }

@@ -6,50 +6,42 @@
  ******************************************************************************/
 package uk.co.symplectic.vivoweb.harvester.fetch;
 
+import org.apache.commons.lang.NullArgumentException;
 import org.apache.commons.lang.StringUtils;
 import uk.co.symplectic.elements.api.ElementsAPI;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectInfo;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsUserInfo;
 import uk.co.symplectic.vivoweb.harvester.fetch.resources.ResourceFetchService;
-import uk.co.symplectic.vivoweb.harvester.store.ElementsObjectStore;
-import uk.co.symplectic.vivoweb.harvester.store.ElementsRdfStore;
-import uk.co.symplectic.vivoweb.harvester.translate.ElementsObjectTranslateStagesObserver;
-
-import java.io.File;
+import uk.co.symplectic.vivoweb.harvester.store.*;
 import java.net.MalformedURLException;
 
-public class ElementsUserPhotoRetrievalObserver implements ElementsObjectTranslateStagesObserver {
+public class ElementsUserPhotoRetrievalObserver extends IElementsStoredItemObserver.ElementsStoredObjectObserver {
+    //TODO: Sort out static as object behaviour here
     private final ResourceFetchService fetchService = new ResourceFetchService();
-    private ElementsObjectStore objectStore = null;
-    private ElementsRdfStore rdfStore = null;
-    private File vivoImageDir = null;
-    private String vivoBaseURI = null;
-
+    private ElementsObjectFileStore objectStore = null;
     private ElementsAPI elementsApi;
 
-    public ElementsUserPhotoRetrievalObserver(ElementsAPI elementsApi, ElementsObjectStore objectStore, ElementsRdfStore rdfStore, File vivoImageDir, String vivoBaseURI) {
+    public ElementsUserPhotoRetrievalObserver(ElementsAPI elementsApi, ElementsObjectFileStore objectStore) {
+        super(StorableResourceType.TRANSLATED_OBJECT);
+        if(elementsApi == null) throw new NullArgumentException("elementsApi");
+        if(objectStore == null) throw new NullArgumentException("objectStore");
         this.elementsApi  = elementsApi;
         this.objectStore = objectStore;
-        this.rdfStore = rdfStore;
-        this.vivoImageDir = vivoImageDir;
-        this.vivoBaseURI = vivoBaseURI;
     }
 
     @Override
-    public void beingTranslated(ElementsObjectInfo objectInfo) {
-        if (objectInfo instanceof ElementsUserInfo) {
-            ElementsUserInfo userInfo = (ElementsUserInfo)objectInfo;
+    public void observeStoredObject(ElementsObjectInfo info, ElementsStoredItem item) {
+        if (info instanceof ElementsUserInfo) {
+            ElementsUserInfo userInfo = (ElementsUserInfo) info;
             if (!StringUtils.isEmpty(userInfo.getPhotoUrl())) {
                 if (elementsApi != null) {
                     try {
-                        fetchService.fetchElements(elementsApi, userInfo.getPhotoUrl(), objectStore.generateResourceHandle(objectInfo, "photo"),
-                                new ElementsUserPhotosFetchCallback(userInfo, rdfStore, vivoImageDir, vivoBaseURI, null)
-                        );
+                        fetchService.fetchUserPhoto(elementsApi, userInfo, objectStore);
                     } catch (MalformedURLException mue) {
-                        // Log error
+                        // TODO: Log error
                     }
                 } else {
-                    // Log missing API object
+                    // TODO: Log missing API object
                 }
             }
         }

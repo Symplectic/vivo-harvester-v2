@@ -6,46 +6,68 @@
  ******************************************************************************/
 package uk.co.symplectic.elements.api;
 
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.UsernamePasswordCredentials;
+import com.sun.xml.xsom.impl.ContentTypeImpl;
+import org.apache.commons.httpclient.*;
 import org.apache.commons.httpclient.auth.AuthScope;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.httpclient.params.HttpClientParams;
+import org.apache.commons.httpclient.params.HttpConnectionManagerParams;
+import org.apache.commons.lang.NullArgumentException;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URISyntaxException;
+import java.text.MessageFormat;
 import java.util.Date;
 
+
 public class ElementsAPIHttpClient {
-    private String username;
-    private String password;
+    final private String username;
+    final private String password;
+    final private String url;
 
-    private String url;
+    private static final int defaultSoTimeout = 5 * 60 * 1000; // 5 minutes, in milliseconds
 
-    private static int soTimeout = 5 * 60 * 1000; // 5 minutes, in milliseconds
-
-    public static void setSoTimeout(int millis) {
-        soTimeout = millis;
+    public static void setSocketTimeout(int millis) {
+        HttpConnectionManager connectionManager = ElementsAPIHttpConnectionManager.getInstance();
+        HttpConnectionManagerParams params = connectionManager.getParams();
+        params.setSoTimeout(millis);
+        connectionManager.setParams(params);
     }
 
-    ElementsAPIHttpClient(String url, String username, String password) {
-        this.url      = url;
-        this.username = username;
-        this.password = password;
+    public ElementsAPIHttpClient(String url) throws URISyntaxException {
+        this(url, null, null);
     }
 
-    ElementsAPIHttpClient(String url) {
+    public ElementsAPIHttpClient(String url, String username, String password) throws URISyntaxException {
+        this(url, username, password, defaultSoTimeout);
+    }
+
+    public ElementsAPIHttpClient(String url, String username, String password, int socketTimeout) throws URISyntaxException {
+        if(url == null) throw new NullArgumentException("url");
+        ElementsAPIURLValidator validator = new ElementsAPIURLValidator(url);
         this.url = url;
+
+        //Only store the username and password if the scheme being used is considered "secure" - to avoid accidentally sending credentials in the clear.
+        if(validator.urlIsSecure() && username != null) {
+            this.username = username;
+            this.password = password;
+        } else {
+            this.username = null;
+            this.password = null;
+        }
+
+        setSocketTimeout(socketTimeout);
     }
 
-    InputStream executeGetRequest() throws IOException {
+    public ApiResponse executeGetRequest() throws IOException {
         // Prepare the HttpClient
-        HttpClient client = new HttpClient(ElementsAPIConnectionManager.getInstance());
+        HttpClient client = new HttpClient(ElementsAPIHttpConnectionManager.getInstance());
         if (username != null) {
             UsernamePasswordCredentials credentials = new UsernamePasswordCredentials(username, password);
             client.getState().setCredentials(AuthScope.ANY, credentials);
             HttpClientParams params = new HttpClientParams(client.getParams());
-            params.setSoTimeout(soTimeout);
             client.setParams(params);
         }
 
@@ -54,8 +76,16 @@ public class ElementsAPIHttpClient {
 
         // Issue get request
         GetMethod getMethod = new GetMethod(url);
-        client.executeMethod(getMethod);
-        return getMethod.getResponseBodyAsStream();
+        int responseCode = client.executeMethod(getMethod);
+
+        //convert non 200 responses into exceptions.
+        HttpException exception;
+        if(responseCode != HttpStatus.SC_OK){
+            exception = new HttpException(MessageFormat.format("Invalid Http response code received: {0} ({1})", responseCode, HttpStatus.getStatusText(responseCode)));
+            exception.setReasonCode(responseCode);
+            throw exception;
+        }
+        return new ApiResponse(responseCode, getMethod);
     }
 
     /**
@@ -64,7 +94,7 @@ public class ElementsAPIHttpClient {
      * @return InputStream corresponding to the request body
      * @throws IOException Failure reading the request stream
      */
-    InputStream executeGetRequest(int maxRetries) throws IOException {
+    ApiResponse executeGetRequest(int maxRetries) throws IOException {
         if (maxRetries == 0) {
             return executeGetRequest();
         }
@@ -104,6 +134,42 @@ public class ElementsAPIHttpClient {
             // Ignore an interrupt
         } finally {
             lastRequest = new Date();
+        }
+    }
+
+    /*
+    Inner class to represent the response from an API and offer a "dispose" method to close http connections when finished with the stream.
+     */
+    public static class ApiResponse{
+        final private HttpMethodBase method;
+        final private int responseCode;
+        private boolean disposed = false;
+
+        ApiResponse(int responseCode, HttpMethodBase method){
+            if(method == null) throw new NullArgumentException("method");
+            this.method = method;
+            this.responseCode = responseCode;
+        }
+        public InputStream getResponseStream() throws IOException{
+            if(!disposed) {
+                //timing testing hack
+                //method.getResponseBodyAsString();
+                return new BufferedInputStream(method.getResponseBodyAsStream());
+            }
+            throw new IOException("APIResponse object already disposed");
+        }
+
+        public void dispose() throws IOException{
+            if(!disposed) {
+                InputStream stream = getResponseStream();
+                if (stream != null) stream.close();
+                method.releaseConnection();
+                disposed = true;
+            }
+        }
+
+        public int getResponseCode() {
+            return responseCode;
         }
     }
 }

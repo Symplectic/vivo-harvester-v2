@@ -326,14 +326,14 @@
     <xsl:function name="svfn:renderConferenceObject">
         <xsl:param name="object" />
         <xsl:param name="conferenceObjectURI" as="xs:string" />
-        <xsl:param name="conferenceName" as="xs:string" />
+        <xsl:param name="confName" as="xs:string" />
         <xsl:param name="publicationURI" as="xs:string" />
 
-        <xsl:if test="$conferenceName">
+        <xsl:if test="$confName">
             <xsl:call-template name="render_rdf_object">
                 <xsl:with-param name="objectURI" select="$conferenceObjectURI" />
                 <xsl:with-param name="rdfNodes">
-                    <rdfs:label><xsl:value-of select="$conferenceName" /></rdfs:label>
+                    <rdfs:label><xsl:value-of select="$confName" /></rdfs:label>
                     <rdf:type rdf:resource="http://purl.org/ontology/bibo/Conference"/>
                     <bibo:presents rdf:resource="{$publicationURI}" />
                     <!-- obo:RO_0001025 rdf:resource="" / --><!-- location -->

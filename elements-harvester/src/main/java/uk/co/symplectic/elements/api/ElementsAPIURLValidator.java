@@ -6,70 +6,56 @@
  ******************************************************************************/
 package uk.co.symplectic.elements.api;
 
+import org.apache.commons.lang.StringUtils;
+
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 class ElementsAPIURLValidator {
+    private static final List<String> allowedInsecureSchemes = Arrays.asList(new String[]{"http"});
+    private static final List<String> allowedSecureSchemes = Arrays.asList(new String[]{"https"});
+
     private String url;
-    private boolean isSecured;
+    private boolean isSecure;
 
-    private String failureMsg = null;
-
-    ElementsAPIURLValidator(String url, boolean isSecured) {
+    ElementsAPIURLValidator(String url) throws URISyntaxException {
         this.url = url;
-        this.isSecured = isSecured;
+        validate();
     }
 
-    boolean isValid() {
-        failureMsg = null;
-        if (url == null) {
-            return failValidation("URL must not be null");
-        }
+    private void validate() throws URISyntaxException {
+        try {
+            if (url == null) throw new URISyntaxException(url, "URL must not be null");
 
-        if (isSecured) {
-            if (!urlStartsWithHTTPS()) {
-                return failValidation("Secured endpoint does not begin with https://");
+            URL urlCheck = new URL(url);
+            URI uriTest = urlCheck.toURI();
+
+            String scheme = uriTest.getScheme().toLowerCase();
+
+            List<String> validSchemes = new ArrayList<String>();
+            validSchemes.addAll(allowedInsecureSchemes);
+            validSchemes.addAll(allowedSecureSchemes);
+
+            if(!validSchemes.contains(scheme)) {
+                throw new URISyntaxException(url, MessageFormat.format("Invalid Scheme used in {0}, must be one of : {1}", this.getClass().getName(), String.join(", ", validSchemes)));
             }
 
-        } else if (!urlStartsWithHTTP()) {
-            return failValidation("Unsecured endpoint does not begin with http://");
-        }
+            if(allowedSecureSchemes.contains(scheme)) {
+                isSecure = true;
+            }
 
-        try {
-            URL urlCheck = new URL(url);
-            urlCheck.toURI();
-        } catch (URISyntaxException use) {
-            return failValidation("Endpoint is not a valid URI");
         } catch (MalformedURLException mue) {
-            return failValidation("Endpoint is not a valid URL");
+            throw new URISyntaxException(url, mue.getMessage());
         }
-
-        return true;
     }
 
-    String getLastValidationMessage() {
-        return failureMsg;
-    }
-
-    private boolean failValidation(String msg) {
-        failureMsg = msg;
-        return false;
-    }
-
-    private boolean urlStartsWithHTTP() {
-        if (url == null || url.length() < 8) {
-            return false;
-        }
-
-        return "http://".equalsIgnoreCase(url.substring(0, 7));
-    }
-
-    private boolean urlStartsWithHTTPS() {
-        if (url == null || url.length() < 9) {
-            return false;
-        }
-
-        return "https://".equalsIgnoreCase(url.substring(0, 8));
+    public boolean urlIsSecure() {
+        return isSecure;
     }
 }

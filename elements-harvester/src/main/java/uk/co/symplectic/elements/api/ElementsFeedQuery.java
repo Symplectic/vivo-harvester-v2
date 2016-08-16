@@ -6,12 +6,16 @@
  ******************************************************************************/
 package uk.co.symplectic.elements.api;
 
-abstract class ElementsFeedQuery {
+abstract public class ElementsFeedQuery {
+
+    //occasionally useful hack for testing.
+    //public int page;
+
     private boolean fullDetails = false;
     private boolean processAllPages = false;
     private int perPage = -1;
 
-    ElementsFeedQuery() {
+    public ElementsFeedQuery() {
         super();
     }
 
@@ -68,4 +72,12 @@ abstract class ElementsFeedQuery {
     public void setProcessAllPages(boolean processAllPages) {
         this.processAllPages = processAllPages;
     }
+
+    /**
+     * Call to convert this particular query into a URL using the passed in builder to account for version differences.
+     * @param apiBaseUrl the base url of the api you want to query
+     * @param builder an api version specific builder that knows how to construct different types of query URL.
+     * @return
+     */
+    public abstract String getUrlString(String apiBaseUrl, ElementsAPIURLBuilder builder);
 }

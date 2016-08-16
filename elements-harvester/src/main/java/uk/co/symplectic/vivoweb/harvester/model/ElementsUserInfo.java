@@ -6,38 +6,61 @@
  ******************************************************************************/
 package uk.co.symplectic.vivoweb.harvester.model;
 
-import uk.co.symplectic.elements.api.ElementsObjectCategory;
+import org.apache.commons.lang.NullArgumentException;
 
 public class ElementsUserInfo extends ElementsObjectInfo {
-    private boolean isCurrentStaff = true;
-    private String photoUrl = null;
-    private String username = null;
 
-    public ElementsUserInfo(String id) {
+    private UserExtraData additionalInfo;
+
+    //package private as should only ever be created by calls to create on ItemInfo superclass
+    ElementsUserInfo(String id) {
         super(ElementsObjectCategory.USER, id);
     }
 
-    public boolean getIsCurrentStaff() {
-        return isCurrentStaff;
+    public boolean isFullyPopulated(){
+        return additionalInfo != null;
     }
 
-    public void setIsCurrentStaff(boolean isCurrentStaff) {
-        this.isCurrentStaff = isCurrentStaff;
+    public void addExtraData(UserExtraData additionalInfo){
+        this.additionalInfo = additionalInfo;
+    }
+
+    public boolean getIsCurrentStaff() {
+        if(!isFullyPopulated()) throw new IllegalAccessError("Cannot access current-staff if ElementsUserInfo is not fully populated");
+        return additionalInfo.isCurrentStaff;
     }
 
     public String getPhotoUrl() {
-        return photoUrl;
+        if(!isFullyPopulated()) throw new IllegalAccessError("Cannot access photo-url if ElementsUserInfo is not fully populated");
+        return additionalInfo.photoUrl;
     }
 
-    public void setPhotoUrl(String photoUrl) {
-        this.photoUrl = photoUrl;
-    }
 
     public String getUsername() {
-        return username;
+        if(!isFullyPopulated()) throw new IllegalAccessError("Cannot access username if ElementsUserInfo is not fully populated");
+        return additionalInfo.username;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+
+    public static class UserExtraData{
+        private boolean isCurrentStaff = true;
+        private String photoUrl = null;
+        private String username = null;
+
+        public UserExtraData setIsCurrentStaff(boolean isCurrentStaff) {
+            this.isCurrentStaff = isCurrentStaff;
+            return this;
+        }
+
+        public UserExtraData setPhotoUrl(String photoUrl) {
+            this.photoUrl = photoUrl;
+            return this;
+        }
+
+        public UserExtraData setUsername(String username) {
+            this.username = username;
+            return this;
+        }
     }
+
 }

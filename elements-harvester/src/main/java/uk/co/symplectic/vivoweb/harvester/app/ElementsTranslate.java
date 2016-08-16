@@ -14,21 +14,16 @@ import org.vivoweb.harvester.util.args.ArgDef;
 import org.vivoweb.harvester.util.args.ArgList;
 import org.vivoweb.harvester.util.args.ArgParser;
 import org.vivoweb.harvester.util.args.UsageException;
-import org.vivoweb.harvester.util.repo.RecordStreamOrigin;
-import uk.co.symplectic.elements.api.ElementsObjectCategory;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
 import uk.co.symplectic.translate.TemplatesHolder;
 import uk.co.symplectic.translate.TranslationService;
-import uk.co.symplectic.vivoweb.harvester.store.ElementsRdfStore;
-import uk.co.symplectic.vivoweb.harvester.translate.ElementsDeleteEmptyTranslationCallback;
+import uk.co.symplectic.vivoweb.harvester.store.*;
 
-import javax.xml.transform.Templates;
-import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 
-public class ElementsTranslate implements RecordStreamOrigin {
+public class ElementsTranslate {//implements RecordStreamOrigin {
+    //TODO : REVIEW THIS WHOLE FILE!!!!
     private static final String ARG_RAW_OUTPUT_DIRECTORY = "rawOutput";
     private static final String ARG_RDF_OUTPUT_DIRECTORY = "rdfOutput";
 
@@ -55,19 +50,26 @@ public class ElementsTranslate implements RecordStreamOrigin {
 
     private final TranslationService translationService = new TranslationService();
     private TemplatesHolder template = null;
+
     private void processDir(ElementsObjectCategory category, File dir) {
         ElementsRdfStore rdfStore = new ElementsRdfStore(rdfRecordStoreDir);
 
         for (File file : dir.listFiles()) {
             File outFile;
             if (category != null) {
-                outFile = rdfStore.getObjectFile(category, file.getName());
+                //ElementsStoredObject object = new ElementsStoredObject(file, category, "");
+                //outFile = rdfStore.getObjectFile(category, file.getName());
+                //translationService.translate(object, rdfStore, template, new ElementsDeleteEmptyTranslationCallback(outFile));
+                //ElementsStoredItem item = new ElementsStoredItem(file, object.getObjectInfo(), StorableResourceType.RAW_OBJECT);
+                ElementsStoredItem item = ElementsStoredItem.loadRawObject(file);
+                translationService.translate(item, rdfStore, template);
             } else {
-                outFile = rdfStore.getRelationshipFile(file.getName());
-            }
-
-            if (outFile != null) {
-                translationService.translate(file, outFile, template, new ElementsDeleteEmptyTranslationCallback(outFile));
+                //ElementsStoredRelationship relationship = new ElementsStoredRelationship(file, "");
+                //outFile = rdfStore.getRelationshipFile(file.getName());
+                //translationService.translate(relationship, rdfStore, template, new ElementsDeleteEmptyTranslationCallback(outFile));
+                //ElementsStoredItem item = new ElementsStoredItem(file, relationship.getRelationshipInfo(), StorableResourceType.RAW_RELATIONSHIP);
+                ElementsStoredItem item = ElementsStoredItem.loadRawRelationship(file);
+                translationService.translate(item, rdfStore, template);
             }
         }
     }
@@ -79,7 +81,7 @@ public class ElementsTranslate implements RecordStreamOrigin {
     public void execute() throws IOException {
         if (!StringUtils.isEmpty(xslFilename)) {
             template = new TemplatesHolder(xslFilename);
-            translationService.setIgnoreFileNotFound(true);
+            translationService.getConfig().setIgnoreFileNotFound(true);
         }
 
         File rawRecordStore = new File(rawRecordStoreDir);
@@ -103,9 +105,9 @@ public class ElementsTranslate implements RecordStreamOrigin {
         TranslationService.shutdown();
     }
 
-    @Override
-    public void writeRecord(String s, String s1) throws IOException {
-    }
+//    @Override
+//    public void writeRecord(String s, String s1) throws IOException {
+//    }
 
     /**
      * Constructor

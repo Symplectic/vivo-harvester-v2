@@ -7,46 +7,43 @@
 package uk.co.symplectic.vivoweb.harvester.store;
 
 import org.apache.commons.lang.StringUtils;
-import uk.co.symplectic.elements.api.ElementsObjectCategory;
+import uk.co.symplectic.vivoweb.harvester.model.*;
 import uk.co.symplectic.utils.DeletionService;
-import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectInfo;
-import uk.co.symplectic.vivoweb.harvester.model.ElementsRelationshipInfo;
-import uk.co.symplectic.xml.XMLAttribute;
-import uk.co.symplectic.xml.XMLUtils;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Writer;
-import java.util.List;
+import java.io.*;
+import java.util.HashSet;
 import java.util.Set;
 
-public class ElementsRdfStore {
-    private File dir = null;
+public class ElementsRdfStore extends ElementsObjectFileStore {
 
-    private LayoutStrategy layoutStrategy = new DefaultLayoutStrategy();
+    private static LayoutStrategy layoutStrategy = new DefaultLayoutStrategy(
+            new StorableResourceType[]{StorableResourceType.TRANSLATED_OBJECT, StorableResourceType.TRANSLATED_RELATIONSHIP}, null);
+
     private DeletionService deletionService = new DeletionService();
 
-    public ElementsRdfStore(String dir) {
-        this.dir = new File(dir);
+    public ElementsRdfStore(String dir){ this(dir, false); }
+
+    public ElementsRdfStore(String dir, boolean keepEmpty){
+        super(dir, keepEmpty, ElementsRdfStore.layoutStrategy,
+            StorableResourceType.TRANSLATED_OBJECT, StorableResourceType.TRANSLATED_RELATIONSHIP, StorableResourceType.TRANSLATED_USER_PHOTO_DESCRIPTION);
     }
 
-    public void setUseLegacyLayout(boolean layout) {
-        if (layout) {
-            layoutStrategy = new LegacyLayoutStrategy();
-        } else {
-            layoutStrategy = new DefaultLayoutStrategy();
+    public void pruneExcept(ElementsObjectCategory category, Set<ElementsObjectId> idsToKeep) {
+        Set<String> stringIdsToKeep = new HashSet<String>();
+        for(ElementsObjectId id : idsToKeep){
+            if(id.getCategory() != category) throw new IllegalStateException();
+            ElementsObjectInfo objectInfo = ElementsObjectInfoCache.get(category, id.getId());
+            if(objectInfo == null) objectInfo = ElementsItemInfo.createObjectItem(category, id.getId());
+            for(ElementsStoredItem item : retrieveAllItems(objectInfo)){
+                stringIdsToKeep.add(item.getFile().getName());
+            }
         }
-    }
-
-    public void pruneExcept(ElementsObjectCategory category, Set<String> idsToKeep) {
         if (dir != null) {
             File objectDir = new File(dir, category.getSingular());
             if (objectDir.exists()) {
-                pruneIn(objectDir, idsToKeep, null);
+                pruneIn(objectDir, stringIdsToKeep, null);
             } else {
-                pruneIn(dir, idsToKeep, category.getSingular());
+                pruneIn(dir, stringIdsToKeep, category.getSingular());
             }
         }
     }
@@ -81,48 +78,4 @@ public class ElementsRdfStore {
         }
     }
 
-    public File getObjectFile(List<XMLAttribute> attributeList) {
-        return layoutStrategy.getObjectFile(dir, XMLUtils.getObjectCategory(attributeList), XMLUtils.getId(attributeList));
-    }
-
-    public File getObjectFile(ElementsObjectCategory category, String id) {
-        return layoutStrategy.getObjectFile(dir, category, id);
-    }
-
-    public File getObjectFile(ElementsObjectInfo objectInfo) {
-        return layoutStrategy.getObjectFile(dir, objectInfo.getCategory(), objectInfo.getId());
-    }
-
-    public File getRelationshipFile(List<XMLAttribute> attributeList) {
-        return layoutStrategy.getRelationshipFile(dir, XMLUtils.getId(attributeList));
-
-    }
-
-    public File getRelationshipFile(String id) {
-        return layoutStrategy.getRelationshipFile(dir, id);
-    }
-
-    public File getRelationshipFile(ElementsRelationshipInfo relationshipInfo) {
-        return layoutStrategy.getRelationshipFile(dir, relationshipInfo.getId());
-    }
-
-    public boolean writeObjectExtra(ElementsObjectInfo objectInfo, String type, String rdf) {
-        File file = layoutStrategy.getObjectExtraFile(dir, objectInfo.getCategory(), objectInfo.getId(), type);
-
-        if (file != null) {
-            try {
-                Writer writer = new BufferedWriter(new FileWriter(file));
-                try {
-                    writer.write(rdf);
-                } finally {
-                    writer.close();
-                }
-            } catch (IOException ioe) {
-                // Log error
-                return false;
-            }
-        }
-
-        return true;
-    }
 }
