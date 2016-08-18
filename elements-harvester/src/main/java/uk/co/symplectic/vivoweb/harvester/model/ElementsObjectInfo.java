@@ -20,7 +20,7 @@ public class ElementsObjectInfo extends ElementsItemInfo{
 
         public static DocumentLocation fileEntryLocation = new DocumentLocation(new QName(atomNS, "entry"), new QName(apiNS, "object"));
         public static DocumentLocation feedEntryLocation = new DocumentLocation(new QName(atomNS, "feed"), new QName(atomNS, "entry"), new QName(apiNS, "object"));
-
+        public static DocumentLocation feedDeletedEntryLocation = new DocumentLocation(new QName(atomNS, "feed"), new QName(atomNS, "entry"), new QName(apiNS, "deleted-object"));
 
         private ElementsObjectInfo workspace  = null;
         private ElementsUserInfo.UserExtraData additionalUserData = null;

@@ -11,6 +11,18 @@ import uk.co.symplectic.elements.api.ElementsFeedQuery;
 
 public class ElementsAPIFeedRelationshipQuery extends ElementsFeedQuery {
 
+    // How many relationships to request per API request:Default of 100 used for optimal performance (see constructor chain)
+    private static int defaultPerPage = 100;
+
+    public ElementsAPIFeedRelationshipQuery(boolean fullDetails, boolean processAllPages) {
+        this(fullDetails, processAllPages, ElementsAPIFeedRelationshipQuery.defaultPerPage);
+    }
+
+
+    public ElementsAPIFeedRelationshipQuery(boolean fullDetails, boolean processAllPages, int perPage) {
+        super(fullDetails, processAllPages, perPage);
+    }
+
     @Override
     public String getUrlString(String apiBaseUrl, ElementsAPIURLBuilder builder){
         return builder.buildRelationshipFeedQuery(apiBaseUrl, this);

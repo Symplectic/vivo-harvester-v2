@@ -11,12 +11,20 @@ abstract public class ElementsFeedQuery {
     //occasionally useful hack for testing.
     //public int page;
 
-    private boolean fullDetails = false;
-    private boolean processAllPages = false;
-    private int perPage = -1;
+    private final boolean fullDetails;
+    private final boolean processAllPages;
+    private final int perPage;
 
-    public ElementsFeedQuery() {
-        super();
+    /**
+     *
+     * @param fullDetails should the feed contain full object details
+     * @param processAllPages should all the pages be processed
+     * @param perPage An integer, 0 or below uses the feed default
+     */
+    public ElementsFeedQuery(boolean fullDetails, boolean processAllPages, int perPage) {
+        this.fullDetails = fullDetails;
+        this.processAllPages = processAllPages;
+        this.perPage = perPage;
     }
 
     /**
@@ -44,33 +52,6 @@ abstract public class ElementsFeedQuery {
      */
     public boolean getProcessAllPages() {
         return processAllPages;
-    }
-
-    /**
-     * Should the feed return full object details
-     *
-     * @param fullDetails true to return full details, false for links
-     */
-    public void setFullDetails(boolean fullDetails) {
-        this.fullDetails = fullDetails;
-    }
-
-    /**
-     * Number of records to return per feed page
-     *
-     * @param perPage 0 or negative to use feed default
-     */
-    public void setPerPage(int perPage) {
-        this.perPage = perPage;
-    }
-
-    /**
-     * Should all the pages in a paginated feed be processed
-     *
-     * @param processAllPages true to process all pages, false to process only the first
-     */
-    public void setProcessAllPages(boolean processAllPages) {
-        this.processAllPages = processAllPages;
     }
 
     /**
