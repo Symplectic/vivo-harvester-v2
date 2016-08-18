@@ -139,14 +139,6 @@ public class ElementsFetch {
         }
     }
 
-    private static class FileStoringGroupFilter extends ObjectStoreFilter<ElementsGroupInfo, ElementsGroupInfo.Extractor> {
-        FileStoringGroupFilter(ElementsObjectStore objectStore){
-            super(new QName(atomNS, "entry"), new ElementsGroupInfo.Extractor(ElementsGroupInfo.Extractor.feedEntryLocation, 0),
-                    objectStore, StorableResourceType.RAW_GROUP);
-        }
-    }
-
-
     public abstract static class FetchConfig {
         final private int itemsPerPage;
         final private boolean processAllPages;
