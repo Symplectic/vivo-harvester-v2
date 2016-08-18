@@ -148,7 +148,6 @@ public class ElementsFetchAndTranslate {
         } catch (UsageException e) {
             caught = e;
             if (!Configuration.isConfigured()) {
-                log.info("Printing Usage:");
                 System.out.println(Configuration.getUsage());
             } else {
                 System.err.println("Caught UsageException initialising ElementsFetchAndTranslate");
@@ -172,7 +171,7 @@ public class ElementsFetchAndTranslate {
         }
 
         String apiEndpoint = Configuration.getApiEndpoint();
-        String apiVersion = Configuration.getApiVersion();
+        ElementsAPIVersion apiVersion = Configuration.getApiVersion();
 
         String apiUsername = Configuration.getApiUsername();
         String apiPassword = Configuration.getApiPassword();
@@ -187,7 +186,7 @@ public class ElementsFetchAndTranslate {
             ElementsAPIHttpClient.setRequestDelay(requestDelay);
         }
 
-        return new ElementsAPI(ElementsAPIVersion.parse(apiVersion), apiEndpoint, apiUsername, apiPassword);
+        return new ElementsAPI(apiVersion, apiEndpoint, apiUsername, apiPassword);
     }
 
     private static File getVivoImageDir(String imageDir) {

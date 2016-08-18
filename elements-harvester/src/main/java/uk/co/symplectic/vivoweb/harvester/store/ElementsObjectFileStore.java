@@ -9,11 +9,12 @@ package uk.co.symplectic.vivoweb.harvester.store;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.NullArgumentException;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemInfo;
-import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectId;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectInfoCache;
 
 import java.io.*;
 import java.util.*;
+import java.util.zip.GZIPOutputStream;
+
 
 public class ElementsObjectFileStore implements ElementsObjectStore{
     List<StorableResourceType> supportedTypes = new ArrayList<StorableResourceType>();
@@ -21,15 +22,17 @@ public class ElementsObjectFileStore implements ElementsObjectStore{
     final private LayoutStrategy layoutStrategy;
     private List<IElementsStoredItemObserver> itemObservers = new ArrayList<IElementsStoredItemObserver>();
     private boolean keepEmpty = false;
+    private boolean zipFiles = true;
 
     public List<StorableResourceType> getSupportedTypes(){return Collections.unmodifiableList(supportedTypes);}
 
-    public ElementsObjectFileStore(String dir, boolean keepEmpty, LayoutStrategy layoutStrategy, StorableResourceType... supportedTypes) {
+    public ElementsObjectFileStore(String dir, boolean keepEmpty, boolean zipFiles, LayoutStrategy layoutStrategy, StorableResourceType... supportedTypes) {
         if(dir == null) throw new NullArgumentException("dir");
         if(supportedTypes == null || supportedTypes.length == 0) throw new IllegalArgumentException("supportedTypes must not be null or empty");
 
         this.dir = new File(dir);
         this.keepEmpty = keepEmpty;
+        this.zipFiles = zipFiles;
 
         this.layoutStrategy = layoutStrategy != null ? layoutStrategy : new DefaultLayoutStrategy();
         this.supportedTypes.addAll(Arrays.asList(supportedTypes));
@@ -105,6 +108,7 @@ public class ElementsObjectFileStore implements ElementsObjectStore{
             OutputStream outputStream = null;
             try {
                 outputStream = (new BufferedOutputStream(new FileOutputStream(file)));
+                if(zipFiles) outputStream = new GZIPOutputStream(outputStream);
                 IOUtils.copy(new ByteArrayInputStream(dataToStore), outputStream);
             } finally {
                 if (outputStream != null) {
@@ -125,11 +129,11 @@ public class ElementsObjectFileStore implements ElementsObjectStore{
         );
 
         public ElementsRawDataStore(String dir) {
-            this(dir, false);
+            this(dir, false, false);
         }
 
-        public ElementsRawDataStore(String dir, boolean keepEmpty){
-            super(dir, keepEmpty, ElementsRawDataStore.layoutStrategy,
+        public ElementsRawDataStore(String dir, boolean keepEmpty, boolean zipFiles){
+            super(dir, keepEmpty, zipFiles, ElementsRawDataStore.layoutStrategy,
                     StorableResourceType.RAW_OBJECT, StorableResourceType.RAW_RELATIONSHIP, StorableResourceType.RAW_USER_PHOTO);
         }
     }

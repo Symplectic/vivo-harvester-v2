@@ -55,7 +55,8 @@ public class ElementsRelationshipTranslateObserver extends IElementsStoredItemOb
 
         if(includeRelationship) {
             //TODO : SHOULD account for current staff and excluded users - NOT DOING SO MEANS BEHAVIOUR IS SLIGHTLY DIFFERENT AS MONITOR DOES NOT DELETE RELATIONSHIP FILES
-            translationService.translate(item, rdfStore, templatesHolder);
+            //todo: move the zip file stuff somewhere nicer?
+            translationService.translate(item, rdfStore, templatesHolder, Configuration.getZipFiles());
         }
     }
 }

@@ -7,6 +7,7 @@
 package uk.co.symplectic.vivoweb.harvester.model;
 
 import org.apache.commons.lang.NullArgumentException;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 
 public class ElementsObjectId {
@@ -15,7 +16,7 @@ public class ElementsObjectId {
 
     public ElementsObjectId(ElementsObjectCategory category, String id) {
         if(category == null) throw new NullArgumentException("category");
-        if(id == null) throw new NullArgumentException("id");
+        if(StringUtils.isEmpty(id) || StringUtils.isWhitespace(id)) throw new IllegalArgumentException("id must not be null or empty");
 
         this.category = category;
         this.id = id;

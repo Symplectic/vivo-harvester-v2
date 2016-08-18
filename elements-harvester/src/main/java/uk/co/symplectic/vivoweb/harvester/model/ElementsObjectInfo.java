@@ -21,7 +21,8 @@ public class ElementsObjectInfo extends ElementsItemInfo{
         public static DocumentLocation fileEntryLocation = new DocumentLocation(new QName(atomNS, "entry"), new QName(apiNS, "object"));
         public static DocumentLocation feedEntryLocation = new DocumentLocation(new QName(atomNS, "feed"), new QName(atomNS, "entry"), new QName(apiNS, "object"));
 
-        private ElementsObjectInfo objectInfo  = null;
+
+        private ElementsObjectInfo workspace  = null;
         private ElementsUserInfo.UserExtraData additionalUserData = null;
 
         private ElementsUserInfo.UserExtraData getAdditionalUserData() {
@@ -37,14 +38,14 @@ public class ElementsObjectInfo extends ElementsItemInfo{
         protected void initialiseItemExtraction(StartElement initialElement, XMLEventProcessor.ReaderProxy readerProxy) throws XMLStreamException{
             ElementsObjectCategory objectCategory = ElementsObjectCategory.valueOf(initialElement.getAttributeByName(new QName("category")).getValue());
             int objectId = Integer.parseInt(initialElement.getAttributeByName(new QName("id")).getValue());
-            objectInfo = ElementsItemInfo.createObjectItem(objectCategory, String.valueOf(objectId));
+            workspace = ElementsItemInfo.createObjectItem(objectCategory, String.valueOf(objectId));
             additionalUserData = null;
         }
 
         @Override
         protected void processEvent(XMLEvent event, XMLEventProcessor.ReaderProxy readerProxy) throws XMLStreamException {
-            if (objectInfo instanceof ElementsUserInfo) {
-                ElementsUserInfo userInfo = (ElementsUserInfo) objectInfo;
+            if (workspace instanceof ElementsUserInfo) {
+                ElementsUserInfo userInfo = (ElementsUserInfo) workspace;
                 if (event.isStartElement()) {
                     StartElement startElement = event.asStartElement();
                     QName name = startElement.getName();
@@ -64,11 +65,11 @@ public class ElementsObjectInfo extends ElementsItemInfo{
 
         @Override
         protected ElementsObjectInfo finaliseItemExtraction(EndElement finalElement, XMLEventProcessor.ReaderProxy readerProxy){
-            if (objectInfo instanceof ElementsUserInfo) {
-                ElementsUserInfo userInfo = (ElementsUserInfo) objectInfo;
+            if (workspace instanceof ElementsUserInfo) {
+                ElementsUserInfo userInfo = (ElementsUserInfo) workspace;
                 userInfo.addExtraData(additionalUserData);
             }
-            return objectInfo;
+            return workspace;
         }
     }
 

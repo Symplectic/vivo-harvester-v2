@@ -33,8 +33,8 @@ public final class TranslationService {
         return TranslationServiceImpl.compileSource(new StreamSource(file));
     }
 
-    public void translate(ElementsStoredItem input, ElementsRdfStore output, TemplatesHolder translationTemplates) {
-        TranslationServiceImpl.translate(config, input, output, translationTemplates);
+    public void translate(ElementsStoredItem input, ElementsRdfStore output, TemplatesHolder translationTemplates, boolean isZipped) {
+        TranslationServiceImpl.translate(config, input, output, translationTemplates, isZipped);
     }
 
     public static void shutdown() {

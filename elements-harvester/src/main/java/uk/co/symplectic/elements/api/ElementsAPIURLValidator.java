@@ -22,14 +22,31 @@ class ElementsAPIURLValidator {
     private static final List<String> allowedSecureSchemes = Arrays.asList(new String[]{"https"});
 
     private String url;
-    private boolean isSecure;
+    private boolean isSecure = false;
+    private boolean isMismatched = false;
 
     ElementsAPIURLValidator(String url) throws URISyntaxException {
-        this.url = url;
-        validate();
+        this(url, null);
     }
 
-    private void validate() throws URISyntaxException {
+    ElementsAPIURLValidator(String url, String comparisonUrl) throws URISyntaxException {
+        this.url = url;
+        validate(comparisonUrl);
+    }
+
+    private void validate(String comparisonUrl) throws URISyntaxException {
+
+        String comprisonTestHost = null;
+        if(comparisonUrl != null) {
+            try {
+                URL comparisonUrlObj = new URL(comparisonUrl);
+                URI comparisonUri = comparisonUrlObj.toURI();
+                comprisonTestHost = comparisonUri.getHost();
+            } catch (MalformedURLException mue) {
+                throw new URISyntaxException(comparisonUrl, "Could not parse provided comparisonUrl");
+            }
+        }
+
         try {
             if (url == null) throw new URISyntaxException(url, "URL must not be null");
 
@@ -46,9 +63,8 @@ class ElementsAPIURLValidator {
                 throw new URISyntaxException(url, MessageFormat.format("Invalid Scheme used in {0}, must be one of : {1}", this.getClass().getName(), String.join(", ", validSchemes)));
             }
 
-            if(allowedSecureSchemes.contains(scheme)) {
-                isSecure = true;
-            }
+            if(allowedSecureSchemes.contains(scheme)) { isSecure = true; }
+            if(!uriTest.getHost().equals(comprisonTestHost)){ isMismatched = true; }
 
         } catch (MalformedURLException mue) {
             throw new URISyntaxException(url, mue.getMessage());
@@ -57,5 +73,9 @@ class ElementsAPIURLValidator {
 
     public boolean urlIsSecure() {
         return isSecure;
+    }
+
+    public boolean urlIsMismatched() {
+        return isMismatched;
     }
 }

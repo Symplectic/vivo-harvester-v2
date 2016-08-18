@@ -17,5 +17,6 @@ public interface LayoutStrategy {
 
     public Collection<File> getAllExistingFilesOfType(File storeDir, StorableResourceType resourceType);
 
+    //todo: remove this!? once decide what to do with legacy layout?
     public String getRootNodeForType(String type);
 }

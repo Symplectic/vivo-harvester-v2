@@ -27,6 +27,7 @@ import java.io.*;
 import java.text.MessageFormat;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
+import java.util.zip.GZIPInputStream;
 
 /**
  * Static implementation of an Executor based translation service.
@@ -70,8 +71,8 @@ final class TranslationServiceImpl {
         return factory;
     }
 
-    static void translate(TranslationServiceConfig config, ElementsStoredItem input, ElementsRdfStore output, TemplatesHolder translationTemplates) {
-        Future<Boolean> result = wrapper.submit(new ItemTranslateTask(config, input, output, translationTemplates));
+    static void translate(TranslationServiceConfig config, ElementsStoredItem input, ElementsRdfStore output, TemplatesHolder translationTemplates, boolean isZipped) {
+        Future<Boolean> result = wrapper.submit(new ItemTranslateTask(config, input, output, translationTemplates, isZipped));
     }
 
 //    static void translate(TranslationServiceConfig config, ElementsStoredObject input, ElementsRdfStore output, TemplatesHolder translationTemplates) {
@@ -205,14 +206,16 @@ final class TranslationServiceImpl {
     static class ItemTranslateTask extends AbstractTranslateTask{
         private ElementsStoredItem inputItem;
         private ElementsRdfStore outputStore;
+        private boolean inputIszipped = true;
 
-        ItemTranslateTask(TranslationServiceConfig config, ElementsStoredItem inputItem, ElementsRdfStore outputStore, TemplatesHolder translationTemplates) {
+        ItemTranslateTask(TranslationServiceConfig config, ElementsStoredItem inputItem, ElementsRdfStore outputStore, TemplatesHolder translationTemplates, boolean inputIsZipped) {
             super(config, translationTemplates);
             if(inputItem == null) throw new NullArgumentException("inputItem");
             if(outputStore == null) throw new NullArgumentException("outputStore");
 
             this.inputItem = inputItem;
             this.outputStore = outputStore;
+            this.inputIszipped = inputIsZipped;
         }
 
         @Override
@@ -222,7 +225,9 @@ final class TranslationServiceImpl {
 
         @Override
         protected InputStream getInputStream() throws IOException {
-            return new BufferedInputStream(new FileInputStream(inputItem.getFile()));
+            InputStream stream = new BufferedInputStream(new FileInputStream(inputItem.getFile()));
+            if(inputIszipped) stream = new GZIPInputStream(stream);
+            return stream;
         }
 
         @Override

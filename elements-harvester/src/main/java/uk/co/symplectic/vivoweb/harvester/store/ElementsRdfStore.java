@@ -21,10 +21,10 @@ public class ElementsRdfStore extends ElementsObjectFileStore {
 
     private DeletionService deletionService = new DeletionService();
 
-    public ElementsRdfStore(String dir){ this(dir, false); }
+    public ElementsRdfStore(String dir){ this(dir, false, false); }
 
-    public ElementsRdfStore(String dir, boolean keepEmpty){
-        super(dir, keepEmpty, ElementsRdfStore.layoutStrategy,
+    public ElementsRdfStore(String dir, boolean keepEmpty, boolean zipFiles){
+        super(dir, keepEmpty, zipFiles, ElementsRdfStore.layoutStrategy,
             StorableResourceType.TRANSLATED_OBJECT, StorableResourceType.TRANSLATED_RELATIONSHIP, StorableResourceType.TRANSLATED_USER_PHOTO_DESCRIPTION);
     }
 

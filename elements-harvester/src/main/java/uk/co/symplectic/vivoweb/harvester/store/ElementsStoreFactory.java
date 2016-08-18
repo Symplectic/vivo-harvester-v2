@@ -17,7 +17,9 @@ public class ElementsStoreFactory {
             return objectStore;
         } else {
             synchronized (ElementsStoreFactory.class) {
-                return objectStore != null ? objectStore : (objectStore = new ElementsObjectFileStore.ElementsRawDataStore(Configuration.getRawOutputDir()));
+                if (objectStore == null)
+                    objectStore = new ElementsObjectFileStore.ElementsRawDataStore(Configuration.getRawOutputDir(), false, Configuration.getZipFiles());
+                return objectStore;
             }
         }
     }
@@ -27,7 +29,9 @@ public class ElementsStoreFactory {
             return rdfStore;
         } else {
             synchronized (ElementsStoreFactory.class) {
-                return rdfStore != null ? rdfStore : (rdfStore = new ElementsRdfStore(Configuration.getRdfOutputDir()));
+                if(rdfStore == null)
+                    rdfStore = new ElementsRdfStore(Configuration.getRdfOutputDir(), false, Configuration.getZipFiles());
+                return rdfStore;
             }
         }
     }

@@ -87,34 +87,38 @@ public class ElementsFetch {
         protected abstract void processItem(S item, byte[] data) throws IOException;
     }
 
-    private class FileStoringObjectFilter extends DataStoringFilter<ElementsObjectInfo, ElementsObjectInfo.Extractor>{
+    private class ObjectStoreFilter<S extends ElementsItemInfo, T extends XMLEventProcessor.ItemExtractingFilter<S>> extends DataStoringFilter<S, T> {
         private final ElementsObjectStore objectStore;
+        private final StorableResourceType resourceType;
 
-        FileStoringObjectFilter(ElementsObjectStore objectStore){
-            super(new QName(atomNS, "entry"), new ElementsObjectInfo.Extractor(ElementsObjectInfo.Extractor.feedEntryLocation, 0));
-            if(objectStore == null) throw new NullArgumentException("objectStore");
+        ObjectStoreFilter(QName rootElement, T innerFilter, ElementsObjectStore objectStore, StorableResourceType resourceType) {
+            super(rootElement, innerFilter);
+            if (objectStore == null) throw new NullArgumentException("objectStore");
+            if (resourceType == null) throw new NullArgumentException("resourceType");
             this.objectStore = objectStore;
+            this.resourceType = resourceType;
         }
 
         @Override
-        protected void processItem(ElementsObjectInfo item, byte[] data) throws IOException {
-            objectStore.storeItem(item, StorableResourceType.RAW_OBJECT, data);
+        protected void processItem(S item, byte[] data) throws IOException {
+            objectStore.storeItem(item, resourceType, data);
         }
     }
 
-    private class FileStoringRelationshipFilter extends DataStoringFilter<ElementsRelationshipInfo, ElementsRelationshipInfo.Extractor>{
-        private final ElementsObjectStore objectStore;
-
-        FileStoringRelationshipFilter(ElementsObjectStore objectStore){
-            super(new QName(atomNS, "entry"), new ElementsRelationshipInfo.Extractor(ElementsRelationshipInfo.Extractor.feedEntryLocation, 0));
-            if(objectStore == null) throw new NullArgumentException("objectStore");
-            this.objectStore = objectStore;
+    private class FileStoringObjectFilter extends ObjectStoreFilter<ElementsObjectInfo, ElementsObjectInfo.Extractor>{
+        protected FileStoringObjectFilter(ElementsObjectStore objectStore, DocumentLocation location){
+            super(new QName(atomNS, "entry"), new ElementsObjectInfo.Extractor(location, 0), objectStore, StorableResourceType.RAW_OBJECT);
         }
 
-        @Override
-        protected void processItem(ElementsRelationshipInfo item, byte[] data) throws IOException {
-            objectStore.storeItem(item, StorableResourceType.RAW_RELATIONSHIP, data);
+        FileStoringObjectFilter(ElementsObjectStore objectStore) { this(objectStore, ElementsObjectInfo.Extractor.feedEntryLocation); }
+    }
+
+    private class FileStoringRelationshipFilter extends ObjectStoreFilter<ElementsRelationshipInfo, ElementsRelationshipInfo.Extractor>{
+        protected FileStoringRelationshipFilter(ElementsObjectStore objectStore, DocumentLocation location){
+            super(new QName(atomNS, "entry"), new ElementsRelationshipInfo.Extractor(location, 0), objectStore, StorableResourceType.RAW_RELATIONSHIP);
         }
+
+        FileStoringRelationshipFilter(ElementsObjectStore objectStore){this(objectStore, ElementsRelationshipInfo.Extractor.feedEntryLocation);}
     }
 
     public static class ObjectConfig{
@@ -214,14 +218,14 @@ public class ElementsFetch {
 
     private void executeRelationshipFetch() throws IOException {
         //create a query to retrieve relationships, set to get N objects per page and load all pages, not just one
-        ElementsAPIFeedRelationshipQuery relationshipFeedQuery = new ElementsAPIFeedRelationshipQuery();
-        relationshipFeedQuery.setProcessAllPages(true);
-        relationshipFeedQuery.setPerPage(relationshipConfig.relationshipsPerPage);
+        ElementsAPIFeedRelationshipQuery feedQuery = new ElementsAPIFeedRelationshipQuery();
+        feedQuery.setProcessAllPages(true);
+        feedQuery.setPerPage(relationshipConfig.relationshipsPerPage);
 
         //execute the query putting each relationship retrieved into the object store
         FileStoringRelationshipFilter relationshipFilter = new FileStoringRelationshipFilter(objectStore);
         log.info("Retrieving Elements Relationships");
-        elementsAPI.executeQuery(relationshipFeedQuery, new ElementsAPI.APIResponseFilter(relationshipFilter, ElementsAPIVersion.allVersions()));
+        elementsAPI.executeQuery(feedQuery, new ElementsAPI.APIResponseFilter(relationshipFilter, ElementsAPIVersion.allVersions()));
     }
 }
 

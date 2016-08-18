@@ -64,7 +64,8 @@ public class ElementsObjectTranslateObserver extends IElementsStoredItemObserver
         }
 
         if (translateObject) {
-            translationService.translate(item, rdfStore, templatesHolder);
+            //todo: move the zip file stuff somewhere nicer?
+            translationService.translate(item, rdfStore, templatesHolder, Configuration.getZipFiles());
         }
     }
 }

@@ -62,14 +62,14 @@ public class ElementsTranslate {//implements RecordStreamOrigin {
                 //translationService.translate(object, rdfStore, template, new ElementsDeleteEmptyTranslationCallback(outFile));
                 //ElementsStoredItem item = new ElementsStoredItem(file, object.getObjectInfo(), StorableResourceType.RAW_OBJECT);
                 ElementsStoredItem item = ElementsStoredItem.loadRawObject(file);
-                translationService.translate(item, rdfStore, template);
+                translationService.translate(item, rdfStore, template, false);
             } else {
                 //ElementsStoredRelationship relationship = new ElementsStoredRelationship(file, "");
                 //outFile = rdfStore.getRelationshipFile(file.getName());
                 //translationService.translate(relationship, rdfStore, template, new ElementsDeleteEmptyTranslationCallback(outFile));
                 //ElementsStoredItem item = new ElementsStoredItem(file, relationship.getRelationshipInfo(), StorableResourceType.RAW_RELATIONSHIP);
                 ElementsStoredItem item = ElementsStoredItem.loadRawRelationship(file);
-                translationService.translate(item, rdfStore, template);
+                translationService.translate(item, rdfStore, template, false);
             }
         }
     }

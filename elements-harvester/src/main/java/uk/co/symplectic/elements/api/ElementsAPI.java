@@ -136,6 +136,18 @@ public class ElementsAPI {
                 // Check that the next URL is valid before continuing
                 //TODO: make this test if pagination has been retrieved correctly (e.g. test current against last to exit or something?)
                 String nextQueryUrl = pagination.getNextURL();
+                try {
+                    ElementsAPIURLValidator validator = new ElementsAPIURLValidator(nextQueryUrl, currentQueryUrl);
+                    if(validator.urlIsMismatched()){
+                        log.warn(MessageFormat.format("Next URL in a feed \"{0}\" has a different host to the previous URL: {1}", nextQueryUrl, currentQueryUrl));
+                        log.warn("There is probably a mismatch between the configured API URL in this program and the API baseURI configured in Elements");
+                    }
+                }
+                catch (URISyntaxException e){
+                    String errorMsg = MessageFormat.format("Next URL for a feed was invalid: {0}", e.getMessage());
+                    log.error(errorMsg);
+                    throw new IllegalStateException(errorMsg, e);
+                }
                 //System.out.println(nextQueryUrl);
 
                 if (nextQueryUrl.equals(currentQueryUrl)) {

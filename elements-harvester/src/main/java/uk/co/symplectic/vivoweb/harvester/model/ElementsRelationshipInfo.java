@@ -6,6 +6,7 @@
  ******************************************************************************/
 package uk.co.symplectic.vivoweb.harvester.model;
 
+import org.apache.commons.lang.StringUtils;
 import uk.co.symplectic.xml.XMLEventProcessor;
 
 import javax.xml.namespace.QName;
@@ -24,7 +25,8 @@ public class ElementsRelationshipInfo extends ElementsItemInfo{
         public static DocumentLocation fileEntryLocation = new DocumentLocation(new QName(atomNS, "entry"), new QName(apiNS, "relationship"));
         public static DocumentLocation feedEntryLocation = new DocumentLocation(new QName(atomNS, "feed"), new QName(atomNS, "entry"), new QName(apiNS, "relationship"));
 
-        private ElementsRelationshipInfo relationshipInfo = null;
+
+        private ElementsRelationshipInfo workspace = null;
 
         public Extractor(DocumentLocation location, int maximumAmountExpected){
             super(location, maximumAmountExpected);
@@ -33,7 +35,7 @@ public class ElementsRelationshipInfo extends ElementsItemInfo{
         @Override
         protected void initialiseItemExtraction(StartElement initialElement, XMLEventProcessor.ReaderProxy readerProxy) throws XMLStreamException {
             String id = initialElement.getAttributeByName(new QName("id")).getValue();
-            relationshipInfo = ElementsItemInfo.createRelationshipItem(id);
+            workspace = ElementsItemInfo.createRelationshipItem(id);
         }
 
         @Override
@@ -44,19 +46,19 @@ public class ElementsRelationshipInfo extends ElementsItemInfo{
                 if (name.equals(new QName(apiNS, "object"))) {
                     ElementsObjectCategory objectCategory = ElementsObjectCategory.valueOf(startElement.getAttributeByName(new QName("category")).getValue());
                     int objectID = Integer.parseInt(startElement.getAttributeByName(new QName("id")).getValue());
-                    relationshipInfo.addObjectId(new ElementsObjectId(objectCategory, String.valueOf(objectID)));
+                    workspace.addObjectId(new ElementsObjectId(objectCategory, String.valueOf(objectID)));
                 }
                 else if(name.equals(new QName(apiNS, "is-visible"))){
                     XMLEvent nextEvent = readerProxy.peek();
                     if (nextEvent.isCharacters())
-                        relationshipInfo.setIsVisible(Boolean.parseBoolean(nextEvent.asCharacters().getData()));
+                        workspace.setIsVisible(Boolean.parseBoolean(nextEvent.asCharacters().getData()));
                 }
             }
         }
 
         @Override
         protected ElementsRelationshipInfo finaliseItemExtraction(EndElement finalElement, XMLEventProcessor.ReaderProxy readerProxy){
-            return relationshipInfo;
+            return workspace;
         }
     }
 
@@ -68,6 +70,7 @@ public class ElementsRelationshipInfo extends ElementsItemInfo{
     //package private as should only ever be constructed by create calls into superclass
     ElementsRelationshipInfo(String id) {
         super(ElementsItemType.RELATIONSHIP);
+        if(StringUtils.isEmpty(id) || StringUtils.isWhitespace(id)) throw new IllegalArgumentException("id must not be null or empty");
         this.id = id;
     }
 

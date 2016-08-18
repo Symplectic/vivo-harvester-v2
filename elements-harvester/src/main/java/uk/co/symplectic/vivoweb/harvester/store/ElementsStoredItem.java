@@ -18,6 +18,7 @@ import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import java.io.*;
 import java.text.MessageFormat;
+import java.util.zip.GZIPInputStream;
 
 /**
  * Created by ajpc2_000 on 09/08/2016.
@@ -54,12 +55,13 @@ public class ElementsStoredItem {
         return resourceType;
     }
 
-    private synchronized static <T> T loadFromFile(File file, XMLEventProcessor.ItemExtractingFilter<T> extractor){
+    private synchronized static <T> T loadFromFile(File file, XMLEventProcessor.ItemExtractingFilter<T> extractor,  boolean zipped){
         if(file == null) throw new NullArgumentException("file");
         InputStream inputStream = null;
         try {
             //TODO: check UTF-8 behaviour here.
             inputStream = new BufferedInputStream(new FileInputStream(file));
+            if(zipped) inputStream = new GZIPInputStream(inputStream);
             XMLInputFactory xmlInputFactory = StAXUtils.getXMLInputFactory();
             XMLEventProcessor processor = new XMLEventProcessor(extractor);
             processor.process(xmlInputFactory.createXMLEventReader(inputStream));
@@ -67,6 +69,8 @@ public class ElementsStoredItem {
             return extractor.getExtractedItem();
         } catch (FileNotFoundException fileNotFoundException) {
             throw new IllegalStateException("Catastrophic failure reading files - abandoning", fileNotFoundException);
+        } catch (IOException ioException) {
+            throw new IllegalStateException("Catastrophic failure reading files - abandoning", ioException);
         } catch (XMLStreamException xmlStreamException) {
             throw new IllegalStateException("Catastrophic failure reading files - abandoning", xmlStreamException);
         } finally {
@@ -80,11 +84,15 @@ public class ElementsStoredItem {
     }
 
     public synchronized static ElementsStoredItem loadRawObject(File file) {
-        return loadRawObject(file, null);
+        return loadRawObject(file, false);
     }
 
-    public synchronized static ElementsStoredItem loadRawObject(File file, ElementsObjectId idToCompareTo) {
-        ElementsObjectInfo objectInfo = loadFromFile(file, new ElementsObjectInfo.Extractor(ElementsObjectInfo.Extractor.fileEntryLocation, 1));
+    public synchronized static ElementsStoredItem loadRawObject(File file, boolean zipped) {
+        return loadRawObject(file, null, zipped);
+    }
+
+    public synchronized static ElementsStoredItem loadRawObject(File file, ElementsObjectId idToCompareTo, boolean zipped) {
+        ElementsObjectInfo objectInfo = loadFromFile(file, new ElementsObjectInfo.Extractor(ElementsObjectInfo.Extractor.fileEntryLocation, 1), zipped);
 
         //TODO: decide if this is still sensible
         //take the extracted object info, put it in the cache and ensure that we use the cached one if it is present
@@ -101,10 +109,13 @@ public class ElementsStoredItem {
     }
 
     public synchronized static ElementsStoredItem loadRawRelationship(File file) {
-        return loadRawRelationship(file, null);
+        return loadRawRelationship(file, false);
     }
-    public synchronized static ElementsStoredItem loadRawRelationship(File file, String idToCompareTo) {
-        ElementsRelationshipInfo relationshipInfo = loadFromFile(file, new ElementsRelationshipInfo.Extractor(ElementsRelationshipInfo.Extractor.fileEntryLocation, 1));
+    public synchronized static ElementsStoredItem loadRawRelationship(File file, boolean zipped) {
+        return loadRawRelationship(file, null, zipped);
+    }
+    public synchronized static ElementsStoredItem loadRawRelationship(File file, String idToCompareTo, boolean zipped) {
+        ElementsRelationshipInfo relationshipInfo = loadFromFile(file, new ElementsRelationshipInfo.Extractor(ElementsRelationshipInfo.Extractor.fileEntryLocation, 1), zipped);
 
         if (idToCompareTo != null && !idToCompareTo.equals(relationshipInfo.getId())) {
             String message = MessageFormat.format("Elements relationship loaded from file ({0}) does not match supplied check values ({1})",
