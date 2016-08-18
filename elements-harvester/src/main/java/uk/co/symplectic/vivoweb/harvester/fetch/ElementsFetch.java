@@ -12,6 +12,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.co.symplectic.elements.api.ElementsAPI;
 import uk.co.symplectic.elements.api.ElementsAPIVersion;
+import uk.co.symplectic.elements.api.ElementsFeedQuery;
+import uk.co.symplectic.elements.api.queries.ElementsAPIFeedGroupQuery;
 import uk.co.symplectic.elements.api.queries.ElementsAPIFeedObjectQuery;
 import uk.co.symplectic.elements.api.queries.ElementsAPIFeedRelationshipQuery;
 import uk.co.symplectic.vivoweb.harvester.model.*;
@@ -87,145 +89,149 @@ public class ElementsFetch {
         protected abstract void processItem(S item, byte[] data) throws IOException;
     }
 
-    private class ObjectStoreFilter<S extends ElementsItemInfo, T extends XMLEventProcessor.ItemExtractingFilter<S>> extends DataStoringFilter<S, T> {
-        private final ElementsObjectStore objectStore;
+    private static class ObjectStoreFilter<S extends ElementsItemInfo, T extends XMLEventProcessor.ItemExtractingFilter<S>> extends DataStoringFilter<S, T> {
+        protected final ElementsObjectStore objectStore;
         private final StorableResourceType resourceType;
+        private final boolean actuallyStoreData;
 
-        ObjectStoreFilter(QName rootElement, T innerFilter, ElementsObjectStore objectStore, StorableResourceType resourceType) {
+        public ObjectStoreFilter(QName rootElement, T innerFilter, ElementsObjectStore objectStore, StorableResourceType resourceType) {
+            this(rootElement,innerFilter, objectStore, resourceType, true);
+        }
+
+        public ObjectStoreFilter(QName rootElement, T innerFilter, ElementsObjectStore objectStore, StorableResourceType resourceType, boolean actuallyStoreData) {
             super(rootElement, innerFilter);
             if (objectStore == null) throw new NullArgumentException("objectStore");
             if (resourceType == null) throw new NullArgumentException("resourceType");
             this.objectStore = objectStore;
             this.resourceType = resourceType;
+            this.actuallyStoreData = actuallyStoreData;
         }
 
         @Override
         protected void processItem(S item, byte[] data) throws IOException {
-            objectStore.storeItem(item, resourceType, data);
+            byte[] dataToStore = actuallyStoreData ? data : null;
+            objectStore.storeItem(item, resourceType, dataToStore);
         }
     }
 
-    private class FileStoringObjectFilter extends ObjectStoreFilter<ElementsObjectInfo, ElementsObjectInfo.Extractor>{
-        protected FileStoringObjectFilter(ElementsObjectStore objectStore, DocumentLocation location){
-            super(new QName(atomNS, "entry"), new ElementsObjectInfo.Extractor(location, 0), objectStore, StorableResourceType.RAW_OBJECT);
+    private static class FileStoringObjectFilter extends ObjectStoreFilter<ElementsObjectInfo, ElementsObjectInfo.Extractor>{
+
+        public static FileStoringObjectFilter create(ElementsObjectStore objectStore, boolean forDeletedObjects){
+            if(forDeletedObjects)
+                return new FileStoringObjectFilter(objectStore, ElementsObjectInfo.Extractor.feedDeletedEntryLocation, false);
+            return new FileStoringObjectFilter(objectStore, ElementsObjectInfo.Extractor.feedEntryLocation, true);
         }
 
-        FileStoringObjectFilter(ElementsObjectStore objectStore) { this(objectStore, ElementsObjectInfo.Extractor.feedEntryLocation); }
+        private FileStoringObjectFilter(ElementsObjectStore objectStore, DocumentLocation loc, boolean storeData){
+            super(new QName(atomNS, "entry"), new ElementsObjectInfo.Extractor(loc, 0), objectStore, StorableResourceType.RAW_OBJECT, storeData);
+        }
     }
 
-    private class FileStoringRelationshipFilter extends ObjectStoreFilter<ElementsRelationshipInfo, ElementsRelationshipInfo.Extractor>{
-        protected FileStoringRelationshipFilter(ElementsObjectStore objectStore, DocumentLocation location){
-            super(new QName(atomNS, "entry"), new ElementsRelationshipInfo.Extractor(location, 0), objectStore, StorableResourceType.RAW_RELATIONSHIP);
+    private static class FileStoringRelationshipFilter extends ObjectStoreFilter<ElementsRelationshipInfo, ElementsRelationshipInfo.Extractor>{
+        public static FileStoringRelationshipFilter create(ElementsObjectStore objectStore, boolean forDeletedObjects){
+            if(forDeletedObjects)
+                return new FileStoringRelationshipFilter(objectStore, ElementsRelationshipInfo.Extractor.feedDeletedEntryLocation, false);
+            return new FileStoringRelationshipFilter(objectStore, ElementsRelationshipInfo.Extractor.feedEntryLocation, true);
         }
 
-        FileStoringRelationshipFilter(ElementsObjectStore objectStore){this(objectStore, ElementsRelationshipInfo.Extractor.feedEntryLocation);}
+        protected FileStoringRelationshipFilter(ElementsObjectStore objectStore, DocumentLocation loc, boolean storeData){
+            super(new QName(atomNS, "entry"), new ElementsRelationshipInfo.Extractor(loc, 0), objectStore, StorableResourceType.RAW_RELATIONSHIP, storeData);
+        }
     }
 
-    public static class ObjectConfig{
+    public abstract static class FetchConfig {
+        final private int itemsPerPage;
+        final private boolean processAllPages;
+        final private boolean getFullDetails;
+
+        public FetchConfig(boolean getFullDetails, boolean processAllPages, int itemsPerPage){
+            this.itemsPerPage = itemsPerPage;
+            this.processAllPages = processAllPages;
+            this.getFullDetails = getFullDetails;
+        }
+
+        public Collection<ElementsFeedQuery> getQueries(){return getQueries(getFullDetails, processAllPages, itemsPerPage);}
+        protected abstract Collection<ElementsFeedQuery> getQueries(boolean fullDetails, boolean getAllPages, int perPage);
+        //This should return a "new" object not the same one..
+        public abstract ElementsAPI.APIResponseFilter getExtractor(ElementsObjectStore objectStore);
+    }
+
+    public static class ObjectConfig extends FetchConfig {
         //Which categories of Elements objects should be retrieved?
         final private List<ElementsObjectCategory> categoriesToHarvest = new ArrayList<ElementsObjectCategory>();
-        // How many objects to request per API request: Default of 25 (see constructor chain) is required by 4.6 API since we request full detail for objects
-        final private int objectsPerPage;
+        final private String groups; //TODO: remove this entirely?
 
-        public ObjectConfig(Collection<ElementsObjectCategory> categoriesToHarvest){ this(25, categoriesToHarvest); }
+        public ObjectConfig(boolean getFullDetails, int objectsPerPage, String groups, ElementsObjectCategory... categoriesToHarvest){
+            this(getFullDetails, objectsPerPage, groups, Arrays.asList(categoriesToHarvest)); }
 
-        public ObjectConfig(ElementsObjectCategory... categoriesToHarvest){ this(25, categoriesToHarvest); }
-
-        public ObjectConfig(int objectsPerPage, ElementsObjectCategory... categoriesToHarvest){ this(objectsPerPage, Arrays.asList(categoriesToHarvest)); }
-
-        public ObjectConfig(int objectsPerPage, Collection<ElementsObjectCategory> categoriesToHarvest){
+        public ObjectConfig(boolean getFullDetails, int objectsPerPage, String groups, Collection<ElementsObjectCategory> categoriesToHarvest){
+            super(getFullDetails, true, objectsPerPage);
             if (categoriesToHarvest == null)  throw new NullArgumentException("categoriesToHarvest");
             if (categoriesToHarvest.isEmpty())  throw new IllegalArgumentException("categoriesToHarvest should not be empty for an ElementsFetch.Configuration");
             this.categoriesToHarvest.addAll(categoriesToHarvest);
-            this.objectsPerPage =objectsPerPage;
+            this.groups = StringUtils.trimToNull(groups);
+        }
+
+        @Override
+        protected Collection<ElementsFeedQuery> getQueries(boolean fullDetails, boolean getAllPages, int perPage){
+            List<ElementsFeedQuery> queries = new ArrayList<ElementsFeedQuery>();
+            for(ElementsObjectCategory category : categoriesToHarvest){
+                queries.add(new ElementsAPIFeedObjectQuery(category, groups, fullDetails, getAllPages, perPage));
+            }
+            return queries;
+        }
+
+        @Override
+        public ElementsAPI.APIResponseFilter getExtractor(ElementsObjectStore objectStore) {
+            return new ElementsAPI.APIResponseFilter(FileStoringObjectFilter.create(objectStore, false), ElementsAPIVersion.allVersions());
         }
     }
 
-    public static class RelationshipConfig {
-        // How many relationships to request per API request:Default of 100 used for optimal performance (see constructor chain)
-        final private int relationshipsPerPage;
-
-        public RelationshipConfig(){ this(100); }
-
+    public static class RelationshipConfig extends FetchConfig{
         public RelationshipConfig(int relationshipsPerPage){
-            this.relationshipsPerPage = relationshipsPerPage;
+            super(false, true, relationshipsPerPage);
+        }
+
+        @Override
+        protected Collection<ElementsFeedQuery> getQueries(boolean fullDetails, boolean getAllPages, int perPage){
+            return Arrays.asList(new ElementsFeedQuery[]{new ElementsAPIFeedRelationshipQuery(fullDetails, getAllPages, perPage)});
+        }
+
+        @Override
+        public ElementsAPI.APIResponseFilter getExtractor(ElementsObjectStore objectStore) {
+            return new ElementsAPI.APIResponseFilter(FileStoringRelationshipFilter.create(objectStore, false), ElementsAPIVersion.allVersions());
         }
     }
+
+
     /**
      * SLF4J Logger
      */
     private static Logger log = LoggerFactory.getLogger(ElementsFetch.class);
     //the api to fetch data from
     final private ElementsAPI elementsAPI;
-    //the store to place retrieved items into
+
+    //the store to put data into.
     final private ElementsObjectStore objectStore;
-    //whether to fetch full details or not.
-    final private boolean getFullDetails;
-    //Which user groups should the fetch be restricted to
-    final private String groupsToHarvest;
-    final private ObjectConfig objectConfig;
-    final private RelationshipConfig relationshipConfig;
 
-
-    public ElementsFetch(ElementsAPI api, ElementsObjectStore objectStore, ObjectConfig objectConfig, RelationshipConfig relationshipConfig){
-        this(api, objectStore, objectConfig, relationshipConfig, null, true);
-    }
-
-    public ElementsFetch(ElementsAPI api, ElementsObjectStore objectStore, ObjectConfig objectConfig, RelationshipConfig relationshipConfig, String groupsToHarvest, boolean getFullDetails) {
+    public ElementsFetch(ElementsAPI api, ElementsObjectStore objectStore) {
         if (api == null) throw new NullArgumentException("api");
         if (objectStore == null) throw new NullArgumentException("objectStore");
-        if(objectConfig == null && relationshipConfig == null) throw new IllegalArgumentException("One of objectConfig and relationshipConfig must not be null");
-
         this.elementsAPI = api;
         this.objectStore = objectStore;
-        this.objectConfig = objectConfig;
-        this.relationshipConfig = relationshipConfig;
-        this.getFullDetails = getFullDetails;
-        this.groupsToHarvest = StringUtils.trimToNull(groupsToHarvest);
     }
 
     /**
      * Executes the task
      * @throws IOException error processing search
      */
-    public void execute()throws IOException {
-        if(objectConfig != null) executeObjectFetch();
-        if(relationshipConfig != null) executeRelationshipFetch();
-    }
-
-    private void executeObjectFetch() throws IOException {
-
-        // Set up the query we are going to perform :
-        // For retrieving objects, get the full record, get N objects per page and load all pages, not just one
-        ElementsAPIFeedObjectQuery feedQuery = new ElementsAPIFeedObjectQuery();
-        feedQuery.setFullDetails(getFullDetails);
-        feedQuery.setPerPage(objectConfig.objectsPerPage);
-        feedQuery.setProcessAllPages(true);
-        //set the groups that should be considered - note ensure we set this to null if we have no real value.
-        feedQuery.setGroups(groupsToHarvest);
-
-
-        // for each category update the query to retrieve that category and execute the query putting each object retrieved into the object store.
-        for (ElementsObjectCategory category : objectConfig.categoriesToHarvest) {
-            if (category != null) {
-                feedQuery.setCategory(category);
-                FileStoringObjectFilter filter = new FileStoringObjectFilter(objectStore);
-                log.info(MessageFormat.format("Retrieving Elements Category {0}", category.getSingular()));
-                elementsAPI.executeQuery(feedQuery, new ElementsAPI.APIResponseFilter(filter, ElementsAPIVersion.allVersions()));
+    public void execute(FetchConfig config)throws IOException {
+        if(config == null) throw new NullArgumentException("config");
+        for (ElementsFeedQuery query : config.getQueries()) {
+            if (query != null) {
+                elementsAPI.executeQuery(query, config.getExtractor(objectStore));
             }
         }
-    }
-
-    private void executeRelationshipFetch() throws IOException {
-        //create a query to retrieve relationships, set to get N objects per page and load all pages, not just one
-        ElementsAPIFeedRelationshipQuery feedQuery = new ElementsAPIFeedRelationshipQuery();
-        feedQuery.setProcessAllPages(true);
-        feedQuery.setPerPage(relationshipConfig.relationshipsPerPage);
-
-        //execute the query putting each relationship retrieved into the object store
-        FileStoringRelationshipFilter relationshipFilter = new FileStoringRelationshipFilter(objectStore);
-        log.info("Retrieving Elements Relationships");
-        elementsAPI.executeQuery(feedQuery, new ElementsAPI.APIResponseFilter(relationshipFilter, ElementsAPIVersion.allVersions()));
     }
 }
 

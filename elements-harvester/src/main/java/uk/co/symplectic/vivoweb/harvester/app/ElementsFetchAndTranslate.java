@@ -55,9 +55,9 @@ public class ElementsFetchAndTranslate {
 
                 ElementsObjectCollection excludedUserStore = new ElementsObjectCollection();
                 if(!StringUtils.isEmpty(Configuration.getGroupsToExclude())){
-                    ElementsFetch.ObjectConfig objConfig = new ElementsFetch.ObjectConfig(100, ElementsObjectCategory.USER);
-                    ElementsFetch excludedUserFetcher = new ElementsFetch(elementsAPI, excludedUserStore, objConfig, null, Configuration.getGroupsToExclude(), false);
-                    excludedUserFetcher.execute();
+                    ElementsFetch excludedUserFetcher = new ElementsFetch(elementsAPI, excludedUserStore);
+                    ElementsFetch.ObjectConfig objConfig = new ElementsFetch.ObjectConfig(false, 100, Configuration.getGroupsToExclude(), ElementsObjectCategory.USER);
+                    excludedUserFetcher.execute(objConfig);
                 }
                 Set<ElementsObjectId> excludedUsers = excludedUserStore.get(ElementsObjectCategory.USER);
 
@@ -70,11 +70,6 @@ public class ElementsFetchAndTranslate {
                 String xslFilename = Configuration.getXslTemplate();
                 File vivoImageDir = ElementsFetchAndTranslate.getVivoImageDir(Configuration.getVivoImageDir());
                 String vivoBaseURI = Configuration.getBaseURI();
-
-                ElementsFetch.ObjectConfig objConfig = new ElementsFetch.ObjectConfig(Configuration.getApiObjectsPerPage(), Configuration.getCategoriesToHarvest());
-                ElementsFetch.RelationshipConfig relConfig = new ElementsFetch.RelationshipConfig(Configuration.getApiRelationshipsPerPage());
-                //Configure a fetcher to go to the elements API, pull across the requested data and drop the outputs into the object store
-                ElementsFetch fetcher = new ElementsFetch(elementsAPI, objectStore, objConfig, relConfig, Configuration.getGroupsToHarvest(), true);
 
                 //Hook item observers to the object store so that translations happen for any objects and relationships that arrive in that store
                 //translations are configured to output to the rdfStore;
@@ -93,8 +88,15 @@ public class ElementsFetchAndTranslate {
                 ElementsVivoIncludeMonitor monitor = new ElementsVivoIncludeMonitor(excludedUsers, currentStaffOnly, visibleLinksOnly);
                 objectStore.addItemObserver(monitor);
 
-                //Now we have wired up all
-                fetcher.execute();
+                //Now we have wired up all our store observers perform the main fetches
+                //Configure a fetcher to go to the elements API, pull across the requested data and drop the outputs into the object store
+                ElementsFetch fetcher = new ElementsFetch(elementsAPI, objectStore);
+
+                ElementsFetch.ObjectConfig objConfig = new ElementsFetch.ObjectConfig(true, Configuration.getApiObjectsPerPage(),
+                        Configuration.getGroupsToHarvest(), Configuration.getCategoriesToHarvest());
+                fetcher.execute(objConfig);
+                ElementsFetch.RelationshipConfig relConfig = new ElementsFetch.RelationshipConfig(Configuration.getApiRelationshipsPerPage());
+                fetcher.execute(relConfig);
 
                 //Initiate the shutdown of the asynchronous translation engine - note this will actually block until
                 //the engine has completed all its enqueued tasks - think of it as "await completion".
