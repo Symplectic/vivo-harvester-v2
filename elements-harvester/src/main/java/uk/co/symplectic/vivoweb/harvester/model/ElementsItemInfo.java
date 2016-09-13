@@ -21,7 +21,7 @@ import java.util.Set;
 public abstract class ElementsItemInfo {
 
     //Static portion to deal with construction of Concrete ItemInfos
-    public static ElementsObjectInfo createObjectItem(ElementsObjectCategory category, String id) {
+    public static ElementsObjectInfo createObjectItem(ElementsObjectCategory category, int id) {
         if (ElementsObjectCategory.ACTIVITY == category) {
             return new ElementsUnknownObjectInfo(category, id);
         } else if (ElementsObjectCategory.EQUIPMENT == category) {
@@ -45,10 +45,15 @@ public abstract class ElementsItemInfo {
         return new ElementsUnknownObjectInfo(category, id);
     }
 
-    public static ElementsRelationshipInfo createRelationshipItem(String id) {
+    public static ElementsRelationshipInfo createRelationshipItem(int id) {
         return new ElementsRelationshipInfo(id);
     }
 
+    public static ElementsGroupInfo createGroupItem(int id) {
+        return new ElementsGroupInfo(id);
+    }
+
+    //todo: move these onto the itemids?
     public static Collection<String> validItemDescriptorsForType(ElementsItemType itemType){
         Set<String> validDescriptors = new HashSet<String>();
         switch(itemType){
@@ -64,23 +69,23 @@ public abstract class ElementsItemInfo {
     }
 
     //Main class definition
-    private final ElementsItemType itemType;
-    public ElementsItemType getItemType() { return itemType; }
+    private final ElementsItemId itemId;
 
-    protected ElementsItemInfo(ElementsItemType itemType) {
-        if (itemType == null) throw new NullArgumentException("itemType");
-        this.itemType = itemType;
+    protected ElementsItemInfo(ElementsItemId itemId) {
+        if (itemId == null) throw new NullArgumentException("itemId");
+        this.itemId = itemId;
     }
 
     //methods that may need overriding in concrete subclasses
-    public abstract String getId();
+    public ElementsItemId getItemId() { return itemId; }
 
-    public final String getItemDescriptor(){
-        if(isObjectInfo()){
-            return this.asObjectInfo().getCategory().getSingular();
-        }
-        return itemType.getName();
-    }
+    public ElementsItemType getItemType() { return itemId.getItemType(); }
+
+    public final String getItemDescriptor(){ return itemId.getItemDescriptor(); }
+    public int getId() { return itemId.getId(); }
+
+    //methods that may need overriding in concrete subclasses
+    public String getItemIdString(){return Integer.toString(itemId.getId());}
 
     //paired is/as methods to simplify access to concrete subtypes in code.
     public boolean isObjectInfo(){
@@ -102,4 +107,15 @@ public abstract class ElementsItemInfo {
         }
         return null;
     }
+
+    public boolean isGroupInfo(){
+        return this instanceof ElementsGroupInfo;
+    }
+    public ElementsGroupInfo asGroupInfo(){
+        if(isGroupInfo()) {
+            return (ElementsGroupInfo) this;
+        }
+        return null;
+    }
+
 }

@@ -11,23 +11,22 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 
 public final class ImageUtils {
     private ImageUtils() {}
 
-    public static BufferedImage readFile(File inputFile) {
+    public static BufferedImage readFile(InputStream inputStream) throws IOException {
         try {
-            BufferedImage image = ImageIO.read(inputFile);
-
+            BufferedImage image = ImageIO.read(inputStream);
             // Strip any alpha channel from the image
-            BufferedImage newImage = new BufferedImage( image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
-            newImage.createGraphics().drawImage( image, 0, 0, Color.BLACK, null);
+            BufferedImage newImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
+            newImage.createGraphics().drawImage(image, 0, 0, Color.BLACK, null);
 
             return newImage;
-        } catch (IOException e) {
+        } finally {
+            inputStream.close();
         }
-
-        return null;
     }
 
     public static boolean writeFile(BufferedImage image, File outputFile, String format) {

@@ -4,6 +4,7 @@ import org.apache.commons.lang.NullArgumentException;
 import org.apache.commons.lang.StringUtils;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemInfo;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemType;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsUserInfo;
 
 import java.util.*;
 
@@ -27,18 +28,24 @@ public class StorableResourceType {
         return availableResources.get(type);
     }
 
-    final public static StorableResourceType RAW_OBJECT = new StorableResourceType(ElementsItemType.OBJECT, "raw", "xml");
-    final public static StorableResourceType RAW_USER_PHOTO = new StorableResourceType(ElementsItemType.OBJECT, "photo", null);
-    final public static StorableResourceType RAW_RELATIONSHIP = new StorableResourceType(ElementsItemType.RELATIONSHIP, "raw", "xml");
+    //todo : undo this hack to not "zip" raw object data once have unstitched reliance of XSLT layer on being able to access raw object files directly - DONE? TEST!
+	final public static StorableResourceType RAW_OBJECT = new StorableResourceType(ElementsItemType.OBJECT, "raw", "xml", true);
+	//final public static StorableResourceType RAW_OBJECT = new StorableResourceType(ElementsItemType.OBJECT, "raw", "xml", false);
+    final public static StorableResourceType RAW_USER_PHOTO = new UserRelatedResourceType("photo", null, false);
+    final public static StorableResourceType RAW_RELATIONSHIP = new StorableResourceType(ElementsItemType.RELATIONSHIP, "raw", "xml", true);
+    final public static StorableResourceType RAW_GROUP = new StorableResourceType(ElementsItemType.GROUP, "raw", "xml", true);
 
-    final public static StorableResourceType TRANSLATED_OBJECT = new StorableResourceType(ElementsItemType.OBJECT, "translated", "rdf");
-    final public static StorableResourceType TRANSLATED_USER_PHOTO_DESCRIPTION = new StorableResourceType(ElementsItemType.OBJECT, "photo", "rdf");
-    final public static StorableResourceType TRANSLATED_RELATIONSHIP = new StorableResourceType(ElementsItemType.RELATIONSHIP, "translated", "rdf");
+
+    final public static StorableResourceType TRANSLATED_OBJECT = new StorableResourceType(ElementsItemType.OBJECT, "translated", "rdf", true);
+    final public static StorableResourceType TRANSLATED_USER_PHOTO_DESCRIPTION = new UserRelatedResourceType("photo", "rdf", true);
+    final public static StorableResourceType TRANSLATED_RELATIONSHIP = new StorableResourceType(ElementsItemType.RELATIONSHIP, "translated", "rdf", true);
+    final public static StorableResourceType TRANSLATED_GROUP = new StorableResourceType(ElementsItemType.GROUP, "translated", "rdf", true);
 
     //Item part of class to define structure
     private final ElementsItemType keyItemType;
     private final String name;
     private final String fileExtension;
+    private final boolean shouldZip;
 
     public ElementsItemType getKeyItemType() {
         return keyItemType;
@@ -48,18 +55,19 @@ public class StorableResourceType {
         return name;
     }
 
-    //TODO: file extensions are complicated by the fact that raw photo data may be a variety of mime types - this is not handled cleanly at present.
+    //TODO: file extensions are complicated by the fact that raw photo data may be a variety of mime types - so this is not implemented at the moment.
     public String getFileExtension() {
         return fileExtension;
     }
 
-    private StorableResourceType(ElementsItemType keyItemType, String name, String fileExtension) {
+    private StorableResourceType(ElementsItemType keyItemType, String name, String fileExtension, boolean shouldZip) {
         if (keyItemType == null) throw new NullArgumentException("keyItemType");
         if (StringUtils.isEmpty(name) || StringUtils.isWhitespace(name))
             throw new IllegalArgumentException("argument name must not be null or empty");
         this.keyItemType = keyItemType;
         this.name = name;
         this.fileExtension = StringUtils.trimToNull(fileExtension);
+        this.shouldZip = shouldZip;
 
         StorableResourceType.innerGetResourcesForType(this.keyItemType).add(this);
     }
@@ -67,6 +75,20 @@ public class StorableResourceType {
     public boolean isAppropriateForItem(ElementsItemInfo info){
         return keyItemType == info.getItemType();
     }
+
+    public boolean shouldZip() { return shouldZip; }
+
+    private static class UserRelatedResourceType extends StorableResourceType {
+        UserRelatedResourceType(String name, String fileExtension, boolean shouldZip) {
+            super(ElementsItemType.OBJECT, name, fileExtension, shouldZip);
+        }
+
+        @Override
+        public boolean isAppropriateForItem(ElementsItemInfo info) {
+            return super.isAppropriateForItem(info) && info.asObjectInfo() instanceof ElementsUserInfo;
+        }
+    }
+
 }
 
 

@@ -13,24 +13,24 @@ import org.junit.Test;
 public class ElementsAPIURLValidatorTest {
 /*    @Test
     public void testIsValid() throws Exception {
-        assertFailure(new ElementsAPIURLValidator(null), "URL must not be null");
-        assertFailure(new ElementsAPIURLValidator("this is not a url", false), "Unsecured endpoint does not begin with http://");
-        assertFailure(new ElementsAPIURLValidator("https://touch.symplectic.co.uk/", false), "Unsecured endpoint does not begin with http://");
-        assertFailure(new ElementsAPIURLValidator("http://touch.symplectic.co.uk/", true), "Secured endpoint does not begin with https://");
+        assertFailure(new ElementsValidatedUrl(null), "URL must not be null");
+        assertFailure(new ElementsValidatedUrl("this is not a url", false), "Unsecured endpoint does not begin with http://");
+        assertFailure(new ElementsValidatedUrl("https://touch.symplectic.co.uk/", false), "Unsecured endpoint does not begin with http://");
+        assertFailure(new ElementsValidatedUrl("http://touch.symplectic.co.uk/", true), "Secured endpoint does not begin with https://");
 
-        assertFailure(new ElementsAPIURLValidator("http://not:a:valid:url", false), "Endpoint is not a valid URL");
+        assertFailure(new ElementsValidatedUrl("http://not:a:valid:url", false), "Endpoint is not a valid URL");
 
-        assertSuccess(new ElementsAPIURLValidator("https://touch.symplectic.co.uk/", true));
-        assertSuccess(new ElementsAPIURLValidator("http://touch.symplectic.co.uk/", false));
+        assertSuccess(new ElementsValidatedUrl("https://touch.symplectic.co.uk/", true));
+        assertSuccess(new ElementsValidatedUrl("http://touch.symplectic.co.uk/", false));
     }
 
-    private void assertFailure(ElementsAPIURLValidator validator, String expectedMsg) {
+    private void assertFailure(ElementsValidatedUrl validator, String expectedMsg) {
         Assert.assertFalse(validator.isValid());
         Assert.assertTrue(expectedMsg.equals(validator.getLastValidationMessage()));
         Assert.assert
     }
 
-    private void assertSuccess(ElementsAPIURLValidator validator) {
+    private void assertSuccess(ElementsValidatedUrl validator) {
         Assert.assertTrue(validator.isValid());
     }*/
 }

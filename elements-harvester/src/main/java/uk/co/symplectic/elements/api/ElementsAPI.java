@@ -80,34 +80,41 @@ public class ElementsAPI {
             log.error("provided version must not be null on construction");
             throw new NullArgumentException("version");
         }
-
         this.version = version;
 
-        try{
-            ElementsAPIURLValidator validator = new ElementsAPIURLValidator(url);
-            this.url = StringUtils.stripEnd(url, "/") + "/";
+        ElementsValidatedUrl validatedUrl = getValidatedUrl(url, new MessageFormat("Provided api base URL was invalid: {0}"));
+        this.url = StringUtils.stripEnd(url, "/") + "/";
 
-            if(validator.urlIsSecure()) {
-                if(StringUtils.isBlank(username) || StringUtils.isBlank(password)){
-                    String errorMsg = "Must supply username and password when connecting to a secure api endpoint";
-                    log.error(errorMsg);
-                    throw new IllegalArgumentException(errorMsg);
-                }
-                this.username = username;
-                this.password = password;
+        if(validatedUrl.isSecure()) {
+            if(StringUtils.isBlank(username) || StringUtils.isBlank(password)){
+                String errorMsg = "Must supply username and password when connecting to a secure api endpoint";
+                log.error(errorMsg);
+                throw new IllegalArgumentException(errorMsg);
             }
-            else {
-                if (StringUtils.isNotBlank(username) || StringUtils.isNotBlank(password)) {
-                    String warnMsg = MessageFormat.format("Provided API credentials{0} ignored as the API url ({1}) is not secure", (username == null ? "" : "(" + username + ")"), url);
-                    log.warn(warnMsg);
-                }
-                this.username = null;
-                this.password = null;
+            this.username = username;
+            this.password = password;
+        }
+        else {
+            if (StringUtils.isNotBlank(username) || StringUtils.isNotBlank(password)) {
+                String warnMsg = MessageFormat.format("Provided API credentials{0} ignored as the API url ({1}) is not secure", (username == null ? "" : "(" + username + ")"), url);
+                log.warn(warnMsg);
             }
+            this.username = null;
+            this.password = null;
+        }
+    }
+
+    private ElementsValidatedUrl getValidatedUrl(String urlString, MessageFormat failureMessageTemplate){
+        return getValidatedUrl(urlString, null, failureMessageTemplate);
+    }
+
+    private ElementsValidatedUrl getValidatedUrl(String urlString, String comparisonUrlString, MessageFormat failureMessageTemplate){
+        try{
+            return new ElementsValidatedUrl(urlString, comparisonUrlString);
         }
         catch(URISyntaxException e){
-            String errorMsg = MessageFormat.format("Provided URL was invalid: {0}", e.getMessage());
-            log.error(errorMsg);
+            String errorMsg = failureMessageTemplate.format(e.getMessage());
+            log.error(errorMsg, e);
             throw new IllegalStateException(errorMsg, e);
         }
     }
@@ -121,9 +128,10 @@ public class ElementsAPI {
             }
             eventFilters.add(filter.getEventFilter());
         }
-//        XMLEventProcessor processor = new XMLEventProcessor(eventFilters.toArray(new XMLEventProcessor.EventFilter[eventFilters.size()]));
 
-        String currentQueryUrl = feedQuery.getUrlString(url, version.getUrlBuilder());
+        String feedUrl = feedQuery.getUrlString(url, version.getUrlBuilder());
+        ElementsValidatedUrl currentQueryUrl = getValidatedUrl(feedUrl, new MessageFormat("Invalid API query detected : {0}"));
+
         ElementsFeedPagination pagination = executeInternalQuery(currentQueryUrl, eventFilters);
 
         //todo: decide if keep low level logging.
@@ -135,31 +143,27 @@ public class ElementsAPI {
                 // Some versions of Elements incorrectly return the pagination information
                 // Check that the next URL is valid before continuing
                 //TODO: make this test if pagination has been retrieved correctly (e.g. test current against last to exit or something?)
-                String nextQueryUrl = pagination.getNextURL();
-                try {
-                    ElementsAPIURLValidator validator = new ElementsAPIURLValidator(nextQueryUrl, currentQueryUrl);
-                    if(validator.urlIsMismatched()){
-                        log.warn(MessageFormat.format("Next URL in a feed \"{0}\" has a different host to the previous URL: {1}", nextQueryUrl, currentQueryUrl));
+                ElementsValidatedUrl nextQueryUrl = getValidatedUrl(pagination.getNextURL(), currentQueryUrl.getUrl(), new MessageFormat("Next URL for a feed was invalid: {0}"));
+                if(nextQueryUrl.isMismatched()){
+                    if(counter == 1) {
+                        log.warn(MessageFormat.format("Next URL in a feed \"{0}\" has a different host to the previous URL: {1}", nextQueryUrl.getUrl(), currentQueryUrl));
                         log.warn("There is probably a mismatch between the configured API URL in this program and the API baseURI configured in Elements");
                     }
-                }
-                catch (URISyntaxException e){
-                    String errorMsg = MessageFormat.format("Next URL for a feed was invalid: {0}", e.getMessage());
-                    log.error(errorMsg);
-                    throw new IllegalStateException(errorMsg, e);
+                    //TODO : make this a config option - or remove entirely..
+                    nextQueryUrl.useRewrittenVersion(true);
                 }
                 //System.out.println(nextQueryUrl);
-
-                if (nextQueryUrl.equals(currentQueryUrl)) {
-                    throw new IllegalStateException("Error in the pagination response from Elements - unable to continue processing");
+                if (nextQueryUrl.getUrl().equals(currentQueryUrl.getUrl())) {
+                    throw new IllegalStateException("Error detected in the pagination response from Elements - unable to continue processing");
                 }
+
                 currentQueryUrl = nextQueryUrl;
                 pagination = executeInternalQuery(currentQueryUrl, eventFilters);
 
                 //todo: decide if keep low level logging.
                 counter++;
                 if(counter % 40 == 0){
-                    log.info(MessageFormat.format("{0} items processed: network-time: {1}, processing-time: {2}", counter*25, ElementsAPI.timeSpentInNetwork, ElementsAPI.timeSpentInProcessing));
+                    log.info(MessageFormat.format("{0} queries processed: network-time: {1}, processing-time: {2}", counter, ElementsAPI.timeSpentInNetwork, ElementsAPI.timeSpentInProcessing));
                     ElementsAPI.resetTimers();
                 }
 
@@ -190,7 +194,7 @@ public class ElementsAPI {
         return true;
     }
 
-    private ElementsFeedPagination executeInternalQuery(String url, Collection<XMLEventProcessor.EventFilter> eventFilters) throws IllegalStateException {
+    private ElementsFeedPagination executeInternalQuery(ElementsValidatedUrl url, Collection<XMLEventProcessor.EventFilter> eventFilters) throws IllegalStateException {
         int retryCount = 0;
         do {
             ElementsAPIHttpClient.ApiResponse apiResponse = null;
@@ -201,11 +205,6 @@ public class ElementsAPI {
                 long endTime = System.currentTimeMillis();
                 timeSpentInNetwork += (endTime - startTime);
                 return parseEventResponse(apiResponse.getResponseStream(), eventFilters);
-            }
-            catch (URISyntaxException e) {
-                log.error("Invalid API query detected", e);
-                //not going to recover from this so just fail.
-                throw new IllegalStateException(e);
             }
             catch (IOException e) {
                 if(e instanceof HttpException){

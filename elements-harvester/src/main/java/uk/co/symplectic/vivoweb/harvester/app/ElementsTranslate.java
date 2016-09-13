@@ -61,15 +61,15 @@ public class ElementsTranslate {//implements RecordStreamOrigin {
                 //outFile = rdfStore.getObjectFile(category, file.getName());
                 //translationService.translate(object, rdfStore, template, new ElementsDeleteEmptyTranslationCallback(outFile));
                 //ElementsStoredItem item = new ElementsStoredItem(file, object.getObjectInfo(), StorableResourceType.RAW_OBJECT);
-                ElementsStoredItem item = ElementsStoredItem.loadRawObject(file);
-                translationService.translate(item, rdfStore, template, false);
+                ElementsStoredItem item = ElementsStoredItem.InFile.loadRawObject(file);
+                translationService.translate(item, rdfStore, template);
             } else {
                 //ElementsStoredRelationship relationship = new ElementsStoredRelationship(file, "");
                 //outFile = rdfStore.getRelationshipFile(file.getName());
                 //translationService.translate(relationship, rdfStore, template, new ElementsDeleteEmptyTranslationCallback(outFile));
                 //ElementsStoredItem item = new ElementsStoredItem(file, relationship.getRelationshipInfo(), StorableResourceType.RAW_RELATIONSHIP);
-                ElementsStoredItem item = ElementsStoredItem.loadRawRelationship(file);
-                translationService.translate(item, rdfStore, template, false);
+                ElementsStoredItem item = ElementsStoredItem.InFile.loadRawRelationship(file);
+                translationService.translate(item, rdfStore, template);
             }
         }
     }

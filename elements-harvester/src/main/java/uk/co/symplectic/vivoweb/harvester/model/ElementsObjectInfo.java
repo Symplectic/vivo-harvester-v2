@@ -38,7 +38,7 @@ public class ElementsObjectInfo extends ElementsItemInfo{
         protected void initialiseItemExtraction(StartElement initialElement, XMLEventProcessor.ReaderProxy readerProxy) throws XMLStreamException{
             ElementsObjectCategory objectCategory = ElementsObjectCategory.valueOf(initialElement.getAttributeByName(new QName("category")).getValue());
             int objectId = Integer.parseInt(initialElement.getAttributeByName(new QName("id")).getValue());
-            workspace = ElementsItemInfo.createObjectItem(objectCategory, String.valueOf(objectId));
+            workspace = ElementsItemInfo.createObjectItem(objectCategory, objectId);
             additionalUserData = null;
         }
 
@@ -56,6 +56,10 @@ public class ElementsObjectInfo extends ElementsItemInfo{
                         XMLEvent nextEvent = readerProxy.peek();
                         if (nextEvent.isCharacters())
                             getAdditionalUserData().setIsCurrentStaff(Boolean.parseBoolean(nextEvent.asCharacters().getData()));
+                    } else if (name.equals(new QName(apiNS, "is-academic"))) {
+                        XMLEvent nextEvent = readerProxy.peek();
+                        if (nextEvent.isCharacters())
+                            getAdditionalUserData().setIsAcademic(Boolean.parseBoolean(nextEvent.asCharacters().getData()));
                     } else if (name.equals(new QName(apiNS, "photo"))) {
                         getAdditionalUserData().setPhotoUrl(startElement.getAttributeByName(new QName("href")).getValue());
                     }
@@ -73,23 +77,13 @@ public class ElementsObjectInfo extends ElementsItemInfo{
         }
     }
 
-    private final ElementsObjectId objectId;
-
     //package private as should only ever be constructed by create calls into superclass
-    protected ElementsObjectInfo(ElementsObjectCategory category, String id) {
-        super(ElementsItemType.OBJECT);
-        //ObjectID constructor will test params for null.
-        this.objectId = new ElementsObjectId(category, id);
+    protected ElementsObjectInfo(ElementsObjectCategory category, int id) {
+        super(ElementsItemId.createObjectId(category, id));
     }
 
-    public ElementsObjectId getObjectId() {
-        return objectId;
-    }
-    public ElementsObjectCategory getCategory() {
-        return objectId.getCategory();
-    }
-    @Override
-    public String getId() {
-        return objectId.getId();
-    }
+    public ElementsItemId.ObjectId getObjectId(){return (ElementsItemId.ObjectId) getItemId();}
+
+    public ElementsObjectCategory getCategory() { return getObjectId().getCategory(); }
+
 }

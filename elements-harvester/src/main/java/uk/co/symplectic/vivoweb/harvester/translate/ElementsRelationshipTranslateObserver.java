@@ -11,18 +11,19 @@ import org.apache.commons.lang.StringUtils;
 import uk.co.symplectic.translate.TemplatesHolder;
 import uk.co.symplectic.translate.TranslationService;
 import uk.co.symplectic.vivoweb.harvester.config.Configuration;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsGroupInfo;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectInfo;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsRelationshipInfo;
 import uk.co.symplectic.vivoweb.harvester.store.*;
 
-public class ElementsRelationshipTranslateObserver extends IElementsStoredItemObserver.ElementsStoredRelationshipObserver {
+//TODO : ? merge this and object translate as now so similar?
+public class ElementsRelationshipTranslateObserver extends IElementsStoredItemObserver.ElementsStoredResourceObserverAdapter {
+    //TODO: fix object as static thing here
     private final TranslationService translationService = new TranslationService();
     private TemplatesHolder templatesHolder = null;
     private ElementsRdfStore rdfStore = null;
 
-    private boolean currentStaffOnly = true;
-    private boolean visibleLinksOnly = true;
-
-    public ElementsRelationshipTranslateObserver(ElementsRdfStore rdfStore, String xslFilename, boolean currentStaffOnly, boolean visibleLinksOnly) {
+    public ElementsRelationshipTranslateObserver(ElementsRdfStore rdfStore, String xslFilename) {
         super(StorableResourceType.RAW_RELATIONSHIP);
         if(rdfStore == null) throw new NullArgumentException("rdfStore");
         if(xslFilename == null) throw new NullArgumentException("xslFilename");
@@ -35,28 +36,13 @@ public class ElementsRelationshipTranslateObserver extends IElementsStoredItemOb
             translationService.getConfig().setIgnoreFileNotFound(true);
             //TODO : migrate these Configuration access bits somehow?
             translationService.getConfig().addXslParameter("baseURI", Configuration.getBaseURI());
-            translationService.getConfig().addXslParameter("recordDir", Configuration.getRawOutputDir());
+            //translationService.getConfig().addXslParameter("recordDir", Configuration.getRawOutputDir());
             translationService.getConfig().setUseFullUTF8(Configuration.getUseFullUTF8());
         }
-
-        this.currentStaffOnly = currentStaffOnly;
-        this.visibleLinksOnly = visibleLinksOnly;
     }
 
     @Override
-    public void observeStoredRelationship(ElementsRelationshipInfo info, ElementsStoredItem item) {
-
-        //TODO : probably rip this out and move into the translation layer [behaviour doesn't really make sense as it stands]
-        boolean includeRelationship = true;
-        if (visibleLinksOnly && includeRelationship) {
-            //ensure we only ever make it false once
-            includeRelationship = includeRelationship && info.getIsVisible();
-        }
-
-        if(includeRelationship) {
-            //TODO : SHOULD account for current staff and excluded users - NOT DOING SO MEANS BEHAVIOUR IS SLIGHTLY DIFFERENT AS MONITOR DOES NOT DELETE RELATIONSHIP FILES
-            //todo: move the zip file stuff somewhere nicer?
-            translationService.translate(item, rdfStore, templatesHolder, Configuration.getZipFiles());
-        }
+    protected void observeStoredRelationship(ElementsRelationshipInfo info, ElementsStoredItem item) {
+        translationService.translate(item, rdfStore, templatesHolder);
     }
 }

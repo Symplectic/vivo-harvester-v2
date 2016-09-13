@@ -37,10 +37,10 @@ public class DefaultLayoutStrategy implements LayoutStrategy {
     @Override
     public File getItemFile(File storeDir, ElementsItemInfo itemInfo, StorableResourceType resourceType) {
         if(mainResourceTypes.containsValue(resourceType))
-            return getObjectExtraFile(storeDir, itemInfo.getItemDescriptor(), itemInfo.getId(), null);
+            return getObjectExtraFile(storeDir, itemInfo.getItemDescriptor(), itemInfo.getItemIdString(), null);
         if(resourceTypesWithOwnDirectory.contains(resourceType))
-            return getResourceFile(storeDir, itemInfo.getItemDescriptor(), resourceType.getName(), itemInfo.getId());
-        return getObjectExtraFile(storeDir, itemInfo.getItemDescriptor(), itemInfo.getId(), resourceType.getName());
+            return getResourceFile(storeDir, itemInfo.getItemDescriptor(), resourceType.getName(), itemInfo.getItemIdString());
+        return getObjectExtraFile(storeDir, itemInfo.getItemDescriptor(), itemInfo.getItemIdString(), resourceType.getName());
     }
 
     @Override

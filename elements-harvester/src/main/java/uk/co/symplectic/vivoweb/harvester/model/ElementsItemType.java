@@ -16,8 +16,8 @@ import org.apache.commons.lang.NullArgumentException;
  */
 public enum ElementsItemType {
     OBJECT("object"),
-    RELATIONSHIP("relationship");
-    //GROUP("group", Elements
+    RELATIONSHIP("relationship"),
+    GROUP("group");
 
     private final String name;
 

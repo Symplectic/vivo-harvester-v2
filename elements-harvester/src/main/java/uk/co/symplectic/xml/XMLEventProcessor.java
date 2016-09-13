@@ -54,14 +54,6 @@ public class XMLEventProcessor {
         }
     }
 
-    public void removeFilter(EventFilter filter) {
-        if (filter != null) {
-            List<QName> key = filter.getDocumentLocation();
-            List<EventFilter> filters =  this.filters.get(key);
-            if(filters != null) filters.remove(filter);
-        }
-    }
-
     /*
     Helper method used by "process" - Tests that the incoming reader is in a sensible place to start processing and errors out if not.
      */

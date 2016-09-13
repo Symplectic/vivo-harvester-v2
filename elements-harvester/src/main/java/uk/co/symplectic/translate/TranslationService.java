@@ -13,6 +13,7 @@ import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItem;
 import javax.xml.transform.Templates;
 import javax.xml.transform.stream.StreamSource;
 import java.io.File;
+import java.util.Map;
 
 
 /**
@@ -33,8 +34,12 @@ public final class TranslationService {
         return TranslationServiceImpl.compileSource(new StreamSource(file));
     }
 
-    public void translate(ElementsStoredItem input, ElementsRdfStore output, TemplatesHolder translationTemplates, boolean isZipped) {
-        TranslationServiceImpl.translate(config, input, output, translationTemplates, isZipped);
+    public void translate(ElementsStoredItem input, ElementsRdfStore output, TemplatesHolder translationTemplates) {
+        translate(input, output, translationTemplates, null);
+    }
+
+    public void translate(ElementsStoredItem input, ElementsRdfStore output, TemplatesHolder translationTemplates, Map<String, Object> extraParams) {
+        TranslationServiceImpl.translate(config, input, output, translationTemplates, extraParams);
     }
 
     public static void shutdown() {

@@ -35,7 +35,7 @@ public class ElementsRelationshipInfo extends ElementsItemInfo{
         @Override
         protected void initialiseItemExtraction(StartElement initialElement, XMLEventProcessor.ReaderProxy readerProxy) throws XMLStreamException {
             String id = initialElement.getAttributeByName(new QName("id")).getValue();
-            workspace = ElementsItemInfo.createRelationshipItem(id);
+            workspace = ElementsItemInfo.createRelationshipItem(Integer.parseInt(id));
         }
 
         @Override
@@ -46,7 +46,7 @@ public class ElementsRelationshipInfo extends ElementsItemInfo{
                 if (name.equals(new QName(apiNS, "object"))) {
                     ElementsObjectCategory objectCategory = ElementsObjectCategory.valueOf(startElement.getAttributeByName(new QName("category")).getValue());
                     int objectID = Integer.parseInt(startElement.getAttributeByName(new QName("id")).getValue());
-                    workspace.addObjectId(new ElementsObjectId(objectCategory, String.valueOf(objectID)));
+                    workspace.addObjectId(ElementsItemId.createObjectId(objectCategory, objectID));
                 }
                 else if(name.equals(new QName(apiNS, "is-visible"))){
                     XMLEvent nextEvent = readerProxy.peek();
@@ -62,17 +62,11 @@ public class ElementsRelationshipInfo extends ElementsItemInfo{
         }
     }
 
-    private String id = null;
     private boolean isVisible = true;
-    private String userId = null;
-    private final List<ElementsObjectId> objectIds = new ArrayList<ElementsObjectId>();
+    private final List<ElementsItemId.ObjectId> objectIds = new ArrayList<ElementsItemId.ObjectId>();
 
     //package private as should only ever be constructed by create calls into superclass
-    ElementsRelationshipInfo(String id) {
-        super(ElementsItemType.RELATIONSHIP);
-        if(StringUtils.isEmpty(id) || StringUtils.isWhitespace(id)) throw new IllegalArgumentException("id must not be null or empty");
-        this.id = id;
-    }
+    ElementsRelationshipInfo(int id) { super(ElementsItemId.createRelationshipId(id)); }
 
     public boolean getIsVisible() {
         return isVisible;
@@ -82,24 +76,15 @@ public class ElementsRelationshipInfo extends ElementsItemInfo{
         this.isVisible = isVisible;
     }
 
-    public List<String> getUserIds() {
-        List<String> ids = new ArrayList<String>();
-        for(ElementsObjectId id : objectIds){
-            if(id.getCategory() == ElementsObjectCategory.USER) ids.add(id.getId());
+    public List<ElementsItemId.ObjectId> getUserIds() {
+        List<ElementsItemId.ObjectId> userIds = new ArrayList<ElementsItemId.ObjectId>();
+        for(ElementsItemId.ObjectId id : objectIds){
+            if(id.getCategory() == ElementsObjectCategory.USER) userIds.add(id);
         }
-        return ids;
+        return userIds;
     }
 
-    public void addObjectId(ElementsObjectId id) {
-        objectIds.add(id);
-    }
+    public void addObjectId(ElementsItemId.ObjectId id) { objectIds.add(id); }
 
-    public List<ElementsObjectId> getObjectIds() {
-        return Collections.unmodifiableList(objectIds);
-    }
-
-    @Override
-    public String getId() {
-        return id;
-    }
+    public List<ElementsItemId.ObjectId> getObjectIds() { return Collections.unmodifiableList(objectIds); }
 }

@@ -13,11 +13,15 @@ import uk.co.symplectic.elements.api.queries.ElementsAPIFeedObjectQuery;
 import uk.co.symplectic.elements.api.queries.ElementsAPIFeedRelationshipQuery;
 import uk.co.symplectic.utils.URLBuilder;
 
-public class ElementsAPIv4_XURLBuilder implements ElementsAPIURLBuilder {
+public class ElementsAPIv4_XURLBuilder extends ElementsAPIURLBuilder.GenericBase {
     @Override
 
     public String buildObjectFeedQuery(String endpointUrl, ElementsAPIFeedObjectQuery feedQuery) {
         URLBuilder queryUrl = new URLBuilder(endpointUrl);
+
+        if(feedQuery.getQueryDeletedObjects()){
+            queryUrl.appendPath("deleted");
+        }
 
         if (feedQuery.getCategory() != null) {
             queryUrl.appendPath(feedQuery.getCategory().getPlural());
@@ -25,8 +29,8 @@ public class ElementsAPIv4_XURLBuilder implements ElementsAPIURLBuilder {
             queryUrl.appendPath("objects");
         }
 
-        if (!StringUtils.isEmpty(feedQuery.getGroups())) {
-            queryUrl.addParam("groups", feedQuery.getGroups());
+        if (feedQuery.getGroups().size() != 0) {
+            queryUrl.addParam("groups", convertIntegerArrayToQueryString(feedQuery.getGroups()));
 
             if (feedQuery.getExplicitMembersOnly()) {
                 queryUrl.addParam("group-membership", "explicit");
@@ -44,7 +48,10 @@ public class ElementsAPIv4_XURLBuilder implements ElementsAPIURLBuilder {
         }
 
         if (!StringUtils.isEmpty(feedQuery.getModifiedSince())) {
-            queryUrl.addParam("modified-since", feedQuery.getModifiedSince());
+            if(feedQuery.getQueryDeletedObjects())
+                queryUrl.addParam("deleted-since", feedQuery.getModifiedSince());
+            else
+                queryUrl.addParam("modified-since", feedQuery.getModifiedSince());
         }
 
         //hack in a page for testing
@@ -66,6 +73,9 @@ public class ElementsAPIv4_XURLBuilder implements ElementsAPIURLBuilder {
         if (feedQuery.getPerPage() > 0) {
             queryUrl.addParam("per-page", Integer.toString(feedQuery.getPerPage(), feedQuery.getFullDetails() ? 25 : 100));  //v4.6 introduced a new maximum per page of 25 for full detail
         }
+
+        //hack in a page for testing
+        //queryUrl.addParam("types", Integer.toString(83));
 
         return queryUrl.toString();
     }

@@ -7,12 +7,12 @@
 package uk.co.symplectic.vivoweb.harvester.translate;
 
 import org.apache.commons.lang.NullArgumentException;
-import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
-import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectId;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsGroupInfo;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId.ObjectId;
 import uk.co.symplectic.vivoweb.harvester.fetch.ElementsObjectCollection;
-import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectInfoCache;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectInfo;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsRelationshipInfo;
-import uk.co.symplectic.vivoweb.harvester.model.ElementsUserInfo;
 import uk.co.symplectic.vivoweb.harvester.store.*;
 
 import java.util.ArrayList;
@@ -20,20 +20,18 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-public class ElementsVivoIncludeMonitor extends IElementsStoredItemObserver.ElementsStoredRelationshipObserver {
+public class ElementsVivoIncludeMonitor extends IElementsStoredItemObserver.ElementsStoredResourceObserverAdapter {
 
-    final private Set<ElementsObjectId> excludedUsers;
-    final private boolean currentStaffOnly;
+    final private Set<ElementsItemId.ObjectId> includedUsers;
     final private boolean visibleLinksOnly;
 
     final private ElementsObjectCollection includedObjects = new ElementsObjectCollection();
     final private List<ElementsRelationshipInfo> includedRelationships = new ArrayList<ElementsRelationshipInfo>();
 
-    public ElementsVivoIncludeMonitor(Set<ElementsObjectId> excludedUsers, boolean currentStaffOnly, boolean visibleLinksOnly) {
+    public ElementsVivoIncludeMonitor(Set<ElementsItemId.ObjectId> includedUsers, boolean visibleLinksOnly) {
         super(StorableResourceType.RAW_RELATIONSHIP);
-        if(excludedUsers == null) throw new NullArgumentException("excludedUsers");
-        this.excludedUsers = Collections.unmodifiableSet(excludedUsers);
-        this.currentStaffOnly = currentStaffOnly;
+        if(includedUsers == null) throw new NullArgumentException("includedUsers");
+        this.includedUsers = Collections.unmodifiableSet(includedUsers);
         this.visibleLinksOnly = visibleLinksOnly;
     }
 
@@ -49,29 +47,21 @@ public class ElementsVivoIncludeMonitor extends IElementsStoredItemObserver.Elem
             includeRelationship = includeRelationship && info.getIsVisible();
         }
 
-        if (currentStaffOnly && includeRelationship) {
-            List<String> userIds = info.getUserIds();
-            if (!userIds.isEmpty()) {
-                for(String userId : userIds) {
-                    ElementsUserInfo userInfo = (ElementsUserInfo) ElementsObjectInfoCache.get(ElementsObjectCategory.USER, userId);
-                    if (userInfo != null) {
-                        //if user is not currentStaff then set to false ensure we only ever make it false once
-                        includeRelationship = includeRelationship && userInfo.getIsCurrentStaff();
-
-                        //if user is in the excluded users then set include to false;
-                        includeRelationship = includeRelationship && !excludedUsers.contains(userInfo.getObjectId());
-                    } else {
-                        includeRelationship = false;
-                    }
-                }
+        List<ElementsItemId.ObjectId> userIds = info.getUserIds();
+        if (!userIds.isEmpty()) {
+            for (ElementsItemId.ObjectId userId : userIds) {
+                includeRelationship = includeRelationship && includedUsers.contains(userId);
             }
         }
 
         if (includeRelationship) {
             includedRelationships.add(info);
-            for (ElementsObjectId id : info.getObjectIds()) {
+            for (ElementsItemId.ObjectId id : info.getObjectIds()) {
                 includedObjects.add(id);
             }
         }
+
+        //add all included users
+        includedObjects.addAll(includedUsers);
     }
 }

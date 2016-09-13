@@ -53,7 +53,7 @@ public class ElementsObjectFileStore implements ElementsObjectStore{
     }*/
 
 
-    //NOTE : returns all "possible" items without checking if item is actually present in the store - is this best?
+    //todo : returns all "possible" items without checking if item is actually present in the store - decide if this is for the best?
     public Collection<ElementsStoredItem> retrieveAllItems(ElementsItemInfo itemInfo){
         List<ElementsStoredItem> items = new ArrayList<ElementsStoredItem>();
         for(StorableResourceType resourceType : supportedTypes){
@@ -76,7 +76,7 @@ public class ElementsObjectFileStore implements ElementsObjectStore{
         if(!resourceType.isAppropriateForItem(itemInfo))  throw new IllegalStateException("resourceType is incompatible with item");
         if(!supportedTypes.contains(resourceType)) throw new IllegalStateException("resourceType is incompatible with store");
         File file = layoutStrategy.getItemFile(dir, itemInfo, resourceType);
-        return file == null ? null : new ElementsStoredItem(file, itemInfo, resourceType);
+        return file == null ? null : new ElementsStoredItem.InFile(file, itemInfo, resourceType, shouldZipResourceFile(resourceType));
     }
 
     public Collection<File> getAllExistingFilesOfType(StorableResourceType resourceType){
@@ -93,22 +93,24 @@ public class ElementsObjectFileStore implements ElementsObjectStore{
         if(!resourceType.isAppropriateForItem(itemInfo)) throw new IllegalStateException("resourceType is incompatible with item");
         if(!supportedTypes.contains(resourceType)) throw new IllegalStateException("resourceType is incompatible with store");
         File file = layoutStrategy.getItemFile(dir, itemInfo, resourceType);
-        ElementsStoredItem storedItem = new ElementsStoredItem(file, itemInfo, resourceType);
+        ElementsStoredItem storedItem = new ElementsStoredItem.InFile(file, itemInfo, resourceType, shouldZipResourceFile(resourceType));
         //TODO: move this to an observer?
         if(itemInfo.isObjectInfo()) ElementsObjectInfoCache.put(itemInfo.asObjectInfo());
-        store(file, data);
+        store(file, data, zipFiles && resourceType.shouldZip());
         for(IElementsStoredItemObserver observer : itemObservers)
             observer.observe(storedItem);
         return storedItem;
     }
 
-    private void store(File file, byte[] data) throws IOException{
+    private boolean shouldZipResourceFile(StorableResourceType resourceType) {return zipFiles && resourceType.shouldZip();}
+
+    private void store(File file, byte[] data, boolean shouldZip) throws IOException{
         byte[] dataToStore = data == null ? new byte[0] : data;
         if (keepEmpty || dataToStore.length > 0) {
             OutputStream outputStream = null;
             try {
                 outputStream = (new BufferedOutputStream(new FileOutputStream(file)));
-                if(zipFiles) outputStream = new GZIPOutputStream(outputStream);
+                if(shouldZip) outputStream = new GZIPOutputStream(outputStream);
                 IOUtils.copy(new ByteArrayInputStream(dataToStore), outputStream);
             } finally {
                 if (outputStream != null) {
@@ -124,8 +126,8 @@ public class ElementsObjectFileStore implements ElementsObjectStore{
 
     public static class ElementsRawDataStore extends ElementsObjectFileStore {
         private static LayoutStrategy layoutStrategy = new DefaultLayoutStrategy(
-            new StorableResourceType[]{StorableResourceType.RAW_OBJECT, StorableResourceType.RAW_RELATIONSHIP},
-            new StorableResourceType[]{StorableResourceType.RAW_USER_PHOTO}
+                new StorableResourceType[]{StorableResourceType.RAW_OBJECT, StorableResourceType.RAW_RELATIONSHIP, StorableResourceType.RAW_GROUP},
+                new StorableResourceType[]{StorableResourceType.RAW_USER_PHOTO}
         );
 
         public ElementsRawDataStore(String dir) {
@@ -134,7 +136,7 @@ public class ElementsObjectFileStore implements ElementsObjectStore{
 
         public ElementsRawDataStore(String dir, boolean keepEmpty, boolean zipFiles){
             super(dir, keepEmpty, zipFiles, ElementsRawDataStore.layoutStrategy,
-                    StorableResourceType.RAW_OBJECT, StorableResourceType.RAW_RELATIONSHIP, StorableResourceType.RAW_USER_PHOTO);
+                    StorableResourceType.RAW_OBJECT, StorableResourceType.RAW_RELATIONSHIP, StorableResourceType.RAW_USER_PHOTO, StorableResourceType.RAW_GROUP);
         }
     }
 }

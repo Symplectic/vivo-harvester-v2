@@ -10,7 +10,6 @@ import org.apache.commons.lang.NullArgumentException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.co.symplectic.utils.ExecutorServiceUtils;
-import uk.co.symplectic.vivoweb.harvester.config.Configuration;
 import uk.co.symplectic.vivoweb.harvester.store.*;
 
 import javax.xml.transform.ErrorListener;
@@ -25,9 +24,10 @@ import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 import java.io.*;
 import java.text.MessageFormat;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
-import java.util.zip.GZIPInputStream;
 
 /**
  * Static implementation of an Executor based translation service.
@@ -71,8 +71,8 @@ final class TranslationServiceImpl {
         return factory;
     }
 
-    static void translate(TranslationServiceConfig config, ElementsStoredItem input, ElementsRdfStore output, TemplatesHolder translationTemplates, boolean isZipped) {
-        Future<Boolean> result = wrapper.submit(new ItemTranslateTask(config, input, output, translationTemplates, isZipped));
+    static void translate(TranslationServiceConfig config, ElementsStoredItem input, ElementsRdfStore output, TemplatesHolder translationTemplates, Map<String, Object> extraParams) {
+        Future<Boolean> result = wrapper.submit(new ItemTranslateTask(config, input, output, translationTemplates, extraParams));
     }
 
 //    static void translate(TranslationServiceConfig config, ElementsStoredObject input, ElementsRdfStore output, TemplatesHolder translationTemplates) {
@@ -89,9 +89,10 @@ final class TranslationServiceImpl {
 
     static abstract class AbstractTranslateTask implements Callable<Boolean>{
 
-        private TemplatesHolder translationTemplates;
+        private final TemplatesHolder translationTemplates;
         //TODO: unstitch config layer?
-        private TranslationServiceConfig config;
+        private final TranslationServiceConfig config;
+        private final Map<String, Object> extraParams;
 
         protected abstract InputStream getInputStream() throws IOException;
         protected String getInputDescription(){return "input";}
@@ -99,11 +100,12 @@ final class TranslationServiceImpl {
         protected abstract void storeOutput(byte[] translatedData) throws IOException;
         protected String getOutputDescription(){return "output";}
 
-        protected AbstractTranslateTask(TranslationServiceConfig config, TemplatesHolder translationTemplates){
+        protected AbstractTranslateTask(TranslationServiceConfig config, TemplatesHolder translationTemplates, Map<String, Object> extraParams){
             if(translationTemplates == null) throw new NullArgumentException("translationTemplates");
             if(config == null) throw new NullArgumentException("config");
             this.translationTemplates = translationTemplates;
             this.config = config;
+            this.extraParams = extraParams;
         }
 
         public Boolean call() throws Exception {
@@ -130,9 +132,13 @@ final class TranslationServiceImpl {
                     Transformer transformer = translationTemplates.getTemplates().newTransformer();
                     transformer.setErrorListener(new TranslateTaskErrorListener(config));
 
-                    for (String key : config.getXslParameters().keySet()) {
+                    Map<String, Object> parameters = new HashMap<String, Object>();
+                    parameters.putAll(config.getXslParameters());
+                    if(extraParams != null) parameters.putAll(extraParams);
+
+                    for (String key : parameters.keySet()) {
                         try {
-                            transformer.setParameter(key, config.getXslParameters().get(key));
+                            transformer.setParameter(key, parameters.get(key));
                         } catch (RuntimeException re) {
                             //TODO : handle better here?
                         }
@@ -206,28 +212,24 @@ final class TranslationServiceImpl {
     static class ItemTranslateTask extends AbstractTranslateTask{
         private ElementsStoredItem inputItem;
         private ElementsRdfStore outputStore;
-        private boolean inputIszipped = true;
 
-        ItemTranslateTask(TranslationServiceConfig config, ElementsStoredItem inputItem, ElementsRdfStore outputStore, TemplatesHolder translationTemplates, boolean inputIsZipped) {
-            super(config, translationTemplates);
+        ItemTranslateTask(TranslationServiceConfig config, ElementsStoredItem inputItem, ElementsRdfStore outputStore, TemplatesHolder translationTemplates, Map<String, Object> extraParams) {
+            super(config, translationTemplates, extraParams);
             if(inputItem == null) throw new NullArgumentException("inputItem");
             if(outputStore == null) throw new NullArgumentException("outputStore");
 
             this.inputItem = inputItem;
             this.outputStore = outputStore;
-            this.inputIszipped = inputIsZipped;
         }
 
         @Override
         protected String getInputDescription(){
-            return inputItem.getItemInfo().getItemDescriptor() + ":" + inputItem.getItemInfo().getId();
+            return inputItem.getItemInfo().getItemDescriptor() + ":" + inputItem.getItemInfo().getItemIdString();
         }
 
         @Override
         protected InputStream getInputStream() throws IOException {
-            InputStream stream = new BufferedInputStream(new FileInputStream(inputItem.getFile()));
-            if(inputIszipped) stream = new GZIPInputStream(stream);
-            return stream;
+            return inputItem.getInputStream();
         }
 
         @Override
@@ -241,6 +243,8 @@ final class TranslationServiceImpl {
                 outputStore.storeItem(inputItem.getItemInfo(), StorableResourceType.TRANSLATED_OBJECT, translatedData);
             else if(inputItem.getItemInfo().isRelationshipInfo())
                 outputStore.storeItem(inputItem.getItemInfo(), StorableResourceType.TRANSLATED_RELATIONSHIP, translatedData);
+            else if(inputItem.getItemInfo().isGroupInfo())
+                outputStore.storeItem(inputItem.getItemInfo(), StorableResourceType.TRANSLATED_GROUP, translatedData);
             else
                 throw new IllegalStateException("Unstorable item translated");
         }

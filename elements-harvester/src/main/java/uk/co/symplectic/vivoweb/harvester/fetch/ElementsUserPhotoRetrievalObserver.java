@@ -9,17 +9,19 @@ package uk.co.symplectic.vivoweb.harvester.fetch;
 import org.apache.commons.lang.NullArgumentException;
 import org.apache.commons.lang.StringUtils;
 import uk.co.symplectic.elements.api.ElementsAPI;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsGroupInfo;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectInfo;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsRelationshipInfo;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsUserInfo;
 import uk.co.symplectic.vivoweb.harvester.fetch.resources.ResourceFetchService;
 import uk.co.symplectic.vivoweb.harvester.store.*;
 import java.net.MalformedURLException;
 
-public class ElementsUserPhotoRetrievalObserver extends IElementsStoredItemObserver.ElementsStoredObjectObserver {
+public class ElementsUserPhotoRetrievalObserver extends IElementsStoredItemObserver.ElementsStoredResourceObserverAdapter {
     //TODO: Sort out static as object behaviour here
     private final ResourceFetchService fetchService = new ResourceFetchService();
-    private ElementsObjectFileStore objectStore = null;
-    private ElementsAPI elementsApi;
+    private final ElementsObjectFileStore objectStore;
+    private final ElementsAPI elementsApi;
 
     public ElementsUserPhotoRetrievalObserver(ElementsAPI elementsApi, ElementsObjectFileStore objectStore) {
         super(StorableResourceType.TRANSLATED_OBJECT);
@@ -34,14 +36,10 @@ public class ElementsUserPhotoRetrievalObserver extends IElementsStoredItemObser
         if (info instanceof ElementsUserInfo) {
             ElementsUserInfo userInfo = (ElementsUserInfo) info;
             if (!StringUtils.isEmpty(userInfo.getPhotoUrl())) {
-                if (elementsApi != null) {
-                    try {
-                        fetchService.fetchUserPhoto(elementsApi, userInfo, objectStore);
-                    } catch (MalformedURLException mue) {
-                        // TODO: Log error
-                    }
-                } else {
-                    // TODO: Log missing API object
+                try {
+                    fetchService.fetchUserPhoto(elementsApi, userInfo, objectStore);
+                } catch (MalformedURLException mue) {
+                    // TODO: Log error
                 }
             }
         }

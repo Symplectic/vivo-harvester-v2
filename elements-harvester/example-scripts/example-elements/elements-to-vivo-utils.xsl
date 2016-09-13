@@ -29,7 +29,11 @@
     <xsl:import href="elements-to-vivo-datatypes.xsl" />
 
     <xsl:param name="recordDir">data/raw-records/</xsl:param>
+
     <xsl:param name="includeDept">true</xsl:param>
+
+    <xsl:param name="extraObjects"></xsl:param>
+    <xsl:param name="useRawDataFiles">false</xsl:param>
 
     <xsl:variable name="organization-types" select="document('elements-to-vivo-config-organization-types.xml')//config:organization-types" />
 
@@ -325,14 +329,21 @@
     -->
     <xsl:function name="svfn:fullObject">
         <xsl:param name="object" />
-        <xsl:variable name="filename" select="concat($recordDir,$object/@category,'/',$object/@id)" />
-
         <xsl:choose>
-            <xsl:when test="fn:doc-available($filename)">
-                <xsl:copy-of select="document($filename)//api:object" />
+            <xsl:when test="$extraObjects and $extraObjects/descendant::api:object[(@category=$object/@category) and (@id=$object/@id)]">
+                <xsl:copy-of select="$extraObjects/descendant::api:object[(@category=$object/@category) and (@id=$object/@id)]" />
             </xsl:when>
-            <xsl:when test="fn:doc-available(concat($filename,'.xml'))">
-                <xsl:copy-of select="document(concat($filename,'.xml'))//api:object" />
+            <xsl:when test="$useRawDataFiles = 'true'">
+                <!-- this exists to enable easier testing only = requires that recordDir is set to point at a directory containing an unzipped set of raw records -->
+                <xsl:variable name="filename" select="concat($recordDir,$object/@category,'/',$object/@id)" />
+                <xsl:choose>
+                    <xsl:when test="fn:doc-available($filename)">
+                        <xsl:copy-of select="document($filename)//api:object" />
+                    </xsl:when>
+                    <xsl:when test="fn:doc-available(concat($filename,'.xml'))">
+                        <xsl:copy-of select="document(concat($filename,'.xml'))//api:object" />
+                    </xsl:when>
+                </xsl:choose>
             </xsl:when>
         </xsl:choose>
     </xsl:function>

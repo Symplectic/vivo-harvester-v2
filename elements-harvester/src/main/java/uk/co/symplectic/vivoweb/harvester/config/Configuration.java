@@ -93,8 +93,8 @@ public class Configuration {
         private int apiObjectsPerPage = OBJECTS_PER_PAGE;
         private int apiRelationshipsPerPage = RELATIONSHIPS_PER_PAGE;
 
-        private String groupsToExclude;
-        private String groupsToHarvest;
+        private List<Integer> groupsToExclude;
+        private List<Integer> groupsToHarvest;
         private List<ElementsObjectCategory> categoriesToHarvest;
 
         private boolean currentStaffOnly = true;
@@ -159,11 +159,11 @@ public class Configuration {
         return values.apiRelationshipsPerPage;
     }
 
-    public static String getGroupsToExclude() {
+    public static List<Integer> getGroupsToExclude() {
         return values.groupsToExclude;
     }
 
-    public static String getGroupsToHarvest() {
+    public static List<Integer> getGroupsToHarvest() {
         return values.groupsToHarvest;
     }
 
@@ -291,10 +291,10 @@ public class Configuration {
             values.apiSoTimeout = getInt(ARG_API_SOCKET_TIMEOUT, 0);
             values.apiRequestDelay = getInt(ARG_API_REQUEST_DELAY, -1);
 
-            values.groupsToExclude = getString(ARG_API_EXCLUDE_GROUPS, true); //allow null as may be a plain http endpoint
+            values.groupsToHarvest = getIntegers(ARG_API_PARAMS_GROUPS, true);  //allow null as that means include everything
+            values.groupsToExclude = getIntegers(ARG_API_EXCLUDE_GROUPS, true); //allow null as that means exclude nothing
 
-            values.groupsToHarvest = getString(ARG_API_PARAMS_GROUPS, true);
-            values.categoriesToHarvest = getCategories(ARG_API_QUERY_CATEGORIES);
+            values.categoriesToHarvest = getCategories(ARG_API_QUERY_CATEGORIES, false); //do not allow null for categories to query
 
             values.apiObjectsPerPage = getInt(ARG_API_OBJECTS_PER_PAGE, OBJECTS_PER_PAGE);
             values.apiRelationshipsPerPage = getInt(ARG_API_RELS_PER_PAGE, RELATIONSHIPS_PER_PAGE);
@@ -317,7 +317,7 @@ public class Configuration {
         if (!isConfigured()) throw new UsageException();
     }
 
-    private static List<ElementsObjectCategory> getCategories(String key) {
+    private static List<ElementsObjectCategory> getCategories(String key, boolean tolerateNull) {
         List<ElementsObjectCategory> categories = new ArrayList<ElementsObjectCategory>();
         String catList = argList.get(key);
         if (!StringUtils.isEmpty(catList)) {
@@ -327,9 +327,29 @@ public class Configuration {
                 }
                 categories.add(ElementsObjectCategory.valueOf(category));
             }
-        } else
+        } else if(!tolerateNull) {
             configErrors.add(MessageFormat.format("Invalid value provided within argument {0} : {1} (must supply at least one Elements Category)", key, argList.get(key)));
+        }
         return categories;
+    }
+
+    private static List<Integer> getIntegers(String key, boolean tolerateNull) {
+        List<Integer> integers = new ArrayList<Integer>();
+        String intList = argList.get(key);
+        if (!StringUtils.isEmpty(intList)) {
+            for (String intString : intList.split("\\s*,\\s*")) {
+                try {
+                    int anInt = Integer.parseInt(intString);
+                    integers.add(anInt);
+                } catch (NumberFormatException e) {
+                    configErrors.add(MessageFormat.format("Invalid value ({0}) provided within argument {1} : {2} (every value must represent a valid integer)", intString, key, argList.get(key)));
+                }
+            }
+        }
+        else if(!tolerateNull) {
+            configErrors.add(MessageFormat.format("Invalid value provided within argument {0} : {1} (must supply at least one integer)", key, argList.get(key)));
+        }
+        return integers;
     }
 
     private static boolean getBoolean(String key, Boolean defValue) {

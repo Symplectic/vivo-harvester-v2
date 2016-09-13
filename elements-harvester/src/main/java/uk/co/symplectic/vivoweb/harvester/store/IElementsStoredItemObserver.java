@@ -4,64 +4,65 @@
 package uk.co.symplectic.vivoweb.harvester.store;
 
 import org.apache.commons.lang.NullArgumentException;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsGroupInfo;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemType;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectInfo;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsRelationshipInfo;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 public interface IElementsStoredItemObserver{
     void observe(ElementsStoredItem item);
 
     abstract class ElementsStoredResourceObserver implements IElementsStoredItemObserver {
-        protected final StorableResourceType resourceType;
+        protected final Set<StorableResourceType> resourceTypes = new HashSet<StorableResourceType>();
 
-        protected ElementsStoredResourceObserver(StorableResourceType resourceType) {
-            if (resourceType == null) throw new NullArgumentException("resourceType");
-            this.resourceType = resourceType;
+        protected ElementsStoredResourceObserver(StorableResourceType... resourceTypes) {
+            if (resourceTypes == null) throw new NullArgumentException("resourceTypes");
+            if (resourceTypes.length == 0) throw new IllegalArgumentException("resourceTypes must not be empty");
+            this.resourceTypes.addAll(Arrays.asList(resourceTypes));
         }
 
         @Override
         final public void observe(ElementsStoredItem item) {
-            if (this.resourceType == item.getResourceType()) {
-                observeResource(item);
-            }
-        }
-        protected abstract void observeResource(ElementsStoredItem item);
-    }
+            if (this.resourceTypes.contains(item.getResourceType())) {
 
-    abstract class ElementsStoredObjectObserver extends ElementsStoredResourceObserver{
-
-        protected ElementsStoredObjectObserver(StorableResourceType resourceType){
-            super(resourceType); //this checks input for null
-            if(resourceType.getKeyItemType() != ElementsItemType.OBJECT)
-                throw new IllegalArgumentException("Invalid resource type for an ElementsStoredObjectObserver");
-        }
-
-        @Override
-        final protected void observeResource(ElementsStoredItem item){
-            if(item.getItemInfo().isObjectInfo()){
-                observeStoredObject(item.getItemInfo().asObjectInfo(), item);
+                ElementsItemType itemType = item.getResourceType().getKeyItemType();
+                if(itemType == ElementsItemType.OBJECT){
+                    observeStoredObject(item.getItemInfo().asObjectInfo(), item);
+                }
+                else if(itemType == ElementsItemType.RELATIONSHIP){
+                    observeStoredRelationship(item.getItemInfo().asRelationshipInfo(), item);
+                }
+                else if(itemType == ElementsItemType.GROUP){
+                    observeStoredGroup(item.getItemInfo().asGroupInfo(), item);
+                }
+                else throw new IllegalStateException("Unhandled Item Type error");
             }
         }
 
         protected abstract void observeStoredObject(ElementsObjectInfo info, ElementsStoredItem item);
+        protected abstract void observeStoredRelationship(ElementsRelationshipInfo info, ElementsStoredItem item);
+        protected abstract void observeStoredGroup(ElementsGroupInfo info, ElementsStoredItem item);
     }
 
-    abstract class ElementsStoredRelationshipObserver extends ElementsStoredResourceObserver{
+    public class ElementsStoredResourceObserverAdapter extends ElementsStoredResourceObserver{
 
-        protected ElementsStoredRelationshipObserver(StorableResourceType resourceType){
-            super(resourceType); //this checks input for null
-            if(resourceType.getKeyItemType() != ElementsItemType.RELATIONSHIP)
-                throw new IllegalArgumentException("Invalid resource type for an ElementsStoredRelationshipObserver");
+        public ElementsStoredResourceObserverAdapter(StorableResourceType... resourceTypes){
+            super(resourceTypes);
         }
-
         @Override
-        final protected void observeResource(ElementsStoredItem item){
-            if(item.getItemInfo().isRelationshipInfo()){
-                observeStoredRelationship(item.getItemInfo().asRelationshipInfo(), item);
-            }
+        protected void observeStoredObject(ElementsObjectInfo info, ElementsStoredItem item){
+            throw new IllegalAccessError("unexpected use of observeStoredObject");
         }
-
-        protected abstract void observeStoredRelationship(ElementsRelationshipInfo info, ElementsStoredItem item);
+        protected void observeStoredRelationship(ElementsRelationshipInfo info, ElementsStoredItem item){
+            throw new IllegalAccessError("unexpected use of observeStoredRelationship");
+        }
+        protected void observeStoredGroup(ElementsGroupInfo info, ElementsStoredItem item){
+            throw new IllegalAccessError("unexpected use of observeStoredGroup");
+        }
     }
 }
 

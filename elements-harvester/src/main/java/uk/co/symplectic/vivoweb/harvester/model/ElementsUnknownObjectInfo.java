@@ -8,7 +8,7 @@ package uk.co.symplectic.vivoweb.harvester.model;
 
 public class ElementsUnknownObjectInfo extends ElementsObjectInfo {
     //package private as should only ever be created by calls to create on ItemInfo superclass
-    ElementsUnknownObjectInfo(ElementsObjectCategory category, String id) {
+    ElementsUnknownObjectInfo(ElementsObjectCategory category, int id) {
         super(category, id);
     }
 }

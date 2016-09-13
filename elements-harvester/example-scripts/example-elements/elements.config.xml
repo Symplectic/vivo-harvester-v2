@@ -17,8 +17,8 @@
     <!--<Param name="apiPassword">apipassword</Param>-->
 
 
-    <!--<Param name="apiEndpoint">https://10.20.30.86:9009/elements-api/v4.9</Param>-->
-    <Param name="apiEndpoint">https://elcam.symplectic.co.uk:9009/elements-api/v4.9</Param>
+    <Param name="apiEndpoint">https://10.20.30.86:9009/elements-api/v4.9</Param>
+    <!--<Param name="apiEndpoint">https://elcam.symplectic.co.uk:9009/elements-api/v4.9</Param>-->
     <Param name="apiVersion">4.9</Param>
 
     <!-- Username and Password are required for secure (https:) API endpoints -->
@@ -31,8 +31,8 @@
     <Param name="vivoBaseURI">http://localhost:8080/vivo/individual/</Param>
     <Param name="vivoImageDir">C:/apache-tomcat-8.0.26/webapps/vivo/images/SymPhotos</Param>
 
-    <!--<Param name="queryObjects">users,publications,grants,activities,teaching-activities</Param>-->
-    <Param name="queryObjects">publications</Param>
+    <Param name="queryObjects">users,publications,grants,activities,teaching-activities</Param>
+    <!--<Param name="queryObjects">teaching-activities</Param>-->
 
     <!-- Only get users that are marked as current members of staff -->
     <Param name="currentStaffOnly">true</Param>
@@ -56,5 +56,7 @@
     <Param name="rdfOutput">translated-records.config.xml</Param>
 
     <Param name="ignoreSSLErrors">true</Param>
+
+    <Param name="zipFiles">true</Param>
 
 </Task>

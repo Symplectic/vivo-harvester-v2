@@ -6,8 +6,6 @@
  ******************************************************************************/
 package uk.co.symplectic.elements.api;
 
-import org.apache.commons.lang.StringUtils;
-
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -17,30 +15,27 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-class ElementsAPIURLValidator {
+class ElementsValidatedUrl {
     private static final List<String> allowedInsecureSchemes = Arrays.asList(new String[]{"http"});
     private static final List<String> allowedSecureSchemes = Arrays.asList(new String[]{"https"});
 
-    private String url;
-    private boolean isSecure = false;
-    private boolean isMismatched = false;
+    private final String url;
+    private final String rewrittenUrl;
+    private final boolean isSecure;
+    private final boolean isMismatched;
+    private boolean useRewritten = false;
 
-    ElementsAPIURLValidator(String url) throws URISyntaxException {
+    ElementsValidatedUrl(String url) throws URISyntaxException {
         this(url, null);
     }
 
-    ElementsAPIURLValidator(String url, String comparisonUrl) throws URISyntaxException {
-        this.url = url;
-        validate(comparisonUrl);
-    }
-
-    private void validate(String comparisonUrl) throws URISyntaxException {
-
+    ElementsValidatedUrl(String url, String comparisonUrl) throws URISyntaxException {
+        URI comparisonUri = null;
         String comprisonTestHost = null;
         if(comparisonUrl != null) {
             try {
                 URL comparisonUrlObj = new URL(comparisonUrl);
-                URI comparisonUri = comparisonUrlObj.toURI();
+                comparisonUri = comparisonUrlObj.toURI();
                 comprisonTestHost = comparisonUri.getHost();
             } catch (MalformedURLException mue) {
                 throw new URISyntaxException(comparisonUrl, "Could not parse provided comparisonUrl");
@@ -63,19 +58,38 @@ class ElementsAPIURLValidator {
                 throw new URISyntaxException(url, MessageFormat.format("Invalid Scheme used in {0}, must be one of : {1}", this.getClass().getName(), String.join(", ", validSchemes)));
             }
 
-            if(allowedSecureSchemes.contains(scheme)) { isSecure = true; }
-            if(!uriTest.getHost().equals(comprisonTestHost)){ isMismatched = true; }
+            this.isSecure = allowedSecureSchemes.contains(scheme);
+            this.isMismatched = comparisonUrl != null && !uriTest.getHost().equals(comprisonTestHost);
+
+            if(isMismatched) {
+                this.rewrittenUrl = new URI(uriTest.getScheme(), uriTest.getUserInfo(), comparisonUri.getHost(), uriTest.getPort(),
+                        uriTest.getPath(), uriTest.getQuery(), uriTest.getFragment()).toURL().toString();
+            }
+            else {
+                this.rewrittenUrl = null;
+            }
+
+            this.url = url;
 
         } catch (MalformedURLException mue) {
             throw new URISyntaxException(url, mue.getMessage());
         }
     }
 
-    public boolean urlIsSecure() {
+    public String getUrl() {
+        return isMismatched && useRewritten && rewrittenUrl != null ? rewrittenUrl : url;
+
+    }
+
+    public boolean isSecure() {
         return isSecure;
     }
 
-    public boolean urlIsMismatched() {
+    public boolean isMismatched() {
         return isMismatched;
+    }
+
+    public void useRewrittenVersion(boolean useRewritten) {
+        this.useRewritten = useRewritten;
     }
 }

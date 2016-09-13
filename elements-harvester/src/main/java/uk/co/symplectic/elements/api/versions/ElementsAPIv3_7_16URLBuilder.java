@@ -13,7 +13,7 @@ import uk.co.symplectic.elements.api.queries.ElementsAPIFeedObjectQuery;
 import uk.co.symplectic.elements.api.queries.ElementsAPIFeedRelationshipQuery;
 import uk.co.symplectic.utils.URLBuilder;
 
-public class ElementsAPIv3_7_16URLBuilder implements ElementsAPIURLBuilder {
+public class ElementsAPIv3_7_16URLBuilder extends ElementsAPIURLBuilder.GenericBase {
     @Override
     public String buildObjectFeedQuery(String endpointUrl, ElementsAPIFeedObjectQuery feedQuery) {
         URLBuilder queryUrl = new URLBuilder(endpointUrl);
@@ -24,8 +24,12 @@ public class ElementsAPIv3_7_16URLBuilder implements ElementsAPIURLBuilder {
             queryUrl.appendPath("objects");
         }
 
-        if (!StringUtils.isEmpty(feedQuery.getGroups())) {
-            queryUrl.addParam("groups", feedQuery.getGroups());
+        if (feedQuery.getGroups().size() != 0) {
+            queryUrl.addParam("groups", convertIntegerArrayToQueryString(feedQuery.getGroups()));
+
+            if (feedQuery.getExplicitMembersOnly()) {
+                queryUrl.addParam("group-membership", "explicit");
+            }
         }
 
         if (feedQuery.getFullDetails()) {

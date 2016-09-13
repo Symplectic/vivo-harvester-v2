@@ -13,7 +13,7 @@ public class ElementsUserInfo extends ElementsObjectInfo {
     private UserExtraData additionalInfo;
 
     //package private as should only ever be created by calls to create on ItemInfo superclass
-    ElementsUserInfo(String id) {
+    ElementsUserInfo(int id) {
         super(ElementsObjectCategory.USER, id);
     }
 
@@ -30,6 +30,11 @@ public class ElementsUserInfo extends ElementsObjectInfo {
         return additionalInfo.isCurrentStaff;
     }
 
+    public boolean getIsAcademic() {
+        if(!isFullyPopulated()) throw new IllegalAccessError("Cannot access isAcademic if ElementsUserInfo is not fully populated");
+        return additionalInfo.isAcademic;
+    }
+
     public String getPhotoUrl() {
         if(!isFullyPopulated()) throw new IllegalAccessError("Cannot access photo-url if ElementsUserInfo is not fully populated");
         return additionalInfo.photoUrl;
@@ -41,15 +46,20 @@ public class ElementsUserInfo extends ElementsObjectInfo {
         return additionalInfo.username;
     }
 
-
     public static class UserExtraData{
         private boolean isCurrentStaff = true;
+        private boolean isAcademic = true;
         private String photoUrl = null;
         private String username = null;
+
 
         public UserExtraData setIsCurrentStaff(boolean isCurrentStaff) {
             this.isCurrentStaff = isCurrentStaff;
             return this;
+        }
+
+        public void setIsAcademic(boolean isAcademic) {
+            this.isAcademic = isAcademic;
         }
 
         public UserExtraData setPhotoUrl(String photoUrl) {
@@ -61,6 +71,8 @@ public class ElementsUserInfo extends ElementsObjectInfo {
             this.username = username;
             return this;
         }
+
+
     }
 
 }

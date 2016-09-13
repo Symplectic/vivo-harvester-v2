@@ -8,10 +8,8 @@ package uk.co.symplectic.vivoweb.harvester.fetch;
 
 import org.apache.commons.lang.NullArgumentException;
 import org.apache.commons.lang.StringUtils;
-import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
+import uk.co.symplectic.vivoweb.harvester.model.*;
 import uk.co.symplectic.utils.ImageUtils;
-import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectInfo;
-import uk.co.symplectic.vivoweb.harvester.model.ElementsUserInfo;
 import uk.co.symplectic.vivoweb.harvester.store.*;
 
 import java.awt.image.BufferedImage;
@@ -20,7 +18,7 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
 
-public class ElementsUserPhotoRdfGeneratingObserver extends IElementsStoredItemObserver.ElementsStoredObjectObserver {
+public class ElementsUserPhotoRdfGeneratingObserver extends IElementsStoredItemObserver.ElementsStoredResourceObserverAdapter {
     private ElementsRdfStore rdfStore = null;
     private File vivoImageDir;
     private String imageUrlBase = "/harvestedImages/";
@@ -55,7 +53,12 @@ public class ElementsUserPhotoRdfGeneratingObserver extends IElementsStoredItemO
             ElementsUserInfo userInfo = (ElementsUserInfo) info;
 
             String uriUserName = userInfo.getUsername().toLowerCase().replaceAll("\\a+", "-").replaceAll("[^a-z0-9\\-]", "");
-            BufferedImage image = ImageUtils.readFile(item.getFile());
+            BufferedImage image = null;
+            try {
+                //readFile will close the stream for us..
+                image = ImageUtils.readFile(item.getInputStream());
+            }
+            catch (IOException ioe){}
             if (image != null) {
                 // Write out full size image
                 File fullImageDir = new File(new File(vivoImageDir, "harvestedImages"), "fullImages");
@@ -122,6 +125,7 @@ public class ElementsUserPhotoRdfGeneratingObserver extends IElementsStoredItemO
             }
         }
     }
+
 }
 
 

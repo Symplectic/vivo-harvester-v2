@@ -17,65 +17,65 @@ import java.util.Set;
 public class ElementsRdfStore extends ElementsObjectFileStore {
 
     private static LayoutStrategy layoutStrategy = new DefaultLayoutStrategy(
-            new StorableResourceType[]{StorableResourceType.TRANSLATED_OBJECT, StorableResourceType.TRANSLATED_RELATIONSHIP}, null);
+            new StorableResourceType[]{StorableResourceType.TRANSLATED_OBJECT, StorableResourceType.TRANSLATED_RELATIONSHIP, StorableResourceType.TRANSLATED_GROUP}, null);
 
-    private DeletionService deletionService = new DeletionService();
+//    private DeletionService deletionService = new DeletionService();
 
     public ElementsRdfStore(String dir){ this(dir, false, false); }
 
     public ElementsRdfStore(String dir, boolean keepEmpty, boolean zipFiles){
         super(dir, keepEmpty, zipFiles, ElementsRdfStore.layoutStrategy,
-            StorableResourceType.TRANSLATED_OBJECT, StorableResourceType.TRANSLATED_RELATIONSHIP, StorableResourceType.TRANSLATED_USER_PHOTO_DESCRIPTION);
+            StorableResourceType.TRANSLATED_OBJECT, StorableResourceType.TRANSLATED_RELATIONSHIP, StorableResourceType.TRANSLATED_GROUP, StorableResourceType.TRANSLATED_USER_PHOTO_DESCRIPTION);
     }
 
-    public void pruneExcept(ElementsObjectCategory category, Set<ElementsObjectId> idsToKeep) {
-        Set<String> stringIdsToKeep = new HashSet<String>();
-        for(ElementsObjectId id : idsToKeep){
-            if(id.getCategory() != category) throw new IllegalStateException();
-            ElementsObjectInfo objectInfo = ElementsObjectInfoCache.get(category, id.getId());
-            if(objectInfo == null) objectInfo = ElementsItemInfo.createObjectItem(category, id.getId());
-            for(ElementsStoredItem item : retrieveAllItems(objectInfo)){
-                stringIdsToKeep.add(item.getFile().getName());
-            }
-        }
-        if (dir != null) {
-            File objectDir = new File(dir, category.getSingular());
-            if (objectDir.exists()) {
-                pruneIn(objectDir, stringIdsToKeep, null);
-            } else {
-                pruneIn(dir, stringIdsToKeep, category.getSingular());
-            }
-        }
-    }
-
-    private void pruneIn(File dir, Set<String> idsToKeep, String prefix) {
-        File[] files = dir.listFiles();
-        if (files != null) {
-            for (File file : files) {
-                if (file.isDirectory()) {
-                    pruneIn(file, idsToKeep, prefix);
-                } else if (StringUtils.isEmpty(prefix)) {
-                    if (idsToKeep.contains(file.getName())) {
-                        deletionService.keep(file);
-                    } else {
-                        deletionService.deleteOnExit(file);
-                    }
-                } else if (file.getName().startsWith(prefix)) {
-                    boolean keepFile = false;
-                    for (String id : idsToKeep) {
-                        if (file.getName().equals(prefix + id)) {
-                            keepFile = true;
-                        }
-                    }
-
-                    if (keepFile) {
-                        deletionService.keep(file);
-                    } else {
-                        deletionService.deleteOnExit(file);
-                    }
-                }
-            }
-        }
-    }
+//    public void pruneExcept(ElementsObjectCategory category, Set<ElementsItemId.ObjectId> idsToKeep) {
+//        Set<String> stringIdsToKeep = new HashSet<String>();
+//        for(ElementsItemId.ObjectId id : idsToKeep){
+//            if(id.getCategory() != category) throw new IllegalStateException();
+//            ElementsObjectInfo objectInfo = ElementsObjectInfoCache.get(id);
+//            if(objectInfo == null) objectInfo = ElementsItemInfo.createObjectItem(category, id.getId());
+//            for(ElementsStoredItem item : retrieveAllItems(objectInfo)){
+//                stringIdsToKeep.add(item.getFile().getName());
+//            }
+//        }
+//        if (dir != null) {
+//            File objectDir = new File(dir, category.getSingular());
+//            if (objectDir.exists()) {
+//                pruneIn(objectDir, stringIdsToKeep, null);
+//            } else {
+//                pruneIn(dir, stringIdsToKeep, category.getSingular());
+//            }
+//        }
+//    }
+//
+//    private void pruneIn(File dir, Set<String> idsToKeep, String prefix) {
+//        File[] files = dir.listFiles();
+//        if (files != null) {
+//            for (File file : files) {
+//                if (file.isDirectory()) {
+//                    pruneIn(file, idsToKeep, prefix);
+//                } else if (StringUtils.isEmpty(prefix)) {
+//                    if (idsToKeep.contains(file.getName())) {
+//                        deletionService.keep(file);
+//                    } else {
+//                        deletionService.deleteOnExit(file);
+//                    }
+//                } else if (file.getName().startsWith(prefix)) {
+//                    boolean keepFile = false;
+//                    for (String id : idsToKeep) {
+//                        if (file.getName().equals(prefix + id)) {
+//                            keepFile = true;
+//                        }
+//                    }
+//
+//                    if (keepFile) {
+//                        deletionService.keep(file);
+//                    } else {
+//                        deletionService.deleteOnExit(file);
+//                    }
+//                }
+//            }
+//        }
+//    }
 
 }

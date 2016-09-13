@@ -31,6 +31,7 @@
     <!--
         Import XSLT for object and relationship transformations
     -->
+    <xsl:import href="elements-to-vivo-group.xsl" />
     <xsl:import href="elements-to-vivo-object.xsl" />
     <xsl:import href="elements-to-vivo-relationship.xsl" />
 

@@ -18,7 +18,6 @@ import uk.co.symplectic.elements.api.queries.ElementsAPIFeedObjectQuery;
 import uk.co.symplectic.elements.api.queries.ElementsAPIFeedRelationshipQuery;
 import uk.co.symplectic.vivoweb.harvester.model.*;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsObjectStore;
-import uk.co.symplectic.vivoweb.harvester.store.ElementsStoreFactory;
 import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
 import uk.co.symplectic.xml.StAXUtils;
 import uk.co.symplectic.xml.XMLEventProcessor;
@@ -38,7 +37,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.ConcurrentMap;
 
 public class ElementsFetch {
 
@@ -139,44 +137,76 @@ public class ElementsFetch {
         }
     }
 
+    private static class FileStoringGroupFilter extends ObjectStoreFilter<ElementsGroupInfo, ElementsGroupInfo.Extractor> {
+        FileStoringGroupFilter(ElementsObjectStore objectStore){
+            super(new QName(atomNS, "entry"), new ElementsGroupInfo.Extractor(ElementsGroupInfo.Extractor.feedEntryLocation, 0),
+                    objectStore, StorableResourceType.RAW_GROUP);
+        }
+    }
+
     public abstract static class FetchConfig {
+        public abstract Collection<DescribedQuery> getQueries();
+        //This should return a "new" object not the same one..
+        public abstract ElementsAPI.APIResponseFilter getExtractor(ElementsObjectStore objectStore);
+
+        public static class DescribedQuery{
+            private final ElementsFeedQuery query;
+            private final String description;
+
+            public DescribedQuery(ElementsFeedQuery query, String description){
+                if(query == null) throw new NullArgumentException("query");
+                if(StringUtils.trimToNull(description) == null) throw new IllegalArgumentException("description cannot be null or empty");
+
+                this.query = query;
+                this.description = description;
+            }
+        }
+    }
+
+    public abstract static class PaginatedFeedConfig extends FetchConfig{
         final private int itemsPerPage;
         final private boolean processAllPages;
         final private boolean getFullDetails;
 
-        public FetchConfig(boolean getFullDetails, boolean processAllPages, int itemsPerPage){
+        public PaginatedFeedConfig(boolean getFullDetails, boolean processAllPages, int itemsPerPage){
             this.itemsPerPage = itemsPerPage;
             this.processAllPages = processAllPages;
             this.getFullDetails = getFullDetails;
         }
 
-        public Collection<ElementsFeedQuery> getQueries(){return getQueries(getFullDetails, processAllPages, itemsPerPage);}
-        protected abstract Collection<ElementsFeedQuery> getQueries(boolean fullDetails, boolean getAllPages, int perPage);
+        @Override
+        public Collection<DescribedQuery> getQueries(){return getQueries(getFullDetails, processAllPages, itemsPerPage);}
+
+        protected abstract Collection<DescribedQuery> getQueries(boolean fullDetails, boolean getAllPages, int perPage);
         //This should return a "new" object not the same one..
         public abstract ElementsAPI.APIResponseFilter getExtractor(ElementsObjectStore objectStore);
     }
 
-    public static class ObjectConfig extends FetchConfig {
+    public static class ObjectConfig extends PaginatedFeedConfig {
         //Which categories of Elements objects should be retrieved?
         final private List<ElementsObjectCategory> categoriesToHarvest = new ArrayList<ElementsObjectCategory>();
-        final private String groups; //TODO: remove this entirely?
+        final private List<Integer> groups = new ArrayList<Integer>(); //TODO: remove this entirely?
 
-        public ObjectConfig(boolean getFullDetails, int objectsPerPage, String groups, ElementsObjectCategory... categoriesToHarvest){
+        public ObjectConfig(boolean getFullDetails, int objectsPerPage, Collection<Integer> groups, ElementsObjectCategory... categoriesToHarvest){
             this(getFullDetails, objectsPerPage, groups, Arrays.asList(categoriesToHarvest)); }
 
-        public ObjectConfig(boolean getFullDetails, int objectsPerPage, String groups, Collection<ElementsObjectCategory> categoriesToHarvest){
+        public ObjectConfig(boolean getFullDetails, int objectsPerPage, Collection<Integer> groups, Collection<ElementsObjectCategory> categoriesToHarvest){
             super(getFullDetails, true, objectsPerPage);
             if (categoriesToHarvest == null)  throw new NullArgumentException("categoriesToHarvest");
             if (categoriesToHarvest.isEmpty())  throw new IllegalArgumentException("categoriesToHarvest should not be empty for an ElementsFetch.Configuration");
             this.categoriesToHarvest.addAll(categoriesToHarvest);
-            this.groups = StringUtils.trimToNull(groups);
+            if(groups != null) this.groups.addAll(groups);
         }
 
         @Override
-        protected Collection<ElementsFeedQuery> getQueries(boolean fullDetails, boolean getAllPages, int perPage){
-            List<ElementsFeedQuery> queries = new ArrayList<ElementsFeedQuery>();
+        protected Collection<DescribedQuery> getQueries(boolean fullDetails, boolean getAllPages, int perPage){
+            List<DescribedQuery> queries = new ArrayList<DescribedQuery>();
             for(ElementsObjectCategory category : categoriesToHarvest){
-                queries.add(new ElementsAPIFeedObjectQuery(category, groups, fullDetails, getAllPages, perPage));
+                DescribedQuery query = new DescribedQuery(
+                    new ElementsAPIFeedObjectQuery(category, groups, fullDetails, getAllPages, perPage),
+                    MessageFormat.format("Processing {0}", category.getPlural())
+                );
+                queries.add(query);
             }
             return queries;
         }
@@ -187,14 +217,40 @@ public class ElementsFetch {
         }
     }
 
-    public static class RelationshipConfig extends FetchConfig{
+    public static class GroupMembershipConfig extends FetchConfig{
+        private final int groupId;
+
+        public GroupMembershipConfig(int groupId){
+            this.groupId = groupId;
+        }
+
+        @Override
+        public Collection<DescribedQuery> getQueries(){
+            DescribedQuery query = new DescribedQuery(
+                    new ElementsAPIFeedObjectQuery.GroupMembershipQuery(groupId),
+                    MessageFormat.format("Processing group membership for group : {0}", groupId)
+            );
+            return Arrays.asList(new DescribedQuery[]{query});
+        }
+
+        @Override
+        public ElementsAPI.APIResponseFilter getExtractor(ElementsObjectStore objectStore) {
+            return new ElementsAPI.APIResponseFilter(FileStoringObjectFilter.create(objectStore, false), ElementsAPIVersion.allVersions());
+        }
+    }
+
+    public static class RelationshipConfig extends PaginatedFeedConfig{
         public RelationshipConfig(int relationshipsPerPage){
             super(false, true, relationshipsPerPage);
         }
 
         @Override
-        protected Collection<ElementsFeedQuery> getQueries(boolean fullDetails, boolean getAllPages, int perPage){
-            return Arrays.asList(new ElementsFeedQuery[]{new ElementsAPIFeedRelationshipQuery(fullDetails, getAllPages, perPage)});
+        protected Collection<DescribedQuery> getQueries(boolean fullDetails, boolean getAllPages, int perPage){
+            DescribedQuery query = new DescribedQuery(
+                new ElementsAPIFeedRelationshipQuery(fullDetails, getAllPages, perPage),
+                "Processing relationships"
+            );
+            return Arrays.asList(new DescribedQuery[]{query});
         }
 
         @Override
@@ -203,6 +259,21 @@ public class ElementsFetch {
         }
     }
 
+    public static class GroupConfig extends FetchConfig{
+        @Override
+        public Collection<DescribedQuery> getQueries(){
+            DescribedQuery query = new DescribedQuery(
+                    new ElementsAPIFeedGroupQuery(),
+                    "Processing groups"
+            );
+            return Arrays.asList(new DescribedQuery[]{query});
+        }
+
+        @Override
+        public ElementsAPI.APIResponseFilter getExtractor(ElementsObjectStore objectStore) {
+            return new ElementsAPI.APIResponseFilter(new FileStoringGroupFilter(objectStore), ElementsAPIVersion.allVersions());
+        }
+    }
 
     /**
      * SLF4J Logger
@@ -211,25 +282,22 @@ public class ElementsFetch {
     //the api to fetch data from
     final private ElementsAPI elementsAPI;
 
-    //the store to put data into.
-    final private ElementsObjectStore objectStore;
-
-    public ElementsFetch(ElementsAPI api, ElementsObjectStore objectStore) {
+    public ElementsFetch(ElementsAPI api) {
         if (api == null) throw new NullArgumentException("api");
-        if (objectStore == null) throw new NullArgumentException("objectStore");
         this.elementsAPI = api;
-        this.objectStore = objectStore;
     }
 
     /**
      * Executes the task
      * @throws IOException error processing search
      */
-    public void execute(FetchConfig config)throws IOException {
+    public void execute(FetchConfig config, ElementsObjectStore objectStore)throws IOException {
         if(config == null) throw new NullArgumentException("config");
-        for (ElementsFeedQuery query : config.getQueries()) {
-            if (query != null) {
-                elementsAPI.executeQuery(query, config.getExtractor(objectStore));
+        if (objectStore == null) throw new NullArgumentException("objectStore");
+        for (FetchConfig.DescribedQuery describedQuery : config.getQueries()) {
+            if (describedQuery != null) {
+                log.info(describedQuery.description);
+                elementsAPI.executeQuery(describedQuery.query, config.getExtractor(objectStore));
             }
         }
     }

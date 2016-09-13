@@ -6,7 +6,6 @@
  ******************************************************************************/
 package uk.co.symplectic.elements.api;
 
-import com.sun.xml.xsom.impl.ContentTypeImpl;
 import org.apache.commons.httpclient.*;
 import org.apache.commons.httpclient.auth.AuthScope;
 import org.apache.commons.httpclient.methods.GetMethod;
@@ -44,13 +43,20 @@ public class ElementsAPIHttpClient {
         this(url, username, password, defaultSoTimeout);
     }
 
+    public ElementsAPIHttpClient(ElementsValidatedUrl url, String username, String password) {
+        this(url, username, password, defaultSoTimeout);
+    }
+
     public ElementsAPIHttpClient(String url, String username, String password, int socketTimeout) throws URISyntaxException {
+        this(new ElementsValidatedUrl(url), username, password, socketTimeout);
+    }
+
+    public ElementsAPIHttpClient(ElementsValidatedUrl url, String username, String password, int socketTimeout) {
         if(url == null) throw new NullArgumentException("url");
-        ElementsAPIURLValidator validator = new ElementsAPIURLValidator(url);
-        this.url = url;
+        this.url = url.getUrl();
 
         //Only store the username and password if the scheme being used is considered "secure" - to avoid accidentally sending credentials in the clear.
-        if(validator.urlIsSecure() && username != null) {
+        if(url.isSecure() && username != null) {
             this.username = username;
             this.password = password;
         } else {
