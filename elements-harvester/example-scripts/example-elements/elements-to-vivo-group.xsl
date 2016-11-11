@@ -97,7 +97,7 @@
             </xsl:call-template>
 
             <xsl:call-template name="render_rdf_object">
-            <xsl:with-param name="objectURI" select="$groupID" />
+            <xsl:with-param name="objectURI" select="$groupURI" />
                 <xsl:with-param name="rdfNodes">
                     <vivo:relatedBy rdf:resource="{$membershipURI}" />
                 </xsl:with-param>

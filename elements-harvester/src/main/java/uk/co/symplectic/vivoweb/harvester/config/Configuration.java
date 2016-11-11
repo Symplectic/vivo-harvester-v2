@@ -13,9 +13,12 @@ import org.vivoweb.harvester.util.args.ArgDef;
 import org.vivoweb.harvester.util.args.ArgList;
 import org.vivoweb.harvester.util.args.ArgParser;
 import org.vivoweb.harvester.util.args.UsageException;
-import org.w3c.dom.*;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 import uk.co.symplectic.elements.api.ElementsAPIVersion;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -93,8 +96,8 @@ public class Configuration {
         private int apiObjectsPerPage = OBJECTS_PER_PAGE;
         private int apiRelationshipsPerPage = RELATIONSHIPS_PER_PAGE;
 
-        private List<Integer> groupsToExclude;
-        private List<Integer> groupsToHarvest;
+        private List<ElementsItemId.GroupId> groupsToExclude;
+        private List<ElementsItemId.GroupId> groupsToHarvest;
         private List<ElementsObjectCategory> categoriesToHarvest;
 
         private boolean currentStaffOnly = true;
@@ -159,11 +162,11 @@ public class Configuration {
         return values.apiRelationshipsPerPage;
     }
 
-    public static List<Integer> getGroupsToExclude() {
+    public static List<ElementsItemId.GroupId> getGroupsToExclude() {
         return values.groupsToExclude;
     }
 
-    public static List<Integer> getGroupsToHarvest() {
+    public static List<ElementsItemId.GroupId> getGroupsToHarvest() {
         return values.groupsToHarvest;
     }
 
@@ -291,8 +294,16 @@ public class Configuration {
             values.apiSoTimeout = getInt(ARG_API_SOCKET_TIMEOUT, 0);
             values.apiRequestDelay = getInt(ARG_API_REQUEST_DELAY, -1);
 
-            values.groupsToHarvest = getIntegers(ARG_API_PARAMS_GROUPS, true);  //allow null as that means include everything
-            values.groupsToExclude = getIntegers(ARG_API_EXCLUDE_GROUPS, true); //allow null as that means exclude nothing
+
+            List<ElementsItemId.GroupId> groupsToHarvest = new ArrayList<ElementsItemId.GroupId>();
+            //allow null when getting integers as that means include everything
+            for (Integer groupId : getIntegers(ARG_API_PARAMS_GROUPS, true)) groupsToHarvest.add(ElementsItemId.createGroupId(groupId));
+            values.groupsToHarvest = groupsToHarvest;
+
+            List<ElementsItemId.GroupId> groupsToExclude = new ArrayList<ElementsItemId.GroupId>();
+            //allow null as that means exclude nothing
+            for (Integer groupId : getIntegers(ARG_API_EXCLUDE_GROUPS, true)) groupsToExclude.add(ElementsItemId.createGroupId(groupId));
+            values.groupsToExclude = groupsToExclude;
 
             values.categoriesToHarvest = getCategories(ARG_API_QUERY_CATEGORIES, false); //do not allow null for categories to query
 

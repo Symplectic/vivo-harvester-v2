@@ -6,14 +6,14 @@
  ******************************************************************************/
 package uk.co.symplectic.vivoweb.harvester.store;
 
-import uk.co.symplectic.vivoweb.harvester.model.ElementsItemInfo;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 
 import java.io.File;
 import java.util.Collection;
 
 public interface LayoutStrategy {
 
-    public File getItemFile(File storeDir, ElementsItemInfo itemInfo, StorableResourceType resourceType);
+    public File getItemFile(File storeDir, ElementsItemId itemId, StorableResourceType resourceType);
 
     public Collection<File> getAllExistingFilesOfType(File storeDir, StorableResourceType resourceType);
 

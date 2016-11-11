@@ -6,20 +6,15 @@
  ******************************************************************************/
 package uk.co.symplectic.vivoweb.harvester.store;
 
-import org.apache.commons.lang.StringUtils;
-import uk.co.symplectic.vivoweb.harvester.model.*;
-import uk.co.symplectic.utils.DeletionService;
+import org.apache.commons.lang.NullArgumentException;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsItemInfo;
 
-import java.io.*;
-import java.util.HashSet;
-import java.util.Set;
+import java.io.IOException;
 
-public class ElementsRdfStore extends ElementsObjectFileStore {
+public class ElementsRdfStore extends ElementsItemFileStore {
 
     private static LayoutStrategy layoutStrategy = new DefaultLayoutStrategy(
             new StorableResourceType[]{StorableResourceType.TRANSLATED_OBJECT, StorableResourceType.TRANSLATED_RELATIONSHIP, StorableResourceType.TRANSLATED_GROUP}, null);
-
-//    private DeletionService deletionService = new DeletionService();
 
     public ElementsRdfStore(String dir){ this(dir, false, false); }
 
@@ -28,54 +23,17 @@ public class ElementsRdfStore extends ElementsObjectFileStore {
             StorableResourceType.TRANSLATED_OBJECT, StorableResourceType.TRANSLATED_RELATIONSHIP, StorableResourceType.TRANSLATED_GROUP, StorableResourceType.TRANSLATED_USER_PHOTO_DESCRIPTION);
     }
 
-//    public void pruneExcept(ElementsObjectCategory category, Set<ElementsItemId.ObjectId> idsToKeep) {
-//        Set<String> stringIdsToKeep = new HashSet<String>();
-//        for(ElementsItemId.ObjectId id : idsToKeep){
-//            if(id.getCategory() != category) throw new IllegalStateException();
-//            ElementsObjectInfo objectInfo = ElementsObjectInfoCache.get(id);
-//            if(objectInfo == null) objectInfo = ElementsItemInfo.createObjectItem(category, id.getId());
-//            for(ElementsStoredItem item : retrieveAllItems(objectInfo)){
-//                stringIdsToKeep.add(item.getFile().getName());
-//            }
-//        }
-//        if (dir != null) {
-//            File objectDir = new File(dir, category.getSingular());
-//            if (objectDir.exists()) {
-//                pruneIn(objectDir, stringIdsToKeep, null);
-//            } else {
-//                pruneIn(dir, stringIdsToKeep, category.getSingular());
-//            }
-//        }
-//    }
-//
-//    private void pruneIn(File dir, Set<String> idsToKeep, String prefix) {
-//        File[] files = dir.listFiles();
-//        if (files != null) {
-//            for (File file : files) {
-//                if (file.isDirectory()) {
-//                    pruneIn(file, idsToKeep, prefix);
-//                } else if (StringUtils.isEmpty(prefix)) {
-//                    if (idsToKeep.contains(file.getName())) {
-//                        deletionService.keep(file);
-//                    } else {
-//                        deletionService.deleteOnExit(file);
-//                    }
-//                } else if (file.getName().startsWith(prefix)) {
-//                    boolean keepFile = false;
-//                    for (String id : idsToKeep) {
-//                        if (file.getName().equals(prefix + id)) {
-//                            keepFile = true;
-//                        }
-//                    }
-//
-//                    if (keepFile) {
-//                        deletionService.keep(file);
-//                    } else {
-//                        deletionService.deleteOnExit(file);
-//                    }
-//                }
-//            }
-//        }
-//    }
+    //wrapper to decide on the stored resource type...
+    public void storeTranslatedItem(ElementsItemInfo itemInfo, byte[] translatedData) throws IOException{
+        if(itemInfo == null) throw new NullArgumentException("itemInfo");
 
+        if(itemInfo.isObjectInfo())
+            storeItem(itemInfo, StorableResourceType.TRANSLATED_OBJECT, translatedData);
+        else if(itemInfo.isRelationshipInfo())
+            storeItem(itemInfo, StorableResourceType.TRANSLATED_RELATIONSHIP, translatedData);
+        else if(itemInfo.isGroupInfo())
+            storeItem(itemInfo, StorableResourceType.TRANSLATED_GROUP, translatedData);
+        else
+            throw new IllegalStateException("Unstorable item translated");
+    }
 }

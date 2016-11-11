@@ -22,27 +22,10 @@ public abstract class ElementsItemInfo {
 
     //Static portion to deal with construction of Concrete ItemInfos
     public static ElementsObjectInfo createObjectItem(ElementsObjectCategory category, int id) {
-        if (ElementsObjectCategory.ACTIVITY == category) {
-            return new ElementsUnknownObjectInfo(category, id);
-        } else if (ElementsObjectCategory.EQUIPMENT == category) {
-            return new ElementsUnknownObjectInfo(category, id);
-        } else if (ElementsObjectCategory.GRANT == category) {
-            return new ElementsUnknownObjectInfo(category, id);
-        } else if (ElementsObjectCategory.ORG_STRUCTURE == category) {
-            return new ElementsUnknownObjectInfo(category, id);
-        } else if (ElementsObjectCategory.TEACHING_ACTIVITY == category) {
-            return new ElementsUnknownObjectInfo(category, id);
-        } else if (ElementsObjectCategory.PROJECT == category) {
-            return new ElementsUnknownObjectInfo(category, id);
-        } else if (ElementsObjectCategory.PUBLICATION == category) {
-            return new ElementsUnknownObjectInfo(category, id);
-        } else if (ElementsObjectCategory.IMPACT == category) {
-            return new ElementsUnknownObjectInfo(category, id);
-        } else if (ElementsObjectCategory.USER == category) {
+        if (ElementsObjectCategory.USER == category) {
             return new ElementsUserInfo(id);
         }
-
-        return new ElementsUnknownObjectInfo(category, id);
+        return new ElementsGenericObjectInfo(category, id);
     }
 
     public static ElementsRelationshipInfo createRelationshipItem(int id) {
@@ -78,14 +61,6 @@ public abstract class ElementsItemInfo {
 
     //methods that may need overriding in concrete subclasses
     public ElementsItemId getItemId() { return itemId; }
-
-    public ElementsItemType getItemType() { return itemId.getItemType(); }
-
-    public final String getItemDescriptor(){ return itemId.getItemDescriptor(); }
-    public int getId() { return itemId.getId(); }
-
-    //methods that may need overriding in concrete subclasses
-    public String getItemIdString(){return Integer.toString(itemId.getId());}
 
     //paired is/as methods to simplify access to concrete subtypes in code.
     public boolean isObjectInfo(){

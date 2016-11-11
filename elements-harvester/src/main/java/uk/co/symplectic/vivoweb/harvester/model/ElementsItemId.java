@@ -7,8 +7,9 @@
 package uk.co.symplectic.vivoweb.harvester.model;
 
 import org.apache.commons.lang.NullArgumentException;
-import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.builder.HashCodeBuilder;
+
+import java.text.MessageFormat;
 
 public abstract class ElementsItemId{
     private final int id;
@@ -50,6 +51,11 @@ public abstract class ElementsItemId{
         return this.getId() == (objAsID.getId());
     }
 
+    @Override
+    public String toString(){
+        return MessageFormat.format("{0}:{1}", getItemDescriptor(), Integer.toString(id));
+    }
+
     public static class ObjectId extends ElementsItemId {
         private final ElementsObjectCategory category;
 
@@ -72,45 +78,5 @@ public abstract class ElementsItemId{
     public static class RelationshipId extends ElementsItemId {
         private RelationshipId(int id) { super(ElementsItemType.RELATIONSHIP, id); }
     }
-
-    @Override
-    public String toString(){
-        return getItemDescriptor() + Integer.toString(id);
-    }
 }
-
-//public class ElementsObjectId {
-//    private ElementsObjectCategory category;
-//    private int id;
-//
-//    public ElementsObjectId(ElementsObjectCategory category, int id) {
-//        if(category == null) throw new NullArgumentException("category");
-//
-//        this.category = category;
-//        this.id = id;
-//    }
-//
-//    public ElementsObjectCategory getCategory() {
-//        return category;
-//    }
-//
-//    public int getId() {
-//        return id;
-//    }
-//
-//    @Override
-//    public int hashCode(){
-//        return new HashCodeBuilder(17,31).append(this.getCategory()).append(this.getId()).toHashCode();
-//    }
-//
-//    @Override
-//    public boolean equals(Object obj){
-//        if(!(obj instanceof ElementsObjectId)) return false;
-//        if(obj == this) return true;
-//
-//        ElementsObjectId objAsID = (ElementsObjectId) obj;
-//        if(!(this.getCategory().equals(objAsID.getCategory()))) return false;
-//        return this.getId() == (objAsID.getId());
-//    }
-//}
 

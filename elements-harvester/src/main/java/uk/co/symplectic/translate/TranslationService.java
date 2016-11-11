@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsRdfStore;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItem;
+
 import javax.xml.transform.Templates;
 import javax.xml.transform.stream.StreamSource;
 import java.io.File;
@@ -42,7 +43,7 @@ public final class TranslationService {
         TranslationServiceImpl.translate(config, input, output, translationTemplates, extraParams);
     }
 
-    public static void shutdown() {
-        TranslationServiceImpl.shutdown();
+    public static void awaitShutdown() {
+        TranslationServiceImpl.awaitShutdown();
     }
 }

@@ -8,7 +8,10 @@
  */
 package uk.co.symplectic.vivoweb.harvester.model;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ElementsObjectCategory {
     private static final Map<String, ElementsObjectCategory> singularMap = new HashMap<String, ElementsObjectCategory>();

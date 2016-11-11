@@ -10,19 +10,16 @@ import org.apache.commons.lang.NullArgumentException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.co.symplectic.utils.ExecutorServiceUtils;
-import uk.co.symplectic.vivoweb.harvester.store.*;
+import uk.co.symplectic.vivoweb.harvester.store.ElementsRdfStore;
+import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItem;
 
-import javax.xml.transform.ErrorListener;
-import javax.xml.transform.Source;
-import javax.xml.transform.Templates;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerConfigurationException;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.TransformerFactoryConfigurationError;
+import javax.xml.transform.*;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
@@ -59,7 +56,7 @@ final class TranslationServiceImpl {
         } catch (TransformerFactoryConfigurationError transformerFactoryConfigurationError) {
             log.warn("Unable to obtain Saxon XSLT factory. Attempting fallback to default.", transformerFactoryConfigurationError);
         }
-
+        //TODO: remove this fallback - xalan WILL NOT WORK!
         if (null == factory) {
             factory = TransformerFactory.newInstance();
         }
@@ -75,34 +72,41 @@ final class TranslationServiceImpl {
         Future<Boolean> result = wrapper.submit(new ItemTranslateTask(config, input, output, translationTemplates, extraParams));
     }
 
-//    static void translate(TranslationServiceConfig config, ElementsStoredObject input, ElementsRdfStore output, TemplatesHolder translationTemplates) {
-//        Future<Boolean> result = wrapper.submit(new ObjectTranslateTask(config, input, output, translationTemplates));
-//    }
-
-//    static void translate(TranslationServiceConfig config, ElementsStoredRelationship input, ElementsRdfStore output, TemplatesHolder translationTemplates) {
-//        Future<Boolean> result = wrapper.submit(new RelationshipTranslateTask(config, input, output, translationTemplates));
-//    }
-
-    static void shutdown() {
-        wrapper.shutdown();
+    static void awaitShutdown() {
+        wrapper.awaitShutdown();
     }
 
-    static abstract class AbstractTranslateTask implements Callable<Boolean>{
+    static class ItemTranslateTask implements Callable<Boolean>{
 
         private final TemplatesHolder translationTemplates;
         //TODO: unstitch config layer?
         private final TranslationServiceConfig config;
         private final Map<String, Object> extraParams;
+        private ElementsStoredItem inputItem;
+        private ElementsRdfStore outputStore;
 
-        protected abstract InputStream getInputStream() throws IOException;
-        protected String getInputDescription(){return "input";}
+        private InputStream getInputStream() throws IOException{
+            return inputItem.getInputStream();
+        }
 
-        protected abstract void storeOutput(byte[] translatedData) throws IOException;
-        protected String getOutputDescription(){return "output";}
+        private String getInputDescription(){
+            return inputItem.getItemInfo().getItemId().toString();
+        }
 
-        protected AbstractTranslateTask(TranslationServiceConfig config, TemplatesHolder translationTemplates, Map<String, Object> extraParams){
+        private void storeOutput(byte[] translatedData) throws IOException{
+            outputStore.storeTranslatedItem(inputItem.getItemInfo(), translatedData);
+        }
+        private String getOutputDescription(){return "RDF store";}
+
+        ItemTranslateTask(TranslationServiceConfig config, ElementsStoredItem inputItem, ElementsRdfStore outputStore,
+                          TemplatesHolder translationTemplates, Map<String, Object> extraParams) {
             if(translationTemplates == null) throw new NullArgumentException("translationTemplates");
             if(config == null) throw new NullArgumentException("config");
+            if(inputItem == null) throw new NullArgumentException("inputItem");
+            if(outputStore == null) throw new NullArgumentException("outputStore");
+
+            this.inputItem = inputItem;
+            this.outputStore = outputStore;
             this.translationTemplates = translationTemplates;
             this.config = config;
             this.extraParams = extraParams;
@@ -208,46 +212,4 @@ final class TranslationServiceImpl {
             }
         }
     }
-
-    static class ItemTranslateTask extends AbstractTranslateTask{
-        private ElementsStoredItem inputItem;
-        private ElementsRdfStore outputStore;
-
-        ItemTranslateTask(TranslationServiceConfig config, ElementsStoredItem inputItem, ElementsRdfStore outputStore, TemplatesHolder translationTemplates, Map<String, Object> extraParams) {
-            super(config, translationTemplates, extraParams);
-            if(inputItem == null) throw new NullArgumentException("inputItem");
-            if(outputStore == null) throw new NullArgumentException("outputStore");
-
-            this.inputItem = inputItem;
-            this.outputStore = outputStore;
-        }
-
-        @Override
-        protected String getInputDescription(){
-            return inputItem.getItemInfo().getItemDescriptor() + ":" + inputItem.getItemInfo().getItemIdString();
-        }
-
-        @Override
-        protected InputStream getInputStream() throws IOException {
-            return inputItem.getInputStream();
-        }
-
-        @Override
-        protected String getOutputDescription(){
-            return "RDF store";
-        }
-
-        @Override
-        protected void storeOutput(byte[] translatedData) throws IOException{
-            if(inputItem.getItemInfo().isObjectInfo())
-                outputStore.storeItem(inputItem.getItemInfo(), StorableResourceType.TRANSLATED_OBJECT, translatedData);
-            else if(inputItem.getItemInfo().isRelationshipInfo())
-                outputStore.storeItem(inputItem.getItemInfo(), StorableResourceType.TRANSLATED_RELATIONSHIP, translatedData);
-            else if(inputItem.getItemInfo().isGroupInfo())
-                outputStore.storeItem(inputItem.getItemInfo(), StorableResourceType.TRANSLATED_GROUP, translatedData);
-            else
-                throw new IllegalStateException("Unstorable item translated");
-        }
-    }
-
 }

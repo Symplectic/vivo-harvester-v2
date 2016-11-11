@@ -7,24 +7,32 @@
 package uk.co.symplectic.vivoweb.harvester.app;
 
 import org.apache.commons.httpclient.protocol.Protocol;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vivoweb.harvester.util.args.UsageException;
-import uk.co.symplectic.elements.api.*;
+import org.vivoweb.harvester.util.repo.JenaConnect;
+import org.vivoweb.harvester.util.repo.TDBJenaConnect;
+import uk.co.symplectic.elements.api.ElementsAPI;
+import uk.co.symplectic.elements.api.ElementsAPIHttpClient;
+import uk.co.symplectic.elements.api.ElementsAPIVersion;
+import uk.co.symplectic.elements.api.IgnoreSSLErrorsProtocolSocketFactory;
 import uk.co.symplectic.translate.TranslationService;
 import uk.co.symplectic.utils.ExecutorServiceUtils;
 import uk.co.symplectic.vivoweb.harvester.config.Configuration;
 import uk.co.symplectic.vivoweb.harvester.fetch.*;
-import uk.co.symplectic.vivoweb.harvester.fetch.ElementsGroupCollection;
 import uk.co.symplectic.vivoweb.harvester.model.*;
 import uk.co.symplectic.vivoweb.harvester.store.*;
-import uk.co.symplectic.vivoweb.harvester.translate.*;
+import uk.co.symplectic.vivoweb.harvester.translate.ElementsGroupTranslateObserver;
+import uk.co.symplectic.vivoweb.harvester.translate.ElementsObjectTranslateObserver;
+import uk.co.symplectic.vivoweb.harvester.translate.ElementsRelationshipTranslateObserver;
+import uk.co.symplectic.vivoweb.harvester.translate.ElementsVivoIncludeMonitor;
 
 import java.io.*;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 public class ElementsFetchAndTranslate {
     /**
@@ -55,67 +63,29 @@ public class ElementsFetchAndTranslate {
                 ///*
                 //start by querying all users - to build a user cache, keep the data for now to avoid needing to re-query users at translation stage
                 //TODO: optimise to make this do the initial user translation once translations are independent of excluded users, etc.
-                ElementsObjectKeyedCollection.ObjectInfo userInfoCache = new ElementsObjectKeyedCollection.ObjectInfo(ElementsObjectCategory.USER);
-                ElementsObjectKeyedCollection.Data userDataCache = new ElementsObjectKeyedCollection.Data(ElementsObjectCategory.USER);
+                ElementsItemKeyedCollection.ItemRestrictor restrictToUsersOnly = new ElementsItemKeyedCollection.RestrictToCategories(ElementsObjectCategory.USER);
+                ElementsItemKeyedCollection.StoredItem userDataCache = new ElementsItemKeyedCollection.StoredItem(restrictToUsersOnly);
                 ElementsFetch.ObjectConfig userConfig = new ElementsFetch.ObjectConfig(true, 25, null, ElementsObjectCategory.USER);
-                elementsFetcher.execute(userConfig, new ElementsObjectStore.MultiStore(userInfoCache.getStoreWrapper(), userDataCache.getStoreWrapper()));
+                elementsFetcher.execute(userConfig, userDataCache.getStoreWrapper());
+
+                ElementsItemKeyedCollection.ItemInfo userInfoCache = new ElementsItemKeyedCollection.ItemInfo(restrictToUsersOnly);
+                for(ElementsItemId id : userDataCache.keySet()) userInfoCache.put(id, userDataCache.get(id).getItemInfo());
 
                 //Now query the groups, post processing to build a group hierarchy containing users.
                 //TODO: only process group membership ? and maybe even user cache above for harvested groups?
                 //TODO: - note user cache would break optimisation to not process them later when pulling objects (need full set during translation stage)
                 ElementsGroupCollection groupCache = new ElementsGroupCollection();
-                elementsFetcher.execute(new ElementsFetch.GroupConfig(), groupCache);
+                elementsFetcher.execute(new ElementsFetch.GroupConfig(), groupCache.getStoreWrapper());
                 ElementsGroupInfo.GroupHierarchyWrapper groupHierarchy = groupCache.constructHierarchy();
                 //todo : undo hack to not populate membership for speed of testing
                 groupCache.populateUserMembership(elementsFetcher, userInfoCache.keySet());
 
+                //work out the included users
+                ElementsItemKeyedCollection.ItemInfo includedUsers = CalculateIncludedUsers(userInfoCache, groupCache);
+                //work out the included groups too..
+                ElementsItemKeyedCollection.ItemInfo includedGroups = CalculateIncludedGroups(groupCache);
 
-                //TODO : move academics into a config item.
-                boolean academicsOnly = false; //Configuration.getAcademicsOnly();
-                boolean currentStaffOnly = Configuration.getCurrentStaffOnly();
-
-
-                //Work out which users we are planning to include (i.e who is in the included set, not in the excluded set
-                ElementsObjectKeyedCollection.ObjectInfo includedUsers = new ElementsObjectKeyedCollection.ObjectInfo(ElementsObjectCategory.USER);
-                if(Configuration.getGroupsToHarvest().isEmpty()) {
-                    for(ElementsItemId.ObjectId userId : userInfoCache.keySet()) {
-                        includedUsers.put(userId, userInfoCache.get(userId));
-                    }
-                }
-                else {
-                    for (Integer groupId : Configuration.getGroupsToHarvest()) {
-                        //todo: ensure boxing can't fail here?
-                        ElementsGroupInfo.GroupHierarchyWrapper group = groupCache.getGroup(groupId.intValue());
-                        for(ElementsItemId.ObjectId userId : group.getImplicitUsers()){
-                            includedUsers.put(userId, userInfoCache.get(userId));
-                        }
-                    }
-                }
-
-                for(Integer groupId : Configuration.getGroupsToExclude()){
-                    //todo: ensure boxing can't fail here?
-                    ElementsGroupInfo.GroupHierarchyWrapper group = groupCache.getGroup(groupId.intValue());
-                    includedUsers.removeAll(group.getImplicitUsers());
-                }
-
-                List<ElementsItemId.ObjectId> invalidUsers = new ArrayList<ElementsItemId.ObjectId>();
-                for(ElementsObjectInfo objInfo : includedUsers.values()){
-                    ElementsUserInfo userInfo = (ElementsUserInfo) objInfo;
-                    //if user is not currentStaff then we don't want them
-                    if (currentStaffOnly && !userInfo.getIsCurrentStaff()) invalidUsers.add(userInfo.getObjectId());
-                    if (academicsOnly && !userInfo.getIsAcademic()) invalidUsers.add(userInfo.getObjectId());
-                }
-                for(ElementsItemId.ObjectId userId : invalidUsers) includedUsers.remove(userId);
-                //*/
-
-                //hack pt 2
-                /*
-                ElementsObjectCollection includedUsers = new ElementsObjectCollection();
-                includedUsers.add(new ElementsObjectId(ElementsObjectCategory.USER, 23));
-                //*/
-                //end hack
-
-                ElementsObjectFileStore objectStore = ElementsStoreFactory.getObjectStore();
+                ElementsItemFileStore objectStore = ElementsStoreFactory.getObjectStore();
                 ElementsRdfStore rdfStore = ElementsStoreFactory.getRdfStore();
 
                 boolean visibleLinksOnly = Configuration.getVisibleLinksOnly();
@@ -126,39 +96,26 @@ public class ElementsFetchAndTranslate {
 
                 //Hook item observers to the object store so that translations happen for any objects and relationships that arrive in that store
                 //translations are configured to output to the rdfStore;
-                //todo: test the new translators and remove redundant code.
-//                ElementsObjectTranslateObserver objectTranslator = new ElementsObjectTranslateObserver(rdfStore, xslFilename);
-//                ElementsRelationshipTranslateObserver relationshipTranslator = new ElementsRelationshipTranslateObserver(rdfStore, xslFilename);
-//                ElementsGroupTranslateObserver groupTranslator = new ElementsGroupTranslateObserver(rdfStore, xslFilename, groupCache, includedUsers);
-//                objectStore.addItemObserver(objectTranslator);
-//                objectStore.addItemObserver(relationshipTranslator);
-//                objectStore.addItemObserver(groupTranslator);
-
-                //new style translators
-                ElementsTranslateObserver n_objectTranslator = new ElementsTranslateObserver.Objects(rdfStore, xslFilename);
-                ElementsTranslateObserver n_relationshipTranslator = new ElementsTranslateObserver.Relationships(objectStore, rdfStore, xslFilename);
-                ElementsTranslateObserver n_groupTranslator = new ElementsTranslateObserver.Groups(rdfStore, xslFilename, groupCache, includedUsers);
-                objectStore.addItemObserver(n_objectTranslator);
-                objectStore.addItemObserver(n_relationshipTranslator);
-                objectStore.addItemObserver(n_groupTranslator);
+                objectStore.addItemObserver(new ElementsObjectTranslateObserver(rdfStore, xslFilename));
+                objectStore.addItemObserver(new ElementsRelationshipTranslateObserver(objectStore, rdfStore, xslFilename));
+                objectStore.addItemObserver(new ElementsGroupTranslateObserver(rdfStore, xslFilename, groupCache, includedUsers));
 
                 //Hook a photo retrieval observer onto the rdf store so that photos will be fetched and dropped in the object store for any translated users.
                 rdfStore.addItemObserver(new ElementsUserPhotoRetrievalObserver(elementsAPI, objectStore));
                 //Hook a photo RDF generating observer onto the object store so that any fetched photos have corresponding "rdf" created in the translated output.
-                ElementsUserPhotoRdfGeneratingObserver userExtraPhotoRdfGenerator = new ElementsUserPhotoRdfGeneratingObserver(rdfStore, vivoImageDir, vivoBaseURI, null);
-                objectStore.addItemObserver(userExtraPhotoRdfGenerator);
+                objectStore.addItemObserver(new ElementsUserPhotoRdfGeneratingObserver(rdfStore, vivoImageDir, vivoBaseURI, null));
 
+                //TODO: decide if a full harvest should still work this way...
                 //Hook a monitor to the object store to work out which objects and relationships we want to send to vivo
-                //TODO: move monitor to file reading approach to be delta usable.
-                ElementsVivoIncludeMonitor monitor = new ElementsVivoIncludeMonitor(includedUsers.keySet(), visibleLinksOnly);
-                objectStore.addItemObserver(monitor);
+                //ElementsVivoIncludeMonitor monitor = new ElementsVivoIncludeMonitor(includedUsers.keySet(), includedGroups.keySet(), visibleLinksOnly);
+                //objectStore.addItemObserver(monitor);
 
                 //Now we have wired up all our store observers perform the main fetches
 
                 //already fetched user data so use that now to avoid re-fetching.
                 log.info("Processing previously cached users");
-                for(ElementsObjectInfo info : userInfoCache.values()){
-                    objectStore.storeItem(info, StorableResourceType.RAW_OBJECT, userDataCache.get(info.getObjectId()));
+                for(ElementsStoredItem.InRam item : userDataCache.values()){
+                    objectStore.storeItem(item.getItemInfo(), StorableResourceType.RAW_OBJECT, item.getBytes());
                 }
 
                 //get list of categories we will process - remove users to avoid fetching them twice
@@ -179,48 +136,56 @@ public class ElementsFetchAndTranslate {
 
                 //Initiate the shutdown of the asynchronous translation engine - note this will actually block until
                 //the engine has completed all its enqueued tasks - think of it as "await completion".
-                TranslationService.shutdown();
+                TranslationService.awaitShutdown();
 
-                //TODO: make this cleanly use layout strategy instead of being hacky and make prune relationships properly too now
-//                for (ElementsObjectCategory category : Configuration.getCategoriesToHarvest()) {
-//                    if (category != null && category != ElementsObjectCategory.USER) {
-//                        // Delete the RDF objects not marked to be kept
-//                        rdfStore.pruneExcept(category, monitor.getIncludedObjects().get(category));
-//                    }
-//                }
+                //changes towards making include monitoring a separate step in the process?
 
+                //Hook a monitor up to work out which objects and relationships we want to send to vivo
+                // when building a triple store to represent the current state after this connector run.
+                //write out a list of translated rdf files that ought to be included
+                //TODO: establish if a full load should do this in line as it used to....
+                log.debug("ElementsFetchAndTranslate: Processing all relationships to establish what items to include in output");
+                //TODO: better logging and also test performance against spinning rust...
+                ElementsVivoIncludeMonitor monitor = new ElementsVivoIncludeMonitor(includedUsers.keySet(), includedGroups.keySet(), visibleLinksOnly);
 
+                objectStore.getAllExistingFilesOfType(StorableResourceType.RAW_RELATIONSHIP);
+                for(StoredData.InFile relData : objectStore.getAllExistingFilesOfType(StorableResourceType.RAW_RELATIONSHIP)){
+                    ElementsStoredItem relItem = ElementsStoredItem.InFile.loadRawRelationship(relData.getFile(), relData.isZipped());
+                    monitor.observe(relItem);
+                }
+
+                List<StoredData.InFile> filesToProcess = new ArrayList<StoredData.InFile>();
                 BufferedWriter writer = null;
                 try {
                     //TODO: check this all works as expected and move file location to config remove prune stuff
                     writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("fileList.txt"), "utf-8"));
-                    //collects all objects in relationships - if want obj not in rels (e.g. users in include with no links) then need to add to this output..
-                    for (ElementsObjectCategory category : Configuration.getCategoriesToHarvest()) {
-                        for (ElementsItemId.ObjectId id : monitor.getIncludedObjects().get(category)) {
-                            ElementsObjectInfo objInfo = ElementsObjectInfoCache.get(id);
-                            if (objInfo == null)
-                                objInfo = ElementsItemInfo.createObjectItem(id.getCategory(), id.getId());
+
+                    //TODO: make ElementsItemCollections order things better - particularly within the objects type
+                    for(ElementsItemType type : ElementsItemType.values()) {
+                        for (ElementsItemId includedItem : monitor.getIncludedItems().get(type)) {
                             //TODO: restrict to certain output resource types?
-                            for (ElementsStoredItem item : rdfStore.retrieveAllItems(objInfo)) {
-                                writer.write(item.getAddress());
+                            for (BasicElementsStoredItem item : rdfStore.retrieveAllItems(includedItem)) {
+                                filesToProcess.add((StoredData.InFile) item.getStoredData());
+                                writer.write(item.getStoredData().getAddress());
                                 writer.newLine();
                             }
                         }
                     }
-
-                    //add included relationships.
-                    for (ElementsRelationshipInfo relInfo : monitor.getIncludedRelationships()) {
-                        //TODO: restrict to certain output resource types?
-                        for (ElementsStoredItem item : rdfStore.retrieveAllItems(relInfo)) {
-                            writer.write(item.getAddress());
-                            writer.newLine();
-                        }
-                    }
-
                 }
                 finally{
                     if(writer != null) writer.close();
                 }
+                log.debug("ElementsFetchAndTranslate: Finished processing relationships");
+                //end of changes towards making include monitoring a separate step in the process
+
+                //todo: move this to configuration
+                String interimTdbDirectory = "C:\\Users\\ajpc2_000\\Documents\\TestTDB";
+                FileUtils.deleteDirectory(new File(interimTdbDirectory));
+                log.debug(MessageFormat.format("ElementsFetchAndTranslate: Transferring data to triplestore \"{0}\"", interimTdbDirectory));
+                JenaConnect jc = new TDBJenaConnect(interimTdbDirectory);
+                TDBLoadUtility.load(jc, filesToProcess.iterator());
+                log.debug("ElementsFetchAndTranslate: Finished transferring data to triplestore");
+
 
             } catch (IOException e) {
                 System.err.println("Caught IOException initialising ElementsFetchAndTranslate");
@@ -246,6 +211,88 @@ public class ElementsFetchAndTranslate {
                 System.exit(1);
             }
         }
+    }
+
+    private static ElementsItemKeyedCollection.ItemInfo CalculateIncludedGroups(ElementsGroupCollection groupCache) {
+        ElementsItemKeyedCollection.ItemRestrictor restrictToGroupsOnly = new ElementsItemKeyedCollection.RestrictToType(ElementsItemType.GROUP);
+        ElementsItemKeyedCollection.ItemInfo includedGroups = new ElementsItemKeyedCollection.ItemInfo(restrictToGroupsOnly);
+
+        ElementsItemId.GroupId topLevelGroupId = (ElementsItemId.GroupId) groupCache.GetTopLevel().getGroupInfo().getItemId();
+        //if there are no groups configured to be harvested or if the set includes the top level then we just need everything.
+        if(Configuration.getGroupsToHarvest().isEmpty() || Configuration.getGroupsToHarvest().contains(topLevelGroupId)) {
+            for(ElementsGroupInfo.GroupHierarchyWrapper groupWrapper : groupCache.values()) {
+                ElementsGroupInfo info = groupWrapper.getGroupInfo();
+                includedGroups.put(info.getItemId(), info);
+            }
+        }
+        else {
+            for (ElementsItemId.GroupId groupId : Configuration.getGroupsToHarvest()) {
+                ElementsGroupInfo.GroupHierarchyWrapper currentGroup = groupCache.get(groupId);
+                ElementsGroupInfo info = currentGroup.getGroupInfo();
+                includedGroups.put(info.getItemId(), info);
+                for(ElementsGroupInfo.GroupHierarchyWrapper childGroupWrapper : currentGroup.getAllChildren()){
+                    ElementsGroupInfo childInfo = childGroupWrapper.getGroupInfo();
+                    includedGroups.put(childInfo.getItemId(), childInfo);
+                }
+            }
+        }
+
+        for(ElementsItemId.GroupId groupId : Configuration.getGroupsToExclude()){
+            //todo: ensure boxing can't fail here?
+            ElementsGroupInfo.GroupHierarchyWrapper currentGroup = groupCache.get(groupId);
+            ElementsGroupInfo info = currentGroup.getGroupInfo();
+            includedGroups.remove(info.getItemId());
+            for(ElementsGroupInfo.GroupHierarchyWrapper childGroupWrapper : currentGroup.getAllChildren()){
+                ElementsGroupInfo childInfo = childGroupWrapper.getGroupInfo();
+                includedGroups.remove(childInfo.getItemId());
+            }
+        }
+
+        return includedGroups;
+    }
+
+    private static ElementsItemKeyedCollection.ItemInfo CalculateIncludedUsers(ElementsItemKeyedCollection.ItemInfo userInfoCache, ElementsGroupCollection groupCache){
+        //TODO : move academics into a config item.
+        boolean academicsOnly = false; //Configuration.getAcademicsOnly();
+        boolean currentStaffOnly = Configuration.getCurrentStaffOnly();
+
+        //find the users who are defnitely not to be included based on their raw metadata
+        List<ElementsItemId> invalidUsers = new ArrayList<ElementsItemId>();
+        for(ElementsItemInfo objInfo : userInfoCache.values()){
+            ElementsUserInfo userInfo = (ElementsUserInfo) objInfo;
+            //if user is not currentStaff then we don't want them
+            if (currentStaffOnly && !userInfo.getIsCurrentStaff()) invalidUsers.add(userInfo.getObjectId());
+            if (academicsOnly && !userInfo.getIsAcademic()) invalidUsers.add(userInfo.getObjectId());
+        }
+
+        //Work out which users we are planning to include (i.e who is in the included set, not in the excluded set
+
+        ElementsItemKeyedCollection.ItemRestrictor restrictToUsersOnly = new ElementsItemKeyedCollection.RestrictToCategories(ElementsObjectCategory.USER);
+        ElementsItemKeyedCollection.ItemInfo includedUsers = new ElementsItemKeyedCollection.ItemInfo(restrictToUsersOnly);
+        if(Configuration.getGroupsToHarvest().isEmpty()) {
+            //we need to copy the users over as we do more filtering below
+            for(ElementsItemInfo userInfo : userInfoCache.values()) {
+                if(!invalidUsers.contains(userInfo.getItemId()))
+                    includedUsers.put(userInfo.getItemId(), userInfo);
+            }
+        }
+        else {
+            for (ElementsItemId.GroupId groupId : Configuration.getGroupsToHarvest()) {
+                ElementsGroupInfo.GroupHierarchyWrapper group = groupCache.get(groupId);
+                for(ElementsItemId userId : group.getImplicitUsers()){
+                    if(!invalidUsers.contains(userId))
+                        includedUsers.put(userId, userInfoCache.get(userId));
+                }
+            }
+        }
+
+        for(ElementsItemId.GroupId groupId : Configuration.getGroupsToExclude()){
+            //todo: ensure boxing can't fail here?
+            ElementsGroupInfo.GroupHierarchyWrapper group = groupCache.get(groupId);
+            includedUsers.removeAll(group.getImplicitUsers());
+        }
+
+        return includedUsers;
     }
 
     private static ElementsAPI getElementsAPI() {

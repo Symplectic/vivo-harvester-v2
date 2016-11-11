@@ -9,21 +9,23 @@ package uk.co.symplectic.vivoweb.harvester.fetch;
 import org.apache.commons.lang.NullArgumentException;
 import org.apache.commons.lang.StringUtils;
 import uk.co.symplectic.elements.api.ElementsAPI;
-import uk.co.symplectic.vivoweb.harvester.model.ElementsGroupInfo;
-import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectInfo;
-import uk.co.symplectic.vivoweb.harvester.model.ElementsRelationshipInfo;
-import uk.co.symplectic.vivoweb.harvester.model.ElementsUserInfo;
 import uk.co.symplectic.vivoweb.harvester.fetch.resources.ResourceFetchService;
-import uk.co.symplectic.vivoweb.harvester.store.*;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectInfo;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsUserInfo;
+import uk.co.symplectic.vivoweb.harvester.store.ElementsItemFileStore;
+import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItem;
+import uk.co.symplectic.vivoweb.harvester.store.IElementsStoredItemObserver;
+import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
+
 import java.net.MalformedURLException;
 
 public class ElementsUserPhotoRetrievalObserver extends IElementsStoredItemObserver.ElementsStoredResourceObserverAdapter {
     //TODO: Sort out static as object behaviour here
     private final ResourceFetchService fetchService = new ResourceFetchService();
-    private final ElementsObjectFileStore objectStore;
+    private final ElementsItemFileStore objectStore;
     private final ElementsAPI elementsApi;
 
-    public ElementsUserPhotoRetrievalObserver(ElementsAPI elementsApi, ElementsObjectFileStore objectStore) {
+    public ElementsUserPhotoRetrievalObserver(ElementsAPI elementsApi, ElementsItemFileStore objectStore) {
         super(StorableResourceType.TRANSLATED_OBJECT);
         if(elementsApi == null) throw new NullArgumentException("elementsApi");
         if(objectStore == null) throw new NullArgumentException("objectStore");

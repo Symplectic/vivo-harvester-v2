@@ -2,7 +2,6 @@ package uk.co.symplectic.vivoweb.harvester.app;
 
 import com.hp.hpl.jena.graph.Node;
 import com.hp.hpl.jena.graph.Triple;
-import com.hp.hpl.jena.query.Dataset;
 import com.hp.hpl.jena.tdb.nodetable.NodeTupleTable;
 import com.hp.hpl.jena.tdb.store.DatasetGraphTDB;
 import com.hp.hpl.jena.tdb.store.GraphTDB;
@@ -14,12 +13,10 @@ import org.openjena.riot.Lang;
 import org.openjena.riot.RiotException;
 import org.openjena.riot.RiotReader;
 import org.slf4j.Logger;
-import org.vivoweb.harvester.transfer.Transfer;
 import org.vivoweb.harvester.util.repo.JenaConnect;
 import org.vivoweb.harvester.util.repo.Record;
 import org.vivoweb.harvester.util.repo.RecordHandler;
 import org.vivoweb.harvester.util.repo.TDBJenaConnect;
-import tdb.cmdline.ModTDBDataset;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsRecordHandler;
 
 import java.io.ByteArrayInputStream;
@@ -102,7 +99,6 @@ public class RecordHandlerTest {
 
         return processCount;
     }
-
 
     public static void tdbLoaderTest(JenaConnect jc, Iterator<Record> iterator){
         //GraphTDB graph = (GraphTDB) new ModTDBDataset().getDataset().getDefaultModel().getGraph();

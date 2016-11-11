@@ -7,7 +7,6 @@
 package uk.co.symplectic.utils;
 
 import org.apache.commons.lang.StringUtils;
-import sun.nio.ch.ThreadPool;
 
 import java.text.MessageFormat;
 import java.util.*;
@@ -60,7 +59,7 @@ public final class ExecutorServiceUtils {
 
         @Override
         public void run() {
-            wrapper.shutdown();
+            wrapper.awaitShutdown();
         }
     }
 
@@ -164,7 +163,7 @@ public final class ExecutorServiceUtils {
         //NOTE: shutdown calls for an orderly shutdown of the underlying execution service
         // it achieves this by asking it to shutdown gracefully and then monitoring to see if it is still doing work or has exited.
         // if it determines that no more useful work is being done but the underlying service still hasn't exited it will force termination.
-        public synchronized void shutdown() {
+        public synchronized void awaitShutdown() {
             if (!shutdownCalled) {
                 shutdownCalled = true;
                 service.shutdown();

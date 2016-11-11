@@ -70,7 +70,7 @@ public class ElementsGroupInfo extends ElementsItemInfo{
         }
     }
 
-    private Integer parentId;
+    private ElementsItemId.GroupId parentId;
     private String membershipFeedUrl;
     private String name;
 
@@ -85,15 +85,15 @@ public class ElementsGroupInfo extends ElementsItemInfo{
     public String getMembershipFeedUrl(){ return membershipFeedUrl; }
     public void setMembershipFeedUrl(String value){ membershipFeedUrl = value; }
 
-    public Integer getParentId() { return parentId; }
-    public void setParentId(Integer parentId) { this.parentId = parentId; }
+    public ElementsItemId.GroupId getParentId() { return parentId; }
+    public void setParentId(Integer parentId) { this.parentId = ElementsItemId.createGroupId(parentId); }
 
     public static class GroupHierarchyWrapper{
 
         private final ElementsGroupInfo info;
         private ElementsGroupInfo.GroupHierarchyWrapper parent = null;
         private Set<ElementsGroupInfo.GroupHierarchyWrapper> children = new HashSet<ElementsGroupInfo.GroupHierarchyWrapper>();
-        private Set<ElementsItemId.ObjectId> explicitUsers = new HashSet<ElementsItemId.ObjectId>();
+        private Set<ElementsItemId> explicitUsers = new HashSet<ElementsItemId>();
 
         public GroupHierarchyWrapper(ElementsGroupInfo info) {
             if(info == null) throw new NullArgumentException("info");
@@ -117,6 +117,19 @@ public class ElementsGroupInfo extends ElementsItemInfo{
             return Collections.unmodifiableSet(children);
         }
 
+        public Set<ElementsGroupInfo.GroupHierarchyWrapper> getAllChildren() {
+            Set<GroupHierarchyWrapper> set = new HashSet<GroupHierarchyWrapper>();
+            collectChildren(set);
+            return Collections.unmodifiableSet(set);
+        }
+
+        protected void collectChildren(Set<GroupHierarchyWrapper> returnSet){
+            for(ElementsGroupInfo.GroupHierarchyWrapper child : children){
+                child.collectChildren(returnSet);
+                returnSet.add(child);
+            }
+        }
+
         public void addChildren(Set<ElementsGroupInfo.GroupHierarchyWrapper> children) {
             for(ElementsGroupInfo.GroupHierarchyWrapper child : children){
                 addChild(child);
@@ -130,17 +143,19 @@ public class ElementsGroupInfo extends ElementsItemInfo{
             }
         }
 
-        public Set<ElementsItemId.ObjectId> getExplicitUsers() {
+        public Set<ElementsItemId> getExplicitUsers() {
             return Collections.unmodifiableSet(explicitUsers);
         }
 
-        public Set<ElementsItemId.ObjectId> getImplicitUsers() {
-            Set<ElementsItemId.ObjectId> set = new HashSet<ElementsItemId.ObjectId>();
+        //TODO: make these collection restricted to only be able to contain users in some safe way?
+        public Set<ElementsItemId> getImplicitUsers() {
+            Set<ElementsItemId> set = new HashSet<ElementsItemId>();
             collectImplicitUsers(set);
             return Collections.unmodifiableSet(set);
         }
 
-        protected void collectImplicitUsers(Set<ElementsItemId.ObjectId> returnSet){
+        //TODO: make these collection restricted to only be able to contain users in some safe way?
+        protected void collectImplicitUsers(Set<ElementsItemId> returnSet){
             for(ElementsGroupInfo.GroupHierarchyWrapper child : children){
                 child.collectImplicitUsers(returnSet);
             }

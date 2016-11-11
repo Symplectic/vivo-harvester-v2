@@ -8,6 +8,7 @@ package uk.co.symplectic.vivoweb.harvester.store;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.NullArgumentException;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemInfo;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectInfoCache;
 
@@ -16,7 +17,7 @@ import java.util.*;
 import java.util.zip.GZIPOutputStream;
 
 
-public class ElementsObjectFileStore implements ElementsObjectStore{
+public class ElementsItemFileStore implements ElementsItemStore {
     List<StorableResourceType> supportedTypes = new ArrayList<StorableResourceType>();
     protected File dir = null;
     final private LayoutStrategy layoutStrategy;
@@ -26,7 +27,7 @@ public class ElementsObjectFileStore implements ElementsObjectStore{
 
     public List<StorableResourceType> getSupportedTypes(){return Collections.unmodifiableList(supportedTypes);}
 
-    public ElementsObjectFileStore(String dir, boolean keepEmpty, boolean zipFiles, LayoutStrategy layoutStrategy, StorableResourceType... supportedTypes) {
+    public ElementsItemFileStore(String dir, boolean keepEmpty, boolean zipFiles, LayoutStrategy layoutStrategy, StorableResourceType... supportedTypes) {
         if(dir == null) throw new NullArgumentException("dir");
         if(supportedTypes == null || supportedTypes.length == 0) throw new IllegalArgumentException("supportedTypes must not be null or empty");
 
@@ -40,25 +41,12 @@ public class ElementsObjectFileStore implements ElementsObjectStore{
 
     public void addItemObserver(IElementsStoredItemObserver observer){ itemObservers.add(observer); }
 
-    /*
-    public ElementsStoredObject retrieveObject(ElementsObjectCategory category, String id) {
-        File objectFile = getObjectFile(category, id);
-        return objectFile == null ? null : new ElementsStoredObject(objectFile, category, id);
-    }
-    }
-
-    public ElementsStoredRelationship retrieveRelationship(String id) {
-        File relationshipFile = getRelationshipFile(id);
-        return relationshipFile == null ? null : new ElementsStoredRelationship(relationshipFile, id);
-    }*/
-
-
     //todo : returns all "possible" items without checking if item is actually present in the store - decide if this is for the best?
-    public Collection<ElementsStoredItem> retrieveAllItems(ElementsItemInfo itemInfo){
-        List<ElementsStoredItem> items = new ArrayList<ElementsStoredItem>();
+    public Collection<BasicElementsStoredItem> retrieveAllItems(ElementsItemId itemId){
+        List<BasicElementsStoredItem> items = new ArrayList<BasicElementsStoredItem>();
         for(StorableResourceType resourceType : supportedTypes){
-            if(resourceType.isAppropriateForItem(itemInfo)) {
-                ElementsStoredItem item = retrieveItem(itemInfo, resourceType);
+            if(resourceType.isAppropriateForItem(itemId)) {
+                BasicElementsStoredItem item = retrieveItem(itemId, resourceType);
                 if (item != null) items.add(item);
             }
         }
@@ -68,31 +56,32 @@ public class ElementsObjectFileStore implements ElementsObjectStore{
     /**
      * Method to retrieve a StoredItem representing a particular resource
      * The corresponding file may or may not exist in this store - no guarantees are made about it by this call.
-     * @param itemInfo
+     * @param itemId
      * @param resourceType
      * @return
      */
-    public ElementsStoredItem retrieveItem(ElementsItemInfo itemInfo, StorableResourceType resourceType){
-        if(!resourceType.isAppropriateForItem(itemInfo))  throw new IllegalStateException("resourceType is incompatible with item");
+    public BasicElementsStoredItem retrieveItem(ElementsItemId itemId, StorableResourceType resourceType){
+        if(!resourceType.isAppropriateForItem(itemId))  throw new IllegalStateException("resourceType is incompatible with item");
         if(!supportedTypes.contains(resourceType)) throw new IllegalStateException("resourceType is incompatible with store");
-        File file = layoutStrategy.getItemFile(dir, itemInfo, resourceType);
-        return file == null ? null : new ElementsStoredItem.InFile(file, itemInfo, resourceType, shouldZipResourceFile(resourceType));
+        File file = layoutStrategy.getItemFile(dir, itemId, resourceType);
+        //return file == null ? null : new ElementsStoredItem.InFile(file, itemInfo, resourceType, shouldZipResourceFile(resourceType));
+        return file == null || !file.exists() ? null : new BasicElementsStoredItem(itemId, resourceType, new StoredData.InFile(file, shouldZipResourceFile(resourceType)));
     }
 
-    public Collection<File> getAllExistingFilesOfType(StorableResourceType resourceType){
+    public Collection<StoredData.InFile> getAllExistingFilesOfType(StorableResourceType resourceType){
         if(!supportedTypes.contains(resourceType)) throw new IllegalStateException("resourceType is incompatible with store");
-        return layoutStrategy.getAllExistingFilesOfType(dir,resourceType);
-    }
-
-    public ElementsStoredItem storeItem(ElementsItemInfo itemInfo, StorableResourceType resourceType, String data) throws IOException{
-        return storeItem(itemInfo, resourceType, data.getBytes("utf-8"));
+        Collection<File> files = layoutStrategy.getAllExistingFilesOfType(dir,resourceType);
+        boolean isZipped = shouldZipResourceFile(resourceType);
+        Collection<StoredData.InFile> data = new ArrayList<StoredData.InFile>();
+        for(File file : files) data.add(new StoredData.InFile(file, isZipped));
+        return data;
     }
 
     public ElementsStoredItem storeItem(ElementsItemInfo itemInfo, StorableResourceType resourceType, byte[] data) throws IOException{
         //TODO: do something better here with error message?
-        if(!resourceType.isAppropriateForItem(itemInfo)) throw new IllegalStateException("resourceType is incompatible with item");
+        if(!resourceType.isAppropriateForItem(itemInfo.getItemId())) throw new IllegalStateException("resourceType is incompatible with item");
         if(!supportedTypes.contains(resourceType)) throw new IllegalStateException("resourceType is incompatible with store");
-        File file = layoutStrategy.getItemFile(dir, itemInfo, resourceType);
+        File file = layoutStrategy.getItemFile(dir, itemInfo.getItemId(), resourceType);
         ElementsStoredItem storedItem = new ElementsStoredItem.InFile(file, itemInfo, resourceType, shouldZipResourceFile(resourceType));
         //TODO: move this to an observer?
         if(itemInfo.isObjectInfo()) ElementsObjectInfoCache.put(itemInfo.asObjectInfo());
@@ -124,7 +113,7 @@ public class ElementsObjectFileStore implements ElementsObjectStore{
         }
     }
 
-    public static class ElementsRawDataStore extends ElementsObjectFileStore {
+    public static class ElementsRawDataStore extends ElementsItemFileStore {
         private static LayoutStrategy layoutStrategy = new DefaultLayoutStrategy(
                 new StorableResourceType[]{StorableResourceType.RAW_OBJECT, StorableResourceType.RAW_RELATIONSHIP, StorableResourceType.RAW_GROUP},
                 new StorableResourceType[]{StorableResourceType.RAW_USER_PHOTO}

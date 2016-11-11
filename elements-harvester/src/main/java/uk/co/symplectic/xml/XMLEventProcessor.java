@@ -17,7 +17,10 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.events.EndElement;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Stack;
 
 /**
  * Created by ajpc2_000 on 27/07/2016.
@@ -298,7 +301,6 @@ public class XMLEventProcessor {
         protected void preInnerItemStart(StartElement initialElement, ReaderProxy readerProxy) throws XMLStreamException {}
         protected void postInnerItemStart(StartElement initialElement, ReaderProxy readerProxy) throws XMLStreamException {}
 
-
         @Override
         final protected void itemEnd(EndElement finalElement, ReaderProxy readerProxy) throws XMLStreamException {
             preInnerItemEnd(finalElement, readerProxy);
@@ -314,8 +316,8 @@ public class XMLEventProcessor {
             innerFilter.processEvent(event, readerProxy);
             postInnerProcessEvent(event, readerProxy);
         }
-        protected void preInnerProcessEvent(XMLEvent finalElement, ReaderProxy readerProxy) throws XMLStreamException {}
-        protected void postInnerProcessEvent(XMLEvent finalElement, ReaderProxy readerProxy) throws XMLStreamException {}
+        protected void preInnerProcessEvent(XMLEvent event, ReaderProxy readerProxy) throws XMLStreamException {}
+        protected void postInnerProcessEvent(XMLEvent event, ReaderProxy readerProxy) throws XMLStreamException {}
     }
 
 //    HACK hack hack

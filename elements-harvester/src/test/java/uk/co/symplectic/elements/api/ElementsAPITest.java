@@ -6,10 +6,6 @@
  ******************************************************************************/
 package uk.co.symplectic.elements.api;
 
-import org.junit.Assert;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
 //TODO : bring tests back to life
 public class ElementsAPITest {
     /*@Rule

@@ -12,11 +12,12 @@ import org.slf4j.LoggerFactory;
 import uk.co.symplectic.elements.api.ElementsAPI;
 import uk.co.symplectic.utils.ExecutorServiceUtils;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsUserInfo;
-import uk.co.symplectic.vivoweb.harvester.store.ElementsObjectFileStore;
+import uk.co.symplectic.vivoweb.harvester.store.ElementsItemFileStore;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItem;
 import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.concurrent.Callable;
@@ -29,7 +30,7 @@ public final class ResourceFetchServiceImpl {
 
     private ResourceFetchServiceImpl() {}
 
-    static void fetchUserPhoto(ElementsAPI api, ElementsUserInfo userInfo, ElementsObjectFileStore objectStore) throws MalformedURLException {
+    static void fetchUserPhoto(ElementsAPI api, ElementsUserInfo userInfo, ElementsItemFileStore objectStore) throws MalformedURLException {
         Future<Boolean> result = wrapper.submit(new UserPhotoFetchTask(api, userInfo, objectStore));
     }
 
@@ -37,16 +38,16 @@ public final class ResourceFetchServiceImpl {
         Future<Boolean> result = wrapper.submit(new ExternalFetchTask(new URL(url), outputFile));
     }
 
-    static void shutdown() {
-        wrapper.shutdown();
+    static void awaitShutdown() {
+        wrapper.awaitShutdown();
     }
 
     static class UserPhotoFetchTask implements Callable<Boolean> {
         private ElementsAPI api;
         ElementsUserInfo userInfo;
-        private ElementsObjectFileStore objectStore;
+        private ElementsItemFileStore objectStore;
 
-        UserPhotoFetchTask(ElementsAPI api, ElementsUserInfo userInfo, ElementsObjectFileStore objectStore) {
+        UserPhotoFetchTask(ElementsAPI api, ElementsUserInfo userInfo, ElementsItemFileStore objectStore) {
             if(api == null) throw new NullArgumentException("api");
             if(userInfo == null) throw new NullArgumentException("userInfo");
             if(objectStore == null) throw new NullArgumentException("objectStore");

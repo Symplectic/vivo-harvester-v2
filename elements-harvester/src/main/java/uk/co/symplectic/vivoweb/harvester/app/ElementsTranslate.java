@@ -14,10 +14,11 @@ import org.vivoweb.harvester.util.args.ArgDef;
 import org.vivoweb.harvester.util.args.ArgList;
 import org.vivoweb.harvester.util.args.ArgParser;
 import org.vivoweb.harvester.util.args.UsageException;
-import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
 import uk.co.symplectic.translate.TemplatesHolder;
 import uk.co.symplectic.translate.TranslationService;
-import uk.co.symplectic.vivoweb.harvester.store.*;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
+import uk.co.symplectic.vivoweb.harvester.store.ElementsRdfStore;
+import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItem;
 
 import java.io.File;
 import java.io.IOException;
@@ -102,7 +103,7 @@ public class ElementsTranslate {//implements RecordStreamOrigin {
             processDir(null, relationshipDir);
         }
 
-        TranslationService.shutdown();
+        TranslationService.awaitShutdown();
     }
 
 //    @Override

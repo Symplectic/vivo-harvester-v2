@@ -12,35 +12,39 @@ package uk.co.symplectic.vivoweb.harvester.fetch;
 import org.apache.commons.lang.NullArgumentException;
 import sun.plugin.dom.exception.InvalidStateException;
 import uk.co.symplectic.vivoweb.harvester.model.*;
-import uk.co.symplectic.vivoweb.harvester.store.ElementsObjectStore;
+import uk.co.symplectic.vivoweb.harvester.store.ElementsItemStore;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItem;
 import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 
 /**
  * Created by ajpc2_000 on 18/08/2016.
  */
-public class ElementsGroupCollection implements ElementsObjectStore {
+public class ElementsGroupCollection extends ElementsItemKeyedCollection<ElementsGroupInfo.GroupHierarchyWrapper> {
     private ElementsGroupInfo.GroupHierarchyWrapper topLevel = null;
     private boolean membershipPopulated = false;
-    private Map<Integer, ElementsGroupInfo.GroupHierarchyWrapper> groups = new HashMap<Integer, ElementsGroupInfo.GroupHierarchyWrapper>();
+
+    public ElementsGroupCollection(){super(new RestrictToType(ElementsItemType.GROUP));}
+
+    public ElementsGroupInfo.GroupHierarchyWrapper GetTopLevel(){
+        if(topLevel == null) throw new IllegalStateException("must construct group hierarcy before requesting top level");
+        return topLevel;
+    }
 
     public ElementsGroupInfo.GroupHierarchyWrapper constructHierarchy(){
         if(topLevel == null) {
-            for (ElementsGroupInfo.GroupHierarchyWrapper group : groups.values()) {
-                Integer parentId = group.getGroupInfo().getParentId();
-                if (parentId != null) {
-                    ElementsGroupInfo.GroupHierarchyWrapper parentGroup = groups.get(parentId.intValue());
+            for (ElementsGroupInfo.GroupHierarchyWrapper group : this.values()) {
+                ElementsItemId parentGroupId = group.getGroupInfo().getParentId();
+                if (parentGroupId != null) {
+                    ElementsGroupInfo.GroupHierarchyWrapper parentGroup = get(parentGroupId);
                     group.setParent(parentGroup);
                 }
             }
 
             //find top level group in hierarchy, error out if there is more than one
-            for (ElementsGroupInfo.GroupHierarchyWrapper group : groups.values()) {
+            for (ElementsGroupInfo.GroupHierarchyWrapper group : this.values()) {
                 if (group.getParent() == null) {
                     if (topLevel == null) {
                         topLevel = group;
@@ -53,59 +57,47 @@ public class ElementsGroupCollection implements ElementsObjectStore {
             if (topLevel == null)
                 throw new InvalidStateException("Invalid Group Hierarchy detected");
 
-            if (topLevel.getGroupInfo().getId() != 1)
+            if (topLevel.getGroupInfo().getItemId().getId() != 1)
                 throw new InvalidStateException("Invalid Group Hierarchy detected - organisation group not topLevel");
         }
         return topLevel;
     }
 
-    public void populateUserMembership(ElementsFetch fetcher, Set<ElementsItemId.ObjectId> systemUsers) throws IOException {
+    public void populateUserMembership(ElementsFetch fetcher, Set<ElementsItemId> systemUsers) throws IOException {
         if(topLevel == null) throw new IllegalStateException("must construct group hierarcy before populating membership");
         if(!membershipPopulated) {
             //fetch memberships from the API
-            for (ElementsGroupInfo.GroupHierarchyWrapper group : groups.values()) {
+            for (ElementsGroupInfo.GroupHierarchyWrapper group : this.values()) {
                 if (topLevel == group) continue; //don't process explicit memberships for the org group
                 fetcher.execute(new ElementsFetch.GroupMembershipConfig(group.getGroupInfo().getItemId().getId()),new GroupMembershipStore(group));
             }
 
            //TODO: calculate organisation membership from user cache - requires cache to be present first, which will make other things easier too.
-            Set<ElementsItemId.ObjectId> usersInNonOrgGroups = topLevel.getImplicitUsers();
-            for (ElementsItemId.ObjectId userID : systemUsers) {
-                if (!usersInNonOrgGroups.contains(userID))
-                    topLevel.addExplicitUser(userID);
+            Set<ElementsItemId> usersInNonOrgGroups = topLevel.getImplicitUsers();
+            for (ElementsItemId userID : systemUsers) {
+                if(userID instanceof ElementsItemId.ObjectId) {
+                    ElementsItemId.ObjectId userObjID = (ElementsItemId.ObjectId) userID;
+                    if (!usersInNonOrgGroups.contains(userObjID))
+                        topLevel.addExplicitUser(userObjID);
+                }
             }
             membershipPopulated = true;
         }
     }
 
-    public ElementsGroupInfo.GroupHierarchyWrapper getGroup(int groupId){
-        return groups.get(groupId);
-    }
-
     @Override
-    public ElementsStoredItem storeItem(ElementsItemInfo itemInfo, StorableResourceType resourceType, String data) throws IOException {
-        return storeItem(itemInfo, resourceType, (byte[]) null);
-    }
-
-    @Override
-    public ElementsStoredItem storeItem(ElementsItemInfo itemInfo, StorableResourceType resourceType, byte[] data) throws IOException {
+    protected ElementsGroupInfo.GroupHierarchyWrapper getItemToStore(ElementsItemInfo itemInfo, StorableResourceType resourceType, byte[] data) {
         if(!itemInfo.isGroupInfo()) throw new IllegalStateException("ElementsGroupCollection can only store Group items");
         ElementsGroupInfo groupInfo = itemInfo.asGroupInfo();
-        groups.put(groupInfo.getId(), new ElementsGroupInfo.GroupHierarchyWrapper(groupInfo));
-        return null;
+        return new ElementsGroupInfo.GroupHierarchyWrapper(groupInfo);
     }
 
-    private class GroupMembershipStore implements ElementsObjectStore{
+    private class GroupMembershipStore implements ElementsItemStore {
         private final  ElementsGroupInfo.GroupHierarchyWrapper group;
 
         public GroupMembershipStore(ElementsGroupInfo.GroupHierarchyWrapper group){
             if(group == null) throw new NullArgumentException("group");
             this.group = group;
-        }
-
-        @Override
-        public ElementsStoredItem storeItem(ElementsItemInfo itemInfo, StorableResourceType resourceType, String data) throws IOException {
-            return storeItem(itemInfo, resourceType, (byte[]) null);
         }
 
         @Override

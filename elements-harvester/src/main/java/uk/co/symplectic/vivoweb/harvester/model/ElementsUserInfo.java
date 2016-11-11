@@ -6,8 +6,6 @@
  ******************************************************************************/
 package uk.co.symplectic.vivoweb.harvester.model;
 
-import org.apache.commons.lang.NullArgumentException;
-
 public class ElementsUserInfo extends ElementsObjectInfo {
 
     private UserExtraData additionalInfo;

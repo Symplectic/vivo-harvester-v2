@@ -6,9 +6,6 @@
  ******************************************************************************/
 package uk.co.symplectic.elements.api;
 
-import org.junit.Assert;
-import org.junit.Test;
-
 //TODO: bring tests back to life
 public class ElementsAPIURLValidatorTest {
 /*    @Test

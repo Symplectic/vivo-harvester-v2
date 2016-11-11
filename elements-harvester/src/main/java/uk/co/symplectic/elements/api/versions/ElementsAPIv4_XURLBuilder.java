@@ -37,6 +37,10 @@ public class ElementsAPIv4_XURLBuilder extends ElementsAPIURLBuilder.GenericBase
             }
         }
 
+        if (feedQuery.getApprovedObjectsOnly()) {
+            queryUrl.addParam("ever-approved", "true");
+        }
+
         if (feedQuery.getFullDetails()) {
             queryUrl.addParam("detail", "full");
         }

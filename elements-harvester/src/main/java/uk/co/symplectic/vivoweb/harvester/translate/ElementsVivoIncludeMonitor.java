@@ -7,39 +7,42 @@
 package uk.co.symplectic.vivoweb.harvester.translate;
 
 import org.apache.commons.lang.NullArgumentException;
-import uk.co.symplectic.vivoweb.harvester.model.ElementsGroupInfo;
+import uk.co.symplectic.vivoweb.harvester.fetch.ElementsItemCollection;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
-import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId.ObjectId;
-import uk.co.symplectic.vivoweb.harvester.fetch.ElementsObjectCollection;
-import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectInfo;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsRelationshipInfo;
-import uk.co.symplectic.vivoweb.harvester.store.*;
+import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItem;
+import uk.co.symplectic.vivoweb.harvester.store.IElementsStoredItemObserver;
+import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
 public class ElementsVivoIncludeMonitor extends IElementsStoredItemObserver.ElementsStoredResourceObserverAdapter {
 
-    final private Set<ElementsItemId.ObjectId> includedUsers;
     final private boolean visibleLinksOnly;
+    final private Set<ElementsItemId> includedUsers;
+    final private ElementsItemCollection includedItems = new ElementsItemCollection();
 
-    final private ElementsObjectCollection includedObjects = new ElementsObjectCollection();
-    final private List<ElementsRelationshipInfo> includedRelationships = new ArrayList<ElementsRelationshipInfo>();
-
-    public ElementsVivoIncludeMonitor(Set<ElementsItemId.ObjectId> includedUsers, boolean visibleLinksOnly) {
+    public ElementsVivoIncludeMonitor(Set<ElementsItemId> includedUsers, Set<ElementsItemId> includedGroups, boolean visibleLinksOnly) {
         super(StorableResourceType.RAW_RELATIONSHIP);
         if(includedUsers == null) throw new NullArgumentException("includedUsers");
         this.includedUsers = Collections.unmodifiableSet(includedUsers);
         this.visibleLinksOnly = visibleLinksOnly;
+
+        //add the included users to the included items set.
+        includedItems.addAll(includedUsers);
+
+        if(includedGroups != null){
+            includedItems.addAll(includedGroups);
+        }
     }
 
-    public ElementsObjectCollection getIncludedObjects(){ return includedObjects; }
-    public List<ElementsRelationshipInfo> getIncludedRelationships(){ return includedRelationships; }
+    public ElementsItemCollection getIncludedItems(){ return includedItems; }
 
     @Override
     public void observeStoredRelationship(ElementsRelationshipInfo info, ElementsStoredItem item) {
+        //TODO: make this look at whether translations of the relevant relationships and items exist
         boolean includeRelationship = true;
 
         if (visibleLinksOnly && includeRelationship) {
@@ -55,13 +58,10 @@ public class ElementsVivoIncludeMonitor extends IElementsStoredItemObserver.Elem
         }
 
         if (includeRelationship) {
-            includedRelationships.add(info);
+            includedItems.add(info.getItemId());
             for (ElementsItemId.ObjectId id : info.getObjectIds()) {
-                includedObjects.add(id);
+                includedItems.add(id);
             }
         }
-
-        //add all included users
-        includedObjects.addAll(includedUsers);
     }
 }

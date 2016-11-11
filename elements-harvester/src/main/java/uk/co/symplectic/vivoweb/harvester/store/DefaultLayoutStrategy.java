@@ -7,6 +7,7 @@
 package uk.co.symplectic.vivoweb.harvester.store;
 
 import org.apache.commons.lang.StringUtils;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemInfo;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemType;
 
@@ -35,12 +36,12 @@ public class DefaultLayoutStrategy implements LayoutStrategy {
     }
 
     @Override
-    public File getItemFile(File storeDir, ElementsItemInfo itemInfo, StorableResourceType resourceType) {
+    public File getItemFile(File storeDir, ElementsItemId itemId, StorableResourceType resourceType) {
         if(mainResourceTypes.containsValue(resourceType))
-            return getObjectExtraFile(storeDir, itemInfo.getItemDescriptor(), itemInfo.getItemIdString(), null);
+            return getObjectExtraFile(storeDir, itemId.getItemDescriptor(), Integer.toString(itemId.getId()), null);
         if(resourceTypesWithOwnDirectory.contains(resourceType))
-            return getResourceFile(storeDir, itemInfo.getItemDescriptor(), resourceType.getName(), itemInfo.getItemIdString());
-        return getObjectExtraFile(storeDir, itemInfo.getItemDescriptor(), itemInfo.getItemIdString(), resourceType.getName());
+            return getResourceFile(storeDir, itemId.getItemDescriptor(), resourceType.getName(), Integer.toString(itemId.getId()));
+        return getObjectExtraFile(storeDir, itemId.getItemDescriptor(), Integer.toString(itemId.getId()), resourceType.getName());
     }
 
     @Override

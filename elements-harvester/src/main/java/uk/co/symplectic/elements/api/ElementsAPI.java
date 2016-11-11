@@ -16,13 +16,17 @@ import org.slf4j.LoggerFactory;
 import uk.co.symplectic.xml.StAXUtils;
 import uk.co.symplectic.xml.XMLEventProcessor;
 
-import javax.xml.stream.*;
+import javax.xml.stream.XMLEventReader;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URISyntaxException;
 import java.text.MessageFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * Main Elements API Client class

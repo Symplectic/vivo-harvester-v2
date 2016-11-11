@@ -17,7 +17,7 @@ import uk.co.symplectic.elements.api.queries.ElementsAPIFeedGroupQuery;
 import uk.co.symplectic.elements.api.queries.ElementsAPIFeedObjectQuery;
 import uk.co.symplectic.elements.api.queries.ElementsAPIFeedRelationshipQuery;
 import uk.co.symplectic.vivoweb.harvester.model.*;
-import uk.co.symplectic.vivoweb.harvester.store.ElementsObjectStore;
+import uk.co.symplectic.vivoweb.harvester.store.ElementsItemStore;
 import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
 import uk.co.symplectic.xml.StAXUtils;
 import uk.co.symplectic.xml.XMLEventProcessor;
@@ -88,66 +88,71 @@ public class ElementsFetch {
     }
 
     private static class ObjectStoreFilter<S extends ElementsItemInfo, T extends XMLEventProcessor.ItemExtractingFilter<S>> extends DataStoringFilter<S, T> {
-        protected final ElementsObjectStore objectStore;
-        private final StorableResourceType resourceType;
+        protected final ElementsItemStore objectStore;
         private final boolean actuallyStoreData;
 
-        public ObjectStoreFilter(QName rootElement, T innerFilter, ElementsObjectStore objectStore, StorableResourceType resourceType) {
-            this(rootElement,innerFilter, objectStore, resourceType, true);
+        protected ObjectStoreFilter(QName rootElement, T innerFilter, ElementsItemStore objectStore) {
+            this(rootElement, innerFilter, objectStore, true);
         }
 
-        public ObjectStoreFilter(QName rootElement, T innerFilter, ElementsObjectStore objectStore, StorableResourceType resourceType, boolean actuallyStoreData) {
+        protected ObjectStoreFilter(QName rootElement, T innerFilter, ElementsItemStore objectStore, boolean actuallyStoreData) {
             super(rootElement, innerFilter);
             if (objectStore == null) throw new NullArgumentException("objectStore");
-            if (resourceType == null) throw new NullArgumentException("resourceType");
             this.objectStore = objectStore;
-            this.resourceType = resourceType;
             this.actuallyStoreData = actuallyStoreData;
         }
 
         @Override
         protected void processItem(S item, byte[] data) throws IOException {
             byte[] dataToStore = actuallyStoreData ? data : null;
-            objectStore.storeItem(item, resourceType, dataToStore);
+            objectStore.storeItem(item, getResourceType(item), dataToStore);
+        }
+
+        protected StorableResourceType getResourceType(S item){
+            //wrapper to decide on the stored resource type...
+            if(item == null) throw new NullArgumentException("item");
+            if(item.isObjectInfo()) return StorableResourceType.RAW_OBJECT;
+            if(item.isRelationshipInfo()) return StorableResourceType.RAW_RELATIONSHIP;
+            if(item.isGroupInfo()) return StorableResourceType.RAW_GROUP;
+            throw new IllegalStateException("Unstorable raw item");
         }
     }
 
     private static class FileStoringObjectFilter extends ObjectStoreFilter<ElementsObjectInfo, ElementsObjectInfo.Extractor>{
 
-        public static FileStoringObjectFilter create(ElementsObjectStore objectStore, boolean forDeletedObjects){
+        public static FileStoringObjectFilter create(ElementsItemStore objectStore, boolean forDeletedObjects){
             if(forDeletedObjects)
                 return new FileStoringObjectFilter(objectStore, ElementsObjectInfo.Extractor.feedDeletedEntryLocation, false);
             return new FileStoringObjectFilter(objectStore, ElementsObjectInfo.Extractor.feedEntryLocation, true);
         }
 
-        private FileStoringObjectFilter(ElementsObjectStore objectStore, DocumentLocation loc, boolean storeData){
-            super(new QName(atomNS, "entry"), new ElementsObjectInfo.Extractor(loc, 0), objectStore, StorableResourceType.RAW_OBJECT, storeData);
+        private FileStoringObjectFilter(ElementsItemStore objectStore, DocumentLocation loc, boolean storeData){
+            super(new QName(atomNS, "entry"), new ElementsObjectInfo.Extractor(loc, 0), objectStore, storeData);
         }
     }
 
     private static class FileStoringRelationshipFilter extends ObjectStoreFilter<ElementsRelationshipInfo, ElementsRelationshipInfo.Extractor>{
-        public static FileStoringRelationshipFilter create(ElementsObjectStore objectStore, boolean forDeletedObjects){
+        public static FileStoringRelationshipFilter create(ElementsItemStore objectStore, boolean forDeletedObjects){
             if(forDeletedObjects)
                 return new FileStoringRelationshipFilter(objectStore, ElementsRelationshipInfo.Extractor.feedDeletedEntryLocation, false);
             return new FileStoringRelationshipFilter(objectStore, ElementsRelationshipInfo.Extractor.feedEntryLocation, true);
         }
 
-        protected FileStoringRelationshipFilter(ElementsObjectStore objectStore, DocumentLocation loc, boolean storeData){
-            super(new QName(atomNS, "entry"), new ElementsRelationshipInfo.Extractor(loc, 0), objectStore, StorableResourceType.RAW_RELATIONSHIP, storeData);
+        protected FileStoringRelationshipFilter(ElementsItemStore objectStore, DocumentLocation loc, boolean storeData){
+            super(new QName(atomNS, "entry"), new ElementsRelationshipInfo.Extractor(loc, 0), objectStore, storeData);
         }
     }
 
     private static class FileStoringGroupFilter extends ObjectStoreFilter<ElementsGroupInfo, ElementsGroupInfo.Extractor> {
-        FileStoringGroupFilter(ElementsObjectStore objectStore){
-            super(new QName(atomNS, "entry"), new ElementsGroupInfo.Extractor(ElementsGroupInfo.Extractor.feedEntryLocation, 0),
-                    objectStore, StorableResourceType.RAW_GROUP);
+        FileStoringGroupFilter(ElementsItemStore objectStore){
+            super(new QName(atomNS, "entry"), new ElementsGroupInfo.Extractor(ElementsGroupInfo.Extractor.feedEntryLocation, 0), objectStore);
         }
     }
 
     public abstract static class FetchConfig {
         public abstract Collection<DescribedQuery> getQueries();
         //This should return a "new" object not the same one..
-        public abstract ElementsAPI.APIResponseFilter getExtractor(ElementsObjectStore objectStore);
+        public abstract ElementsAPI.APIResponseFilter getExtractor(ElementsItemStore objectStore);
 
         public static class DescribedQuery{
             private final ElementsFeedQuery query;
@@ -179,7 +184,7 @@ public class ElementsFetch {
 
         protected abstract Collection<DescribedQuery> getQueries(boolean fullDetails, boolean getAllPages, int perPage);
         //This should return a "new" object not the same one..
-        public abstract ElementsAPI.APIResponseFilter getExtractor(ElementsObjectStore objectStore);
+        public abstract ElementsAPI.APIResponseFilter getExtractor(ElementsItemStore objectStore);
     }
 
     public static class ObjectConfig extends PaginatedFeedConfig {
@@ -212,7 +217,7 @@ public class ElementsFetch {
         }
 
         @Override
-        public ElementsAPI.APIResponseFilter getExtractor(ElementsObjectStore objectStore) {
+        public ElementsAPI.APIResponseFilter getExtractor(ElementsItemStore objectStore) {
             return new ElementsAPI.APIResponseFilter(FileStoringObjectFilter.create(objectStore, false), ElementsAPIVersion.allVersions());
         }
     }
@@ -234,7 +239,7 @@ public class ElementsFetch {
         }
 
         @Override
-        public ElementsAPI.APIResponseFilter getExtractor(ElementsObjectStore objectStore) {
+        public ElementsAPI.APIResponseFilter getExtractor(ElementsItemStore objectStore) {
             return new ElementsAPI.APIResponseFilter(FileStoringObjectFilter.create(objectStore, false), ElementsAPIVersion.allVersions());
         }
     }
@@ -254,7 +259,7 @@ public class ElementsFetch {
         }
 
         @Override
-        public ElementsAPI.APIResponseFilter getExtractor(ElementsObjectStore objectStore) {
+        public ElementsAPI.APIResponseFilter getExtractor(ElementsItemStore objectStore) {
             return new ElementsAPI.APIResponseFilter(FileStoringRelationshipFilter.create(objectStore, false), ElementsAPIVersion.allVersions());
         }
     }
@@ -270,7 +275,7 @@ public class ElementsFetch {
         }
 
         @Override
-        public ElementsAPI.APIResponseFilter getExtractor(ElementsObjectStore objectStore) {
+        public ElementsAPI.APIResponseFilter getExtractor(ElementsItemStore objectStore) {
             return new ElementsAPI.APIResponseFilter(new FileStoringGroupFilter(objectStore), ElementsAPIVersion.allVersions());
         }
     }
@@ -291,7 +296,7 @@ public class ElementsFetch {
      * Executes the task
      * @throws IOException error processing search
      */
-    public void execute(FetchConfig config, ElementsObjectStore objectStore)throws IOException {
+    public void execute(FetchConfig config, ElementsItemStore objectStore)throws IOException {
         if(config == null) throw new NullArgumentException("config");
         if (objectStore == null) throw new NullArgumentException("objectStore");
         for (FetchConfig.DescribedQuery describedQuery : config.getQueries()) {

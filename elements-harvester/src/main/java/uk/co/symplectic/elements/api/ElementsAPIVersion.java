@@ -8,10 +8,6 @@ import uk.co.symplectic.elements.api.versions.ElementsAPIv4_XURLBuilder;
 import uk.co.symplectic.elements.api.versions.GeneralPaginationExtractingFilterFactory;
 import uk.co.symplectic.xml.XMLEventProcessor;
 
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.events.EndElement;
-import javax.xml.stream.events.StartElement;
-import javax.xml.stream.events.XMLEvent;
 import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.HashMap;

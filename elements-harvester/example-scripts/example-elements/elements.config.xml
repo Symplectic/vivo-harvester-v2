@@ -17,13 +17,17 @@
     <!--<Param name="apiPassword">apipassword</Param>-->
 
 
-    <Param name="apiEndpoint">https://10.20.30.86:9009/elements-api/v4.9</Param>
+    <!-- use ip over dns as it keeps things in our local network -->
+    <!--<Param name="apiEndpoint">https://10.20.30.86:9009/elements-api/v4.9</Param>-->
     <!--<Param name="apiEndpoint">https://elcam.symplectic.co.uk:9009/elements-api/v4.9</Param>-->
+    <!--<Param name="apiEndpoint">https://elcam.symplectic.co.uk:9009/elements-api/v4.9</Param>-->
+
+    <Param name="apiEndpoint">http://localhost:9001/non-secure-api</Param>
     <Param name="apiVersion">4.9</Param>
 
     <!-- Username and Password are required for secure (https:) API endpoints -->
-    <Param name="apiUsername">elcam-api</Param>
-    <Param name="apiPassword">@U8nTBqps$_NbSRE</Param>
+    <!--<Param name="apiUsername">elcam-api</Param>-->
+    <!--<Param name="apiPassword">@U8nTBqps$_NbSRE</Param>-->
 
     <!--
         VIVO configuration for individual URIs and avatar location
@@ -57,6 +61,6 @@
 
     <Param name="ignoreSSLErrors">true</Param>
 
-    <Param name="zipFiles">true</Param>
+    <Param name="zipFiles">false</Param>
 
 </Task>

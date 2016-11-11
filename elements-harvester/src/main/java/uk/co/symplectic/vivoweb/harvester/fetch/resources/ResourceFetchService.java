@@ -10,7 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.co.symplectic.elements.api.ElementsAPI;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsUserInfo;
-import uk.co.symplectic.vivoweb.harvester.store.ElementsObjectFileStore;
+import uk.co.symplectic.vivoweb.harvester.store.ElementsItemFileStore;
 
 import java.io.File;
 import java.net.MalformedURLException;
@@ -23,7 +23,7 @@ public final class ResourceFetchService {
 
     }
 
-    public void fetchUserPhoto(ElementsAPI api, ElementsUserInfo userInfo, ElementsObjectFileStore objectStore) throws MalformedURLException {
+    public void fetchUserPhoto(ElementsAPI api, ElementsUserInfo userInfo, ElementsItemFileStore objectStore) throws MalformedURLException {
         ResourceFetchServiceImpl.fetchUserPhoto(api, userInfo, objectStore);
     }
 
@@ -31,7 +31,7 @@ public final class ResourceFetchService {
         ResourceFetchServiceImpl.fetchExternal(url, outputFile);
     }
 
-    public static void shutdown() {
-        ResourceFetchServiceImpl.shutdown();
+    public static void awaitShutdown() {
+        ResourceFetchServiceImpl.awaitShutdown();
     }
 }

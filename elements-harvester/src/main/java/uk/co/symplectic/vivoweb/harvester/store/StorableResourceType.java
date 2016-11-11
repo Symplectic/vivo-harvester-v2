@@ -2,9 +2,10 @@ package uk.co.symplectic.vivoweb.harvester.store;
 
 import org.apache.commons.lang.NullArgumentException;
 import org.apache.commons.lang.StringUtils;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemInfo;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemType;
-import uk.co.symplectic.vivoweb.harvester.model.ElementsUserInfo;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
 
 import java.util.*;
 
@@ -28,10 +29,8 @@ public class StorableResourceType {
         return availableResources.get(type);
     }
 
-    //todo : undo this hack to not "zip" raw object data once have unstitched reliance of XSLT layer on being able to access raw object files directly - DONE? TEST!
-	final public static StorableResourceType RAW_OBJECT = new StorableResourceType(ElementsItemType.OBJECT, "raw", "xml", true);
-	//final public static StorableResourceType RAW_OBJECT = new StorableResourceType(ElementsItemType.OBJECT, "raw", "xml", false);
-    final public static StorableResourceType RAW_USER_PHOTO = new UserRelatedResourceType("photo", null, false);
+    final public static StorableResourceType RAW_OBJECT = new StorableResourceType(ElementsItemType.OBJECT, "raw", "xml", true);
+	final public static StorableResourceType RAW_USER_PHOTO = new UserRelatedResourceType("photo", null, false);
     final public static StorableResourceType RAW_RELATIONSHIP = new StorableResourceType(ElementsItemType.RELATIONSHIP, "raw", "xml", true);
     final public static StorableResourceType RAW_GROUP = new StorableResourceType(ElementsItemType.GROUP, "raw", "xml", true);
 
@@ -72,8 +71,8 @@ public class StorableResourceType {
         StorableResourceType.innerGetResourcesForType(this.keyItemType).add(this);
     }
 
-    public boolean isAppropriateForItem(ElementsItemInfo info){
-        return keyItemType == info.getItemType();
+    public boolean isAppropriateForItem(ElementsItemId id){
+        return keyItemType == id.getItemType();
     }
 
     public boolean shouldZip() { return shouldZip; }
@@ -84,8 +83,10 @@ public class StorableResourceType {
         }
 
         @Override
-        public boolean isAppropriateForItem(ElementsItemInfo info) {
-            return super.isAppropriateForItem(info) && info.asObjectInfo() instanceof ElementsUserInfo;
+        public boolean isAppropriateForItem(ElementsItemId id) {
+            //return super.isAppropriateForItem(id) && id instanceof ElementsItemId.ObjectId && ((ElementsItemId.ObjectId) id).getCategory() == ElementsObjectCategory.USER;
+            //must be an object id if is appropriate for object item type...
+            return super.isAppropriateForItem(id) && ((ElementsItemId.ObjectId) id).getCategory() == ElementsObjectCategory.USER;
         }
     }
 

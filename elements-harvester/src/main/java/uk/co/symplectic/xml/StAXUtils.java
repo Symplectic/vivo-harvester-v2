@@ -8,9 +8,9 @@
  */
 package uk.co.symplectic.xml;
 
-import javax.xml.stream.*;
-import java.util.ArrayList;
-import java.util.List;
+import javax.xml.stream.XMLEventFactory;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLOutputFactory;
 
 public final class StAXUtils {
     private static XMLEventFactory xmlEventFactory = null;

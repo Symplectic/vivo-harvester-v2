@@ -10,19 +10,15 @@
 package uk.co.symplectic.vivoweb.harvester.translate;
 
 import org.apache.commons.lang.NullArgumentException;
-import org.apache.commons.lang.StringUtils;
-import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import uk.co.symplectic.translate.TemplatesHolder;
-import uk.co.symplectic.translate.TranslationService;
-import uk.co.symplectic.vivoweb.harvester.config.Configuration;
 import uk.co.symplectic.vivoweb.harvester.fetch.ElementsGroupCollection;
-import uk.co.symplectic.vivoweb.harvester.fetch.ElementsObjectKeyedCollection;
-import uk.co.symplectic.vivoweb.harvester.model.*;
+import uk.co.symplectic.vivoweb.harvester.fetch.ElementsItemKeyedCollection;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsGroupInfo;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsUserInfo;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsRdfStore;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItem;
-import uk.co.symplectic.vivoweb.harvester.store.IElementsStoredItemObserver;
 import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -34,43 +30,23 @@ import java.util.Map;
 /**
  * Created by ajpc2_000 on 05/09/2016.
  */
-public class ElementsGroupTranslateObserver extends IElementsStoredItemObserver.ElementsStoredResourceObserverAdapter {
-    //TODO: fix object as static thing here
-    private final TranslationService translationService = new TranslationService();
-    private TemplatesHolder templatesHolder;
+public class ElementsGroupTranslateObserver extends ElementsTranslateObserver {
 
-    private final ElementsRdfStore rdfStore;
     private final ElementsGroupCollection groupCache;
-    private final ElementsObjectKeyedCollection.ObjectInfo includedUsers;
+    private final ElementsItemKeyedCollection.ItemInfo includedUsers;
 
-    public ElementsGroupTranslateObserver(ElementsRdfStore rdfStore, String xslFilename, ElementsGroupCollection groupCache, ElementsObjectKeyedCollection.ObjectInfo includedUsers) {
-        super(StorableResourceType.RAW_GROUP);
-        if (rdfStore == null) throw new NullArgumentException("rdfStore");
-        if (xslFilename == null) throw new NullArgumentException("xslFilename");
+    public ElementsGroupTranslateObserver(ElementsRdfStore rdfStore, String xslFilename, ElementsGroupCollection groupCache, ElementsItemKeyedCollection.ItemInfo includedUsers){
+        super(rdfStore, xslFilename, StorableResourceType.RAW_GROUP);
         if (groupCache == null) throw new NullArgumentException("groupCache");
         if (includedUsers == null) throw new NullArgumentException("includedUsers");
-
-        this.rdfStore = rdfStore;
         this.groupCache = groupCache;
         this.includedUsers = includedUsers;
-
-        //TODO : is this sensible - ILLEGAL ARG instead?
-        if (!StringUtils.isEmpty(xslFilename)) {
-            templatesHolder = new TemplatesHolder(xslFilename);
-            translationService.getConfig().setIgnoreFileNotFound(true);
-            //TODO : migrate these Configuration access bits somehow?
-            translationService.getConfig().addXslParameter("baseURI", Configuration.getBaseURI());
-            //translationService.getConfig().addXslParameter("recordDir", Configuration.getRawOutputDir());
-            translationService.getConfig().setUseFullUTF8(Configuration.getUseFullUTF8());
-        }
     }
-
     @Override
     protected void observeStoredGroup(ElementsGroupInfo info, ElementsStoredItem item) {
-        //todo: make this somehow pass along the group membership as a param to the translation
         Map<String, Object> extraXSLTParameters = new HashMap<String, Object>();
         extraXSLTParameters.put("groupMembers", getGroupMembershipDescription(info));
-        translationService.translate(item, rdfStore, templatesHolder, extraXSLTParameters);
+        translate(item, extraXSLTParameters);
     }
 
     private Document getGroupMembershipDescription(ElementsGroupInfo info){
@@ -80,8 +56,8 @@ public class ElementsGroupTranslateObserver extends IElementsStoredItemObserver.
             Document doc = docBuilder.newDocument();
             Element rootElement = doc.createElement("groupMembers");
             doc.appendChild(rootElement);
-            ElementsGroupInfo.GroupHierarchyWrapper groupDescription = groupCache.getGroup(info.getId());
-            for(ElementsItemId.ObjectId user : groupDescription.getExplicitUsers()){
+            ElementsGroupInfo.GroupHierarchyWrapper groupDescription = groupCache.get(info.getItemId());
+            for(ElementsItemId user : groupDescription.getExplicitUsers()){
                 //if the group member is in the set of included users we need to inform the translation stage about that membership.
                 if(includedUsers.keySet().contains(user)) {
                     //create an Element to reference the user we are processing.

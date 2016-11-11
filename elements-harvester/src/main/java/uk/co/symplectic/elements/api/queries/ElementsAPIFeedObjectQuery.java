@@ -7,7 +7,6 @@
 package uk.co.symplectic.elements.api.queries;
 
 import org.apache.commons.lang.NullArgumentException;
-import org.apache.commons.lang.StringUtils;
 import uk.co.symplectic.elements.api.ElementsAPIURLBuilder;
 import uk.co.symplectic.elements.api.ElementsFeedQuery;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
@@ -23,6 +22,8 @@ public class ElementsAPIFeedObjectQuery extends ElementsFeedQuery {
     private final List<Integer> groups = new ArrayList<Integer>();
     //handle as subclasses?
     private String modifiedSince = null;
+    //TODO: make this flag properly useable instead of hard coded to true..
+    private boolean approvedObjectsOnly = true;
     private boolean explicitMembersOnly = false;
     private boolean queryDeletedObjects = false;
 
@@ -50,6 +51,10 @@ public class ElementsAPIFeedObjectQuery extends ElementsFeedQuery {
 
     public boolean getExplicitMembersOnly() {
         return explicitMembersOnly;
+    }
+
+    public boolean getApprovedObjectsOnly() {
+        return approvedObjectsOnly;
     }
 
     public String getModifiedSince() { return modifiedSince; }

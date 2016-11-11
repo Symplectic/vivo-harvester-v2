@@ -9,16 +9,16 @@ package uk.co.symplectic.vivoweb.harvester.store;
 import uk.co.symplectic.vivoweb.harvester.config.Configuration;
 
 public class ElementsStoreFactory {
-    private static ElementsObjectFileStore objectStore = null;
+    private static ElementsItemFileStore objectStore = null;
     private static ElementsRdfStore rdfStore = null;
 
-    public static ElementsObjectFileStore getObjectStore() {
+    public static ElementsItemFileStore getObjectStore() {
         if (objectStore != null) {
             return objectStore;
         } else {
             synchronized (ElementsStoreFactory.class) {
                 if (objectStore == null)
-                    objectStore = new ElementsObjectFileStore.ElementsRawDataStore(Configuration.getRawOutputDir(), false, Configuration.getZipFiles());
+                    objectStore = new ElementsItemFileStore.ElementsRawDataStore(Configuration.getRawOutputDir(), false, Configuration.getZipFiles());
                 return objectStore;
             }
         }
