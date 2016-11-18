@@ -183,6 +183,7 @@ public class ElementsFetchAndTranslate {
                 FileUtils.deleteDirectory(new File(interimTdbDirectory));
                 log.debug(MessageFormat.format("ElementsFetchAndTranslate: Transferring data to triplestore \"{0}\"", interimTdbDirectory));
                 JenaConnect jc = new TDBJenaConnect(interimTdbDirectory);
+                //JenaConnect jc = new TDBJenaConnect(interimTdbDirectory, "http://vitro.mannlib.cornell.edu/default/vitro-kb-2");
                 TDBLoadUtility.load(jc, filesToProcess.iterator());
                 log.debug("ElementsFetchAndTranslate: Finished transferring data to triplestore");
 

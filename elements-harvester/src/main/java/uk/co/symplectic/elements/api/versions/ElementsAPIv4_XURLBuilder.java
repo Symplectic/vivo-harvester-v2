@@ -10,8 +10,10 @@ import org.apache.commons.lang.StringUtils;
 import uk.co.symplectic.elements.api.ElementsAPIURLBuilder;
 import uk.co.symplectic.elements.api.queries.ElementsAPIFeedGroupQuery;
 import uk.co.symplectic.elements.api.queries.ElementsAPIFeedObjectQuery;
+import uk.co.symplectic.elements.api.queries.ElementsAPIFeedObjectRelationshipsQuery;
 import uk.co.symplectic.elements.api.queries.ElementsAPIFeedRelationshipQuery;
 import uk.co.symplectic.utils.URLBuilder;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 
 public class ElementsAPIv4_XURLBuilder extends ElementsAPIURLBuilder.GenericBase {
     @Override
@@ -46,9 +48,7 @@ public class ElementsAPIv4_XURLBuilder extends ElementsAPIURLBuilder.GenericBase
         }
 
         if (feedQuery.getPerPage() > 0) {
-            int maxPerPageAllowed = feedQuery.getFullDetails() ? 25 : 1000;
-            int requestedPerPage = Math.min(feedQuery.getPerPage(), maxPerPageAllowed);
-            queryUrl.addParam("per-page", Integer.toString(requestedPerPage));  //v4.6 introduced a new maximum per page of 25 for full detail
+            queryUrl.addParam("per-page", calculatePerPage(feedQuery.getPerPage(), feedQuery.getFullDetails()));
         }
 
         if (!StringUtils.isEmpty(feedQuery.getModifiedSince())) {
@@ -75,7 +75,7 @@ public class ElementsAPIv4_XURLBuilder extends ElementsAPIURLBuilder.GenericBase
         }
 
         if (feedQuery.getPerPage() > 0) {
-            queryUrl.addParam("per-page", Integer.toString(feedQuery.getPerPage(), feedQuery.getFullDetails() ? 25 : 100));  //v4.6 introduced a new maximum per page of 25 for full detail
+            queryUrl.addParam("per-page", calculatePerPage(feedQuery.getPerPage(), feedQuery.getFullDetails()));
         }
 
         //hack in a page for testing
@@ -83,6 +83,31 @@ public class ElementsAPIv4_XURLBuilder extends ElementsAPIURLBuilder.GenericBase
 
         return queryUrl.toString();
     }
+
+    @Override
+    public String buildObjectRelationshipsFeedQuery(String endpointUrl, ElementsAPIFeedObjectRelationshipsQuery feedQuery) {
+        URLBuilder queryUrl = new URLBuilder(endpointUrl);
+
+        ElementsItemId.ObjectId objectId = feedQuery.getObjectId();
+        queryUrl.appendPath(objectId.getCategory().getPlural());
+        queryUrl.appendPath(Integer.toString(objectId.getId()));
+        queryUrl.appendPath("relationships");
+
+        if (feedQuery.getFullDetails()) {
+            queryUrl.addParam("detail", "full");
+        }
+
+        if (feedQuery.getPerPage() > 0) {
+            queryUrl.addParam("per-page", calculatePerPage(feedQuery.getPerPage(), feedQuery.getFullDetails()));
+        }
+        return queryUrl.toString();
+    }
+
+    private String calculatePerPage(int requestedPerPage, boolean fullDetails){
+        int maxPerPageAllowed = fullDetails ? 25 : 1000; //v4.6 introduced a new maximum per page of 25 for full detail
+        return Integer.toString(Math.min(requestedPerPage, maxPerPageAllowed));
+    }
+
 
     public String buildGroupQuery(String endpointUrl, ElementsAPIFeedGroupQuery feedQuery){
         URLBuilder queryUrl = new URLBuilder(endpointUrl);

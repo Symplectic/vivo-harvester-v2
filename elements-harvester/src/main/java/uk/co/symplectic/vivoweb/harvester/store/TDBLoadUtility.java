@@ -22,9 +22,11 @@ import org.openjena.riot.Lang;
 import org.openjena.riot.RiotException;
 import org.openjena.riot.RiotReader;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.vivoweb.harvester.util.repo.JenaConnect;
 
 import java.io.IOException;
+import java.text.MessageFormat;
 import java.util.Date;
 import java.util.Iterator;
 
@@ -32,6 +34,8 @@ import java.util.Iterator;
  * Created by ajpc2_000 on 10/11/2016.
  */
 public class TDBLoadUtility {
+
+    private static final Logger log = LoggerFactory.getLogger(TDBLoadUtility.class);
 
     public static void load(JenaConnect jc, Iterator<StoredData.InFile> iterator){
         //GraphTDB graph = (GraphTDB) new ModTDBDataset().getDataset().getDefaultModel().getGraph();
@@ -44,21 +48,17 @@ public class TDBLoadUtility {
         while(iterator.hasNext()){
             StoredData.InFile current = iterator.next();
             if(processCount % 1000 == 0) {
-                System.out.println(new Date().toString() + " " + processCount + " records processed : current record = " + current.getFile().getAbsolutePath());
+                log.info(MessageFormat.format("{0} records processed : current record = {1}", processCount, current.getFile().getAbsolutePath()));
             }
-
-            //TODO: update logback to log any messages from here into the log file properly...
             try {
                 RiotReader.parseTriples(current.getInputStream(), Lang.RDFXML, (String) null, dest);
             }
             catch(IOException e) {
-                //TODO: make this log properly
-                System.out.println("Item : " + current.getFile().getAbsolutePath() + " is corrupt.");
+                log.warn(MessageFormat.format("Item : {0} is corrupt.", current.getFile().getAbsolutePath()));
                 e.printStackTrace();
             }
             catch(RiotException e) {
-                //TODO: make this log properly
-                System.out.println("Item : " + current.getFile().getAbsolutePath() + " is corrupt.");
+                log.warn(MessageFormat.format("Item : {0} is corrupt.", current.getFile().getAbsolutePath()));
                 e.printStackTrace();
             }
             processCount++;

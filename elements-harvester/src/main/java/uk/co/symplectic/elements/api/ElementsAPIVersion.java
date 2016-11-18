@@ -2,8 +2,6 @@ package uk.co.symplectic.elements.api;
 
 import org.apache.commons.lang.NullArgumentException;
 import org.apache.commons.lang.StringUtils;
-import uk.co.symplectic.elements.api.versions.ElementsAPIv3_7URLBuilder;
-import uk.co.symplectic.elements.api.versions.ElementsAPIv3_7_16URLBuilder;
 import uk.co.symplectic.elements.api.versions.ElementsAPIv4_XURLBuilder;
 import uk.co.symplectic.elements.api.versions.GeneralPaginationExtractingFilterFactory;
 import uk.co.symplectic.xml.XMLEventProcessor;
@@ -51,8 +49,6 @@ public class ElementsAPIVersion {
     /**
      * Instantiation of all known ElementsAPIVersion objects - one per version
      */
-    public static final ElementsAPIVersion VERSION_3_7    = new ElementsAPIVersion("3.7", new ElementsAPIv3_7URLBuilder(), allVersionsPaginationFilterFactory);
-    public static final ElementsAPIVersion VERSION_3_7_16 = new ElementsAPIVersion("3.7.16", new ElementsAPIv3_7_16URLBuilder(), allVersionsPaginationFilterFactory);
     public static final ElementsAPIVersion VERSION_4_6    = new ElementsAPIVersion("4.6", new ElementsAPIv4_XURLBuilder(), allVersionsPaginationFilterFactory);
     public static final ElementsAPIVersion VERSION_4_9    = new ElementsAPIVersion("4.9", new ElementsAPIv4_XURLBuilder(), allVersionsPaginationFilterFactory);
 

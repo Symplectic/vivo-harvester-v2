@@ -384,9 +384,9 @@ public class Configuration {
 
             }
         } catch (NumberFormatException nfe) {
-            if (defValue != null) return defValue;
             configErrors.add(MessageFormat.format("Invalid value provided for argument {0} : {1} (must be an integer)", key, argList.get(key)));
         }
+        if(defValue != null) return defValue.intValue();
         return -1;
     }
 

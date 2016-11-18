@@ -20,7 +20,7 @@ import java.net.URISyntaxException;
 import java.text.MessageFormat;
 import java.util.Date;
 
-
+//TODO: migrate to a newer version of the API client that will support server name indication.
 public class ElementsAPIHttpClient {
     final private String username;
     final private String password;

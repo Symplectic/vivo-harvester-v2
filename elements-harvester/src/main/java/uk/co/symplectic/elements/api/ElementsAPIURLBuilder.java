@@ -8,12 +8,15 @@ package uk.co.symplectic.elements.api;
 
 import uk.co.symplectic.elements.api.queries.ElementsAPIFeedGroupQuery;
 import uk.co.symplectic.elements.api.queries.ElementsAPIFeedObjectQuery;
+import uk.co.symplectic.elements.api.queries.ElementsAPIFeedObjectRelationshipsQuery;
 import uk.co.symplectic.elements.api.queries.ElementsAPIFeedRelationshipQuery;
 
 import java.util.Collection;
 
 public interface ElementsAPIURLBuilder {
     public String buildObjectFeedQuery(String endpointUrl, ElementsAPIFeedObjectQuery feedQuery);
+
+    public String buildObjectRelationshipsFeedQuery(String endpointUrl, ElementsAPIFeedObjectRelationshipsQuery feedQuery);
 
     public String buildRelationshipFeedQuery(String endpointUrl, ElementsAPIFeedRelationshipQuery feedQuery);
 
