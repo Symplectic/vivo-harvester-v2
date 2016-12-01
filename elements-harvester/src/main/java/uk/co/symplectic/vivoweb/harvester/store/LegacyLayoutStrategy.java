@@ -43,48 +43,56 @@ public class LegacyLayoutStrategy implements LayoutStrategy {
 
     public Collection<File> getAllExistingFilesOfType(File storeDir, StorableResourceType resourceType) {
         List<File> filesOfType = new ArrayList<File>();
-        for (String categoryDescriptor : ElementsItemInfo.validItemDescriptorsForType(resourceType.getKeyItemType())) {
-            if (resourceTypesWithOwnDirectory.contains(resourceType)) {
-                File dir = storeDir;
-                if (dir.exists()) {
-                    final String filePrefix = categoryDescriptor + "-" + resourceType.getName();
-                    filesOfType.addAll(Arrays.asList(dir.listFiles(
-                            new FilenameFilter() {
-                                @Override
-                                public boolean accept(File dir, String name) {
-                                    return name.startsWith(filePrefix);
-                                }
+        for(ElementsItemType.SubType subTypes : ElementsItemType.knownSubTypes(resourceType.getKeyItemType())){
+            filesOfType.addAll(getAllExistingFilesOfType(storeDir, resourceType, subTypes));
+        }
+        return filesOfType;
+    }
+
+    public Collection<File> getAllExistingFilesOfType(File storeDir, StorableResourceType resourceType, ElementsItemType.SubType subType) {
+        if(subType.getMainType() != resourceType.getKeyItemType()) throw new IllegalStateException("requested subtype must match resource item type");
+        List<File> filesOfType = new ArrayList<File>();
+        String subTypeDescriptor = subType.getSingular();
+        if (resourceTypesWithOwnDirectory.contains(resourceType)) {
+            File dir = storeDir;
+            if (dir.exists()) {
+                final String filePrefix = subTypeDescriptor + "-" + resourceType.getName();
+                filesOfType.addAll(Arrays.asList(dir.listFiles(
+                        new FilenameFilter() {
+                            @Override
+                            public boolean accept(File dir, String name) {
+                                return name.startsWith(filePrefix);
                             }
-                    )));
-                }
+                        }
+                )));
             }
-            if (mainResourceTypes.containsValue(resourceType)) {
-                File dir = storeDir;
-                if (dir.exists()) {
-                    final String filePrefix = categoryDescriptor;
-                    filesOfType.addAll(Arrays.asList(dir.listFiles(
-                            new FilenameFilter() {
-                                @Override
-                                public boolean accept(File dir, String name) {
-                                    return name.startsWith(filePrefix) && !name.contains("-");
-                                }
+        }
+        if (mainResourceTypes.containsValue(resourceType)) {
+            File dir = storeDir;
+            if (dir.exists()) {
+                final String filePrefix = subTypeDescriptor;
+                filesOfType.addAll(Arrays.asList(dir.listFiles(
+                        new FilenameFilter() {
+                            @Override
+                            public boolean accept(File dir, String name) {
+                                return name.startsWith(filePrefix) && !name.contains("-");
                             }
-                    )));
-                }
-            } else {
-                File dir = storeDir;
-                if (dir.exists()) {
-                    final String filePrefix = categoryDescriptor;
-                    final String fileSuffix = "-" + resourceType.getName();
-                    filesOfType.addAll(Arrays.asList(dir.listFiles(
-                            new FilenameFilter() {
-                                @Override
-                                public boolean accept(File dir, String name) {
-                                    return name.startsWith(filePrefix) && name.endsWith(fileSuffix);
-                                }
+                        }
+                )));
+            }
+        } else {
+            File dir = storeDir;
+            if (dir.exists()) {
+                final String filePrefix = subTypeDescriptor;
+                final String fileSuffix = "-" + resourceType.getName();
+                filesOfType.addAll(Arrays.asList(dir.listFiles(
+                        new FilenameFilter() {
+                            @Override
+                            public boolean accept(File dir, String name) {
+                                return name.startsWith(filePrefix) && name.endsWith(fileSuffix);
                             }
-                    )));
-                }
+                        }
+                )));
             }
         }
         return filesOfType;

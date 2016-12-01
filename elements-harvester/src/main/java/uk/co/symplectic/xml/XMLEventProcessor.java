@@ -216,8 +216,8 @@ public class XMLEventProcessor {
 
         //TODO: move these to an API utility class?
         //Useful API Namespaces -
-        protected static final String apiNS = "http://www.symplectic.co.uk/publications/api";
-        protected static final String atomNS = "http://www.w3.org/2005/Atom";
+        public static final String apiNS = "http://www.symplectic.co.uk/publications/api";
+        public static final String atomNS = "http://www.w3.org/2005/Atom";
 
         //Constructor allowing easy specification of the document location this filter is active at.
         protected EventFilter(DocumentLocation location) {
@@ -238,6 +238,21 @@ public class XMLEventProcessor {
         protected abstract void processEvent(XMLEvent event, ReaderProxy readerProxy) throws XMLStreamException;
     }
 
+    public static class ItemCountingFilter extends EventFilter{
+        int itemCount = 0;
+
+        public int getItemCount(){ return itemCount; }
+
+        public ItemCountingFilter(DocumentLocation location) { super(location); }
+
+        @Override
+        protected void itemStart(StartElement initialElement, ReaderProxy readerProxy) throws XMLStreamException {
+            itemCount++;
+        }
+
+        @Override
+        protected void processEvent(XMLEvent event, ReaderProxy readerProxy) throws XMLStreamException {};
+    }
 
     public abstract static class ItemExtractingFilter<T> extends EventFilter{
         final private int maximumAmountExpected;

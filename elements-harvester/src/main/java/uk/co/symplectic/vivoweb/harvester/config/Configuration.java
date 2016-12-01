@@ -33,6 +33,7 @@ import java.util.List;
 public class Configuration {
     private static final String ARG_RAW_OUTPUT_DIRECTORY = "rawOutput";
     private static final String ARG_RDF_OUTPUT_DIRECTORY = "rdfOutput";
+    private static final String ARG_TDB_OUTPUT_DIRECTORY = "tdbOutput";
 
     private static final String ARG_XSL_TEMPLATE = "xslTemplate";
 
@@ -74,8 +75,9 @@ public class Configuration {
     private static final String DEFAULT_IMAGE_DIR = "/Library/Tomcat/webapps/vivo";
     private static final String DEFAULT_BASE_URI = "http://localhost:8080/vivo/individual/";
 
-    private static final String DEFAULT_RAW_OUTPUT_DIR = "data/raw-records/";
-    private static final String DEFAULT_RDF_OUTPUT_DIR = "data/translated-records/";
+    private static final String DEFAULT_RAW_OUTPUT_DIR = "../data/raw-records/";
+    private static final String DEFAULT_RDF_OUTPUT_DIR = "../data/translated-records/";
+    private static final String DEFAULT_TDB_OUTPUT_DIR = "../previous-harvest/";
 
     private static ArgParser parser = null;
     private static ArgList argList = null;
@@ -115,6 +117,8 @@ public class Configuration {
         private boolean ignoreSSLErrors = false;
 
         private boolean zipFiles = false;
+
+        private String tdbOutputDir = DEFAULT_TDB_OUTPUT_DIR;
 
     }
 
@@ -214,6 +218,8 @@ public class Configuration {
         return values.zipFiles;
     }
 
+    public static String getTdbOutputDir() { return values.tdbOutputDir; }
+
 
     //Has the system being successfully configured to move forwards?
     public static boolean isConfigured() {
@@ -247,6 +253,7 @@ public class Configuration {
         parser = new ArgParser(appName);
         parser.addArgument(new ArgDef().setShortOption('r').setLongOpt(ARG_RAW_OUTPUT_DIRECTORY).setDescription("Raw RecordHandler config file path").withParameter(true, "SYSTEM PATH"));
         parser.addArgument(new ArgDef().setShortOption('t').setLongOpt(ARG_RDF_OUTPUT_DIRECTORY).setDescription("Translated RecordHandler config file path").withParameter(true, "SYSTEM PATH"));
+        parser.addArgument(new ArgDef().setShortOption('o').setLongOpt(ARG_TDB_OUTPUT_DIRECTORY).setDescription("Interim triple store directory location").withParameter(true, "SYSTEM PATH"));
 
         parser.addArgument(new ArgDef().setShortOption('e').setLongOpt(ARG_ELEMENTS_API_ENDPOINT).setDescription("Elements API endpoint url").withParameter(true, "URL STRING"));
         parser.addArgument(new ArgDef().setShortOption('v').setLongOpt(ARG_ELEMENTS_API_VERSION).setDescription("Elements API version").withParameter(true, "API VERSION STRING"));
@@ -321,6 +328,8 @@ public class Configuration {
 
             values.rawOutputDir = getFileDirFromConfig(ARG_RAW_OUTPUT_DIRECTORY, DEFAULT_RAW_OUTPUT_DIR);
             values.rdfOutputDir = getFileDirFromConfig(ARG_RDF_OUTPUT_DIRECTORY, DEFAULT_RDF_OUTPUT_DIR);
+
+            values.tdbOutputDir = getString(ARG_TDB_OUTPUT_DIRECTORY, DEFAULT_TDB_OUTPUT_DIR, false);
 
             values.ignoreSSLErrors = getBoolean(ARG_IGNORE_SSL_ERRORS, false);
             values.zipFiles = getBoolean(ARG_ZIP_FILES, false);
@@ -422,25 +431,29 @@ public class Configuration {
             configErrors.add(MessageFormat.format("Invalid value provided for argument {0} : {1} (must point to a parseable RecordHandler config file)", key, argList.get(key)));
             return null;
         }
-
         if (!StringUtils.isEmpty(fileDir)) {
-            if (fileDir.contains("/")) {
-                if (!fileDir.endsWith("/")) {
-                    fileDir = fileDir + "/";
-                }
-            } else if (fileDir.contains("\\")) {
-                if (!fileDir.endsWith("\\")) {
-                    fileDir = fileDir + "\\";
-                }
-            } else {
-                if (!fileDir.endsWith(File.separator)) {
-                    fileDir = fileDir + File.separator;
-                }
-            }
+            fileDir = normaliseDirectoryFormat(fileDir);
         } else {
             configErrors.add(MessageFormat.format("Invalid value provided for argument {0} : {1} (must be able to extract a fileDir from the config file)", key, argList.get(key)));
         }
         return fileDir;
+    }
+
+    private static String normaliseDirectoryFormat(String directoryName){
+        if (directoryName.contains("/")) {
+            if (!directoryName.endsWith("/")) {
+                return directoryName + "/";
+            }
+        } else if (directoryName.contains("\\")) {
+            if (!directoryName.endsWith("\\")) {
+                return directoryName + "\\";
+            }
+        } else {
+            if (!directoryName.endsWith(File.separator)) {
+                return directoryName + File.separator;
+            }
+        }
+        return directoryName;
     }
 
     private static String getRawFileDirFromConfig(String key, String defValue) throws SAXException, ParserConfigurationException, IOException {

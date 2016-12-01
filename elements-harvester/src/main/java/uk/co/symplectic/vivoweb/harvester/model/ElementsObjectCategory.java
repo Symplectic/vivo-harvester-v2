@@ -13,9 +13,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ElementsObjectCategory {
-    private static final Map<String, ElementsObjectCategory> singularMap = new HashMap<String, ElementsObjectCategory>();
-    private static final Map<String, ElementsObjectCategory> pluralMap   = new HashMap<String, ElementsObjectCategory>();
+public class ElementsObjectCategory extends ElementsItemType.SubType {
 
     public static final ElementsObjectCategory ACTIVITY          = new ElementsObjectCategory("activity", "activities");
     public static final ElementsObjectCategory EQUIPMENT         = new ElementsObjectCategory("equipment", "equipment");
@@ -27,54 +25,16 @@ public class ElementsObjectCategory {
     public static final ElementsObjectCategory TEACHING_ACTIVITY = new ElementsObjectCategory("teaching-activity", "teaching-activities");
     public static final ElementsObjectCategory IMPACT = new ElementsObjectCategory("impact", "impact-records");
 
-    public static final Collection<ElementsObjectCategory> knownCategories(){
-        return Collections.unmodifiableCollection(singularMap.values());
-    };
-
-    private final String singular;
-    private final String plural;
-
-
-    public String getSingular() {
-        return singular;
-    }
-
-    public String getPlural() {
-        return plural;
-    }
+//    public static final Collection<ElementsObjectCategory> knownCategories(){
+//        return Collections.unmodifiableCollection(singularMap.values());
+//    };
 
     public static ElementsObjectCategory valueOf(String value) {
-        if (singularMap.containsKey(value)) {
-            return singularMap.get(value);
-        }
-        if(pluralMap.containsKey(value)) {
-            return pluralMap.get(value);
-        }
-        throw new IndexOutOfBoundsException(value + " is not a known Elements category");
-    }
-
-    public static ElementsObjectCategory valueOfSingular(String value) {
-        if (singularMap.containsKey(value)) {
-            return singularMap.get(value);
-        }
-        throw new IndexOutOfBoundsException(value + " is not a known Elements category");
-    }
-
-    public static ElementsObjectCategory valueOfPlural(String value) {
-        if(pluralMap.containsKey(value)) {
-            return pluralMap.get(value);
-        }
-        throw new IndexOutOfBoundsException(value + " is not a known Elements category");
+        return (ElementsObjectCategory) ElementsItemType.getSubType(ElementsItemType.OBJECT, value);
     }
 
     private ElementsObjectCategory(final String singular, final String plural) {
-        this.singular = singular;
-        this.plural   = plural;
-
-       //note put returns null unless the key already had a value set against it (in which case it returns that previous value)
-        if (singularMap.put(singular, this) != null || pluralMap.put(plural, this) != null) {
-            throw new IllegalStateException("Duplicate value given for singular / plural in Elements object category");
-        }
+        super(ElementsItemType.OBJECT, singular, plural);
     }
 
 }

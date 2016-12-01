@@ -78,7 +78,7 @@ public class ElementsRelationshipInfo extends ElementsItemInfo{
     public List<ElementsItemId.ObjectId> getUserIds() {
         List<ElementsItemId.ObjectId> userIds = new ArrayList<ElementsItemId.ObjectId>();
         for(ElementsItemId.ObjectId id : objectIds){
-            if(id.getCategory() == ElementsObjectCategory.USER) userIds.add(id);
+            if(id.getItemSubType() == ElementsObjectCategory.USER) userIds.add(id);
         }
         return userIds;
     }

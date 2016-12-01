@@ -116,9 +116,9 @@ public class ElementsStoredItem {
 
             //TODO: decide if this is still sensible
             //take the extracted object info, put it in the cache and ensure that we use the cached one if it is present
-            ElementsObjectInfoCache.put(objectInfo);
-            ElementsObjectInfo cachedInfo = ElementsObjectInfoCache.get(objectInfo.getObjectId());
-            objectInfo = cachedInfo == null ? objectInfo : cachedInfo;
+            //ElementsObjectInfoCache.put(objectInfo);
+            //ElementsObjectInfo cachedInfo = ElementsObjectInfoCache.get(objectInfo.getObjectId());
+            //objectInfo = cachedInfo == null ? objectInfo : cachedInfo;
 
             if (idToCompareTo != null && !idToCompareTo.equals(objectInfo.getObjectId())) {
                 String message = MessageFormat.format("Elements object loaded from file \"{0}\" ({1}) does not match supplied check value ({2})",

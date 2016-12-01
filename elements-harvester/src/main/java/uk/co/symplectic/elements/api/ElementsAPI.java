@@ -16,9 +16,12 @@ import org.slf4j.LoggerFactory;
 import uk.co.symplectic.xml.StAXUtils;
 import uk.co.symplectic.xml.XMLEventProcessor;
 
+import javax.xml.namespace.QName;
 import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.events.StartElement;
+import javax.xml.stream.events.XMLEvent;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -123,6 +126,13 @@ public class ElementsAPI {
         }
     }
 
+    public XMLEventProcessor.ItemCountingFilter getEntryCounter(){
+        XMLEventProcessor.EventFilter.DocumentLocation entryLocation = new XMLEventProcessor.EventFilter.DocumentLocation(
+            new QName(XMLEventProcessor.EventFilter.atomNS, "feed"), new QName(XMLEventProcessor.EventFilter.atomNS, "entry")
+        );
+        return new XMLEventProcessor.ItemCountingFilter(entryLocation);
+    }
+
     public void executeQuery(ElementsFeedQuery feedQuery, APIResponseFilter... filters) {
         List<XMLEventProcessor.EventFilter> eventFilters = new ArrayList<XMLEventProcessor.EventFilter>();
         for(APIResponseFilter filter : filters){
@@ -133,14 +143,17 @@ public class ElementsAPI {
             eventFilters.add(filter.getEventFilter());
         }
 
+        //get and add int the entry counter to work out how many items we have processed
+        XMLEventProcessor.ItemCountingFilter itemCounter = getEntryCounter();
+        eventFilters.add(itemCounter);
+
         String feedUrl = feedQuery.getUrlString(url, version.getUrlBuilder());
         ElementsValidatedUrl currentQueryUrl = getValidatedUrl(feedUrl, new MessageFormat("Invalid API query detected : {0}"));
 
         ElementsFeedPagination pagination = executeInternalQuery(currentQueryUrl, eventFilters);
 
         //todo: decide if keep low level logging.
-        int counter = 1;
-
+        int queryCounter = 1;
         if (pagination != null && feedQuery.getProcessAllPages()) {
             //hack hack
             while (pagination.getNextURL() != null) {
@@ -149,7 +162,7 @@ public class ElementsAPI {
                 //TODO: make this test if pagination has been retrieved correctly (e.g. test current against last to exit or something?)
                 ElementsValidatedUrl nextQueryUrl = getValidatedUrl(pagination.getNextURL(), currentQueryUrl.getUrl(), new MessageFormat("Next URL for a feed was invalid: {0}"));
                 if(nextQueryUrl.isMismatched()){
-                    if(counter == 1) {
+                    if(queryCounter == 1) {
                         log.warn(MessageFormat.format("Next URL in a feed \"{0}\" has a different host to the previous URL: {1}", nextQueryUrl.getUrl(), currentQueryUrl));
                         log.warn("There is probably a mismatch between the configured API URL in this program and the API baseURI configured in Elements");
                     }
@@ -165,14 +178,14 @@ public class ElementsAPI {
                 pagination = executeInternalQuery(currentQueryUrl, eventFilters);
 
                 //todo: decide if keep low level logging.
-                counter++;
-                if(counter % 40 == 0){
-                    log.info(MessageFormat.format("{0} queries processed: network-time: {1}, processing-time: {2}", counter, ElementsAPI.timeSpentInNetwork, ElementsAPI.timeSpentInProcessing));
+                queryCounter++;
+                if(queryCounter % 40 == 0){
+                    log.info(MessageFormat.format("{0} queries processed: network-time: {1}, processing-time: {2}", queryCounter, ElementsAPI.timeSpentInNetwork, ElementsAPI.timeSpentInProcessing));
                     ElementsAPI.resetTimers();
                 }
-
             }
         }
+        log.info(MessageFormat.format("Query completed {0} items processed in total", itemCounter.getItemCount()));
     }
 
     //TODO : rationalise with main query call to have common usage of the underlying client with nice retry behaviour etc.

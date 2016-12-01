@@ -25,13 +25,13 @@ public class ElementsObjectInfo extends ElementsItemInfo{
         private ElementsObjectInfo workspace  = null;
         private ElementsUserInfo.UserExtraData additionalUserData = null;
 
+        public Extractor(DocumentLocation location, int maximumAmountExpected){
+            super(location, maximumAmountExpected);
+        }
+
         private ElementsUserInfo.UserExtraData getAdditionalUserData() {
             if (additionalUserData == null) additionalUserData = new ElementsUserInfo.UserExtraData();
             return additionalUserData;
-        }
-
-        public Extractor(DocumentLocation location, int maximumAmountExpected){
-            super(location, maximumAmountExpected);
         }
 
         @Override
@@ -49,8 +49,7 @@ public class ElementsObjectInfo extends ElementsItemInfo{
                 if (event.isStartElement()) {
                     StartElement startElement = event.asStartElement();
                     QName name = startElement.getName();
-
-                    if (name.equals(new QName(apiNS, "object"))) {
+                    if (name.equals(new QName(apiNS, "object")) || name.equals(new QName(apiNS, "deleted-object"))) {
                         getAdditionalUserData().setUsername(startElement.getAttributeByName(new QName("username")).getValue());
                     } else if (name.equals(new QName(apiNS, "is-current-staff"))) {
                         XMLEvent nextEvent = readerProxy.peek();
@@ -83,7 +82,5 @@ public class ElementsObjectInfo extends ElementsItemInfo{
     }
 
     public ElementsItemId.ObjectId getObjectId(){return (ElementsItemId.ObjectId) getItemId();}
-
-    public ElementsObjectCategory getCategory() { return getObjectId().getCategory(); }
 
 }

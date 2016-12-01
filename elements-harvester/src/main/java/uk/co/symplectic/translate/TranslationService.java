@@ -8,8 +8,10 @@ package uk.co.symplectic.translate;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import uk.co.symplectic.vivoweb.harvester.store.ElementsItemStore;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsRdfStore;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItem;
+import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
 
 import javax.xml.transform.Templates;
 import javax.xml.transform.stream.StreamSource;
@@ -35,12 +37,12 @@ public final class TranslationService {
         return TranslationServiceImpl.compileSource(new StreamSource(file));
     }
 
-    public void translate(ElementsStoredItem input, ElementsRdfStore output, TemplatesHolder translationTemplates) {
-        translate(input, output, translationTemplates, null);
+    public void translate(ElementsStoredItem input, ElementsItemStore output, StorableResourceType outputType, TemplatesHolder translationTemplates) {
+        translate(input, output, outputType, translationTemplates, null);
     }
 
-    public void translate(ElementsStoredItem input, ElementsRdfStore output, TemplatesHolder translationTemplates, Map<String, Object> extraParams) {
-        TranslationServiceImpl.translate(config, input, output, translationTemplates, extraParams);
+    public void translate(ElementsStoredItem input, ElementsItemStore output, StorableResourceType outputType, TemplatesHolder translationTemplates, Map<String, Object> extraParams) {
+        TranslationServiceImpl.translate(config, input, output, outputType, translationTemplates, extraParams);
     }
 
     public static void awaitShutdown() {

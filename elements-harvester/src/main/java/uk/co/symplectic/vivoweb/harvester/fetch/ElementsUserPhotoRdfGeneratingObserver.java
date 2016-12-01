@@ -9,22 +9,20 @@ package uk.co.symplectic.vivoweb.harvester.fetch;
 import org.apache.commons.lang.NullArgumentException;
 import org.apache.commons.lang.StringUtils;
 import uk.co.symplectic.utils.ImageUtils;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectInfo;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsUserInfo;
-import uk.co.symplectic.vivoweb.harvester.store.ElementsRdfStore;
-import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItem;
-import uk.co.symplectic.vivoweb.harvester.store.IElementsStoredItemObserver;
-import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
+import uk.co.symplectic.vivoweb.harvester.store.*;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.text.MessageFormat;
 
-public class ElementsUserPhotoRdfGeneratingObserver extends IElementsStoredItemObserver.ElementsStoredResourceObserverAdapter {
-    private ElementsRdfStore rdfStore = null;
+public class ElementsUserPhotoRdfGeneratingObserver extends ElementsStoreOutputItemObserver {
     private File vivoImageDir;
     private String imageUrlBase = "/harvestedImages/";
 
@@ -34,12 +32,11 @@ public class ElementsUserPhotoRdfGeneratingObserver extends IElementsStoredItemO
     private static int VIVO_THUMBNAIL_HEIGHT = 200;
 
     public ElementsUserPhotoRdfGeneratingObserver(ElementsRdfStore rdfStore, File vivoImageDir, String vivoBaseURI, String imageUrlBase) {
-        super(StorableResourceType.RAW_USER_PHOTO);
-        if(rdfStore == null) throw new NullArgumentException("rdfStore");
+        //todo move tolerate individual io errors somewhere sensible..
+        super(rdfStore, StorableResourceType.RAW_USER_PHOTO, StorableResourceType.TRANSLATED_USER_PHOTO_DESCRIPTION, false);
         if(vivoImageDir == null) throw new NullArgumentException("vivoImageDir");
         if(StringUtils.trimToNull(vivoBaseURI) == null) throw new IllegalArgumentException("Parameter vivoBaseURI must not be null or empty");
 
-        this.rdfStore = rdfStore;
         this.vivoImageDir = vivoImageDir;
         this.baseUrl = vivoBaseURI;
 
@@ -50,8 +47,9 @@ public class ElementsUserPhotoRdfGeneratingObserver extends IElementsStoredItemO
     }
 
     @Override
-    public void observeStoredObject(ElementsObjectInfo info, ElementsStoredItem item) {
-        if (info.getCategory() == ElementsObjectCategory.USER) {
+    protected void observeStoredObject(ElementsObjectInfo info, ElementsStoredItem item) {
+        //TODO: migrate this resizing code to elsewhere...Monitor process? difficulties exist here around "deleting" extraneous resources linked to an item that might be deleted.
+        if (info.getItemId().getItemSubType() == ElementsObjectCategory.USER) {
             ElementsUserInfo userInfo = (ElementsUserInfo) info;
 
             String uriUserName = userInfo.getUsername().toLowerCase().replaceAll("\\a+", "-").replaceAll("[^a-z0-9\\-]", "");
@@ -118,7 +116,7 @@ public class ElementsUserPhotoRdfGeneratingObserver extends IElementsStoredItemO
 
                     photoXml.write("</rdf:RDF>");
 
-                    rdfStore.storeItem(userInfo, StorableResourceType.TRANSLATED_USER_PHOTO_DESCRIPTION, photoXml.toString().getBytes("utf-8"));
+                    getStore().storeItem(userInfo, getOutputType(), photoXml.toString().getBytes("utf-8"));
                 } catch (IOException e) {
 
                 } finally {
@@ -128,6 +126,13 @@ public class ElementsUserPhotoRdfGeneratingObserver extends IElementsStoredItemO
         }
     }
 
+    @Override
+    protected void observeObjectDeletion(ElementsItemId.ObjectId objectId, StorableResourceType type){
+        if (objectId.getItemSubType() == ElementsObjectCategory.USER) {
+            safelyDeleteItem(objectId, MessageFormat.format("Unable to delete translated user-photo-rdf for user {0}", objectId.toString()));
+        }
+        //todo: make this marshall the resized and copied out photos somehow?
+    }
 }
 
 

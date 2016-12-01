@@ -77,6 +77,8 @@
             </xsl:with-param>
         </xsl:call-template>
 
+        <!--todo: should the parent group have its children set too? are inferred - rightly or wrongly...-->
+
         <!-- for each group member render info about their membership of this group -->
         <xsl:for-each select="$groupMembers/groupMembers/user">
             <xsl:variable name="membershipURI" select="svfn:objectToObjectURI('group-user-membership-', $groupID, @id)" />

@@ -163,7 +163,7 @@ public class ElementsGroupInfo extends ElementsItemInfo{
         }
 
         public void addExplicitUser(ElementsItemId.ObjectId user) {
-            if(user != null && user.getCategory() == ElementsObjectCategory.USER) explicitUsers.add(user);
+            if(user != null && user.getItemSubType() == ElementsObjectCategory.USER) explicitUsers.add(user);
         }
     }
 

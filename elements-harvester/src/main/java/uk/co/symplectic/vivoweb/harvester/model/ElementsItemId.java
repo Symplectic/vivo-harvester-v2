@@ -11,25 +11,26 @@ import org.apache.commons.lang.builder.HashCodeBuilder;
 
 import java.text.MessageFormat;
 
-public abstract class ElementsItemId{
+public class ElementsItemId{
     private final int id;
 
     public static ElementsItemId.ObjectId createObjectId(ElementsObjectCategory category, int id){ return new ObjectId(category, id); }
     public static ElementsItemId.GroupId createGroupId(int id){ return new GroupId(id); }
     public static ElementsItemId.RelationshipId createRelationshipId(int id){ return new RelationshipId(id); }
 
-    private final ElementsItemType itemType;
-    public ElementsItemType getItemType() { return itemType; }
+    private final ElementsItemType.SubType subType;
+    public ElementsItemType.SubType getItemSubType() { return subType; }
+    public ElementsItemType getItemType() { return subType.getMainType(); }
 
-    protected ElementsItemId(ElementsItemType itemType, int id) {
-        if (itemType == null) throw new NullArgumentException("itemType");
-        this.itemType = itemType;
+    protected ElementsItemId(ElementsItemType.SubType subType, int id) {
+        if (subType == null) throw new NullArgumentException("subType");
+        this.subType = subType;
         this.id = id;
     }
 
     public String getItemDescriptor(){
         //requires that these names and the singular names of the object categories remain distinct for good hash code and equals behaviour
-        return itemType.getName();
+        return subType.getSingular();
     }
 
     public int getId() {
@@ -57,26 +58,15 @@ public abstract class ElementsItemId{
     }
 
     public static class ObjectId extends ElementsItemId {
-        private final ElementsObjectCategory category;
-
-        private ObjectId(ElementsObjectCategory category, int id) {
-            super(ElementsItemType.OBJECT, id);
-            if (category == null) throw new NullArgumentException("category");
-            this.category = category;
-        }
-
-        public ElementsObjectCategory getCategory() { return category; }
-
-        @Override
-        public String getItemDescriptor(){return category.getSingular();}
+        private ObjectId(ElementsObjectCategory category, int id) { super(category, id); }
     }
 
     public static class GroupId extends ElementsItemId {
-        private GroupId(int id) { super(ElementsItemType.GROUP, id); }
+        private GroupId(int id) { super(ElementsItemType.AllGroups, id); }
     }
 
     public static class RelationshipId extends ElementsItemId {
-        private RelationshipId(int id) { super(ElementsItemType.RELATIONSHIP, id); }
+        private RelationshipId(int id) { super(ElementsItemType.AllRelationships, id); }
     }
 }
 

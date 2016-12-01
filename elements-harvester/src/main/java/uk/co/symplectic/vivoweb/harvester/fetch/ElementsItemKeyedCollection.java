@@ -102,20 +102,25 @@ public abstract class ElementsItemKeyedCollection<T> {
         }
     }
 
-    public static class RestrictToCategories extends RestrictToType{
-        private List<ElementsObjectCategory> mAllowedCategories = new ArrayList<ElementsObjectCategory>();
+    public static class RestrictToSubTypes implements ItemRestrictor{
+        private List<ElementsItemType.SubType> mAllowedCategories = new ArrayList<ElementsItemType.SubType>();
 
-        public RestrictToCategories(ElementsObjectCategory... allowedCategories){
-            super(ElementsItemType.OBJECT);
-            if(allowedCategories != null) mAllowedCategories.addAll(Arrays.asList(allowedCategories));
+        public RestrictToSubTypes(ElementsItemType.SubType... allowedSubTypes){
+            if(allowedSubTypes != null) mAllowedCategories.addAll(Arrays.asList(allowedSubTypes));
+            if(!mAllowedCategories.isEmpty()){
+                ElementsItemType.SubType firstSubType =  mAllowedCategories.get(0);
+                for(ElementsItemType.SubType currentSubType : mAllowedCategories){
+                    if(currentSubType.getMainType() != firstSubType.getMainType())
+                        throw new IllegalStateException("Subtypes must be of the same main type");
+                }
+            }
         }
 
         public void checkItemIdIsValid(ElementsItemId itemId){
-            super.checkItemIdIsValid(itemId);
             //we now know it IS an item of type OBJECT
-            ElementsObjectCategory itemCategory = ((ElementsItemId.ObjectId) itemId).getCategory();
-            if(!mAllowedCategories.contains(itemCategory)) {
-                throw new IllegalStateException(MessageFormat.format("This collection does not support objects of category {0}", itemCategory));
+            ElementsItemType.SubType itemSubType = itemId.getItemSubType();
+            if(!mAllowedCategories.contains(itemSubType)) {
+                throw new IllegalStateException(MessageFormat.format("This collection does not support objects of sub type {0}", itemSubType.getSingular()));
             }
         }
     }

@@ -7,6 +7,7 @@ import uk.co.symplectic.vivoweb.harvester.model.ElementsItemInfo;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemType;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
 
+import java.text.MessageFormat;
 import java.util.*;
 
 /**
@@ -34,7 +35,6 @@ public class StorableResourceType {
     final public static StorableResourceType RAW_RELATIONSHIP = new StorableResourceType(ElementsItemType.RELATIONSHIP, "raw", "xml", true);
     final public static StorableResourceType RAW_GROUP = new StorableResourceType(ElementsItemType.GROUP, "raw", "xml", true);
 
-
     final public static StorableResourceType TRANSLATED_OBJECT = new StorableResourceType(ElementsItemType.OBJECT, "translated", "rdf", true);
     final public static StorableResourceType TRANSLATED_USER_PHOTO_DESCRIPTION = new UserRelatedResourceType("photo", "rdf", true);
     final public static StorableResourceType TRANSLATED_RELATIONSHIP = new StorableResourceType(ElementsItemType.RELATIONSHIP, "translated", "rdf", true);
@@ -57,6 +57,11 @@ public class StorableResourceType {
     //TODO: file extensions are complicated by the fact that raw photo data may be a variety of mime types - so this is not implemented at the moment.
     public String getFileExtension() {
         return fileExtension;
+    }
+
+    @Override
+    public String toString(){
+        return MessageFormat.format("{0}-{1}", getName(), keyItemType.getName());
     }
 
     private StorableResourceType(ElementsItemType keyItemType, String name, String fileExtension, boolean shouldZip) {
@@ -86,7 +91,12 @@ public class StorableResourceType {
         public boolean isAppropriateForItem(ElementsItemId id) {
             //return super.isAppropriateForItem(id) && id instanceof ElementsItemId.ObjectId && ((ElementsItemId.ObjectId) id).getCategory() == ElementsObjectCategory.USER;
             //must be an object id if is appropriate for object item type...
-            return super.isAppropriateForItem(id) && ((ElementsItemId.ObjectId) id).getCategory() == ElementsObjectCategory.USER;
+            return super.isAppropriateForItem(id) && id.getItemSubType() == ElementsObjectCategory.USER;
+        }
+
+        @Override
+        public String toString(){
+            return MessageFormat.format("{0}-{1}", getName(), "user");
         }
     }
 

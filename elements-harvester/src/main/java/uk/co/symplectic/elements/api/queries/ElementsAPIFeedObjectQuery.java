@@ -14,33 +14,34 @@ import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-public class ElementsAPIFeedObjectQuery extends ElementsFeedQuery {
+public class ElementsAPIFeedObjectQuery extends ElementsFeedQuery.DeltaCapable {
     // How many objects to request per API request: Default of 25 (see constructor chain) is required by 4.6 API since we request full detail for objects
     private static int defaultPerPage = 25;
 
     private final ElementsObjectCategory category;
     private final List<Integer> groups = new ArrayList<Integer>();
     //handle as subclasses?
-    private String modifiedSince = null;
     //TODO: make this flag properly useable instead of hard coded to true..
     private boolean approvedObjectsOnly = true;
     private boolean explicitMembersOnly = false;
-    private boolean queryDeletedObjects = false;
 
-    public ElementsAPIFeedObjectQuery(ElementsObjectCategory category, Collection<Integer> groupsToInclude, boolean fullDetails, boolean processAllPages) {
-        this(category, groupsToInclude, fullDetails, processAllPages, ElementsAPIFeedObjectQuery.defaultPerPage);
+    public ElementsAPIFeedObjectQuery(ElementsObjectCategory category, Collection<Integer> groupsToInclude, Date modifiedSince, boolean fullDetails, boolean processAllPages) {
+        this(category, groupsToInclude, modifiedSince, fullDetails, processAllPages, ElementsAPIFeedObjectQuery.defaultPerPage);
     }
 
-    public ElementsAPIFeedObjectQuery(ElementsObjectCategory category, Collection<Integer> groupsToInclude, boolean fullDetails, boolean processAllPages, int perPage) {
-        this(category, groupsToInclude, fullDetails, processAllPages, perPage, false);
+    public ElementsAPIFeedObjectQuery(ElementsObjectCategory category, Collection<Integer> groupsToInclude, Date modifiedSince, boolean fullDetails, boolean processAllPages, int perPage) {
+        this(category, groupsToInclude, modifiedSince, fullDetails, processAllPages, perPage, false);
     }
 
-    protected ElementsAPIFeedObjectQuery(ElementsObjectCategory category, Collection<Integer> groupsToInclude, boolean fullDetails, boolean processAllPages, int perPage, boolean explicitMembersOnly) {
-        super(fullDetails, processAllPages, perPage);
+    protected ElementsAPIFeedObjectQuery(ElementsObjectCategory category, Collection<Integer> groupsToInclude, Date modifiedSince, boolean fullDetails, boolean processAllPages, int perPage, boolean explicitMembersOnly) {
+        super(modifiedSince, fullDetails, processAllPages, perPage);
         if(category == null) throw new NullArgumentException("category");
         this.category = category;
-        if(groups != null) this.groups.addAll(groupsToInclude);
-        this.explicitMembersOnly = explicitMembersOnly;
+        if(groupsToInclude != null) {
+            this.groups.addAll(groupsToInclude);
+            this.explicitMembersOnly = explicitMembersOnly;
+        }
+        //if(modifiedSince != null) this.modifiedSince = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").format(modifiedSince);
     }
 
     public ElementsObjectCategory getCategory() {
@@ -57,21 +58,36 @@ public class ElementsAPIFeedObjectQuery extends ElementsFeedQuery {
         return approvedObjectsOnly;
     }
 
-    public String getModifiedSince() { return modifiedSince; }
-    public void setModifiedSince(String modifiedSince) { this.modifiedSince = modifiedSince; }
-    public void setModifiedSince(Date modifiedSince) { this.modifiedSince = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").format(modifiedSince); }
-
-    public boolean getQueryDeletedObjects(){ return queryDeletedObjects;}
-    public void setQueryDeletedObjects(boolean queryDeleted){ queryDeletedObjects = queryDeleted;}
+    //TODO: make this flag properly useable instead of hard coded to true..
+    public boolean getQueryDeletedObjects(){ return false;}
 
     @Override
     public String getUrlString(String apiBaseUrl, ElementsAPIURLBuilder builder){
         return builder.buildObjectFeedQuery(apiBaseUrl, this);
     }
 
+
+    public static class Deleted extends ElementsAPIFeedObjectQuery{
+        public Deleted(ElementsObjectCategory category, Date deletedSince, boolean processAllPages) {
+            this(category, deletedSince, processAllPages, 100);
+        }
+
+        public Deleted(ElementsObjectCategory category, Date deletedSince, boolean processAllPages, int perPage) {
+            super(category, null, deletedSince, false, processAllPages, perPage);
+        }
+
+        @Override
+        public boolean getQueryDeletedObjects(){ return true;}
+    }
+
+    //TODO: move these into the app?
     public static class GroupMembershipQuery extends ElementsAPIFeedObjectQuery{
-        public GroupMembershipQuery(int groupID){
-            super(ElementsObjectCategory.USER, Arrays.asList(groupID), false, true, 100, true);
+
+        //TODO: make per-page default better and move to config...
+        public GroupMembershipQuery(int groupID){ this(groupID, 100); }
+
+        public GroupMembershipQuery(int groupID, int perPage){
+            super(ElementsObjectCategory.USER, Arrays.asList(groupID), null, false, true, perPage, true);
         }
     }
 }

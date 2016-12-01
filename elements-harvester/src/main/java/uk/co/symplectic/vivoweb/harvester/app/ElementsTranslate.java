@@ -19,6 +19,7 @@ import uk.co.symplectic.translate.TranslationService;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsRdfStore;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItem;
+import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
 
 import java.io.File;
 import java.io.IOException;
@@ -63,14 +64,14 @@ public class ElementsTranslate {//implements RecordStreamOrigin {
                 //translationService.translate(object, rdfStore, template, new ElementsDeleteEmptyTranslationCallback(outFile));
                 //ElementsStoredItem item = new ElementsStoredItem(file, object.getObjectInfo(), StorableResourceType.RAW_OBJECT);
                 ElementsStoredItem item = ElementsStoredItem.InFile.loadRawObject(file);
-                translationService.translate(item, rdfStore, template);
+                translationService.translate(item, rdfStore, StorableResourceType.TRANSLATED_OBJECT, template);
             } else {
                 //ElementsStoredRelationship relationship = new ElementsStoredRelationship(file, "");
                 //outFile = rdfStore.getRelationshipFile(file.getName());
                 //translationService.translate(relationship, rdfStore, template, new ElementsDeleteEmptyTranslationCallback(outFile));
                 //ElementsStoredItem item = new ElementsStoredItem(file, relationship.getRelationshipInfo(), StorableResourceType.RAW_RELATIONSHIP);
                 ElementsStoredItem item = ElementsStoredItem.InFile.loadRawRelationship(file);
-                translationService.translate(item, rdfStore, template);
+                translationService.translate(item, rdfStore,StorableResourceType.TRANSLATED_RELATIONSHIP, template);
             }
         }
     }

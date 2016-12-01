@@ -10,40 +10,46 @@ import org.apache.commons.lang.NullArgumentException;
 import org.apache.commons.lang.StringUtils;
 import uk.co.symplectic.elements.api.ElementsAPI;
 import uk.co.symplectic.vivoweb.harvester.fetch.resources.ResourceFetchService;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectInfo;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsUserInfo;
-import uk.co.symplectic.vivoweb.harvester.store.ElementsItemFileStore;
-import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItem;
-import uk.co.symplectic.vivoweb.harvester.store.IElementsStoredItemObserver;
-import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
+import uk.co.symplectic.vivoweb.harvester.store.*;
 
+import java.io.IOException;
 import java.net.MalformedURLException;
+import java.text.MessageFormat;
 
-public class ElementsUserPhotoRetrievalObserver extends IElementsStoredItemObserver.ElementsStoredResourceObserverAdapter {
+public class ElementsUserPhotoRetrievalObserver extends ElementsStoreOutputItemObserver {
+
     //TODO: Sort out static as object behaviour here
     private final ResourceFetchService fetchService = new ResourceFetchService();
-    private final ElementsItemFileStore objectStore;
     private final ElementsAPI elementsApi;
 
     public ElementsUserPhotoRetrievalObserver(ElementsAPI elementsApi, ElementsItemFileStore objectStore) {
-        super(StorableResourceType.TRANSLATED_OBJECT);
+        super(objectStore, StorableResourceType.RAW_OBJECT, StorableResourceType.RAW_USER_PHOTO, false);
         if(elementsApi == null) throw new NullArgumentException("elementsApi");
-        if(objectStore == null) throw new NullArgumentException("objectStore");
         this.elementsApi  = elementsApi;
-        this.objectStore = objectStore;
     }
 
     @Override
-    public void observeStoredObject(ElementsObjectInfo info, ElementsStoredItem item) {
+    protected void observeStoredObject(ElementsObjectInfo info, ElementsStoredItem item) {
         if (info instanceof ElementsUserInfo) {
             ElementsUserInfo userInfo = (ElementsUserInfo) info;
             if (!StringUtils.isEmpty(userInfo.getPhotoUrl())) {
                 try {
-                    fetchService.fetchUserPhoto(elementsApi, userInfo, objectStore);
+                    fetchService.fetchUserPhoto(elementsApi, userInfo, getStore());
                 } catch (MalformedURLException mue) {
                     // TODO: Log error
                 }
             }
+        }
+    }
+
+    @Override
+    protected void observeObjectDeletion(ElementsItemId.ObjectId objectId, StorableResourceType type){
+        if (objectId.getItemSubType() == ElementsObjectCategory.USER) {
+            safelyDeleteItem(objectId, MessageFormat.format("Unable to delete user-photo for user {0}", objectId.toString()));
         }
     }
 }

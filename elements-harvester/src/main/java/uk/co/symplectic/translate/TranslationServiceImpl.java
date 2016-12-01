@@ -10,8 +10,10 @@ import org.apache.commons.lang.NullArgumentException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.co.symplectic.utils.ExecutorServiceUtils;
+import uk.co.symplectic.vivoweb.harvester.store.ElementsItemStore;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsRdfStore;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItem;
+import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
 
 import javax.xml.transform.*;
 import javax.xml.transform.stream.StreamResult;
@@ -68,8 +70,8 @@ final class TranslationServiceImpl {
         return factory;
     }
 
-    static void translate(TranslationServiceConfig config, ElementsStoredItem input, ElementsRdfStore output, TemplatesHolder translationTemplates, Map<String, Object> extraParams) {
-        Future<Boolean> result = wrapper.submit(new ItemTranslateTask(config, input, output, translationTemplates, extraParams));
+    static void translate(TranslationServiceConfig config, ElementsStoredItem input, ElementsItemStore output, StorableResourceType outputType, TemplatesHolder translationTemplates, Map<String, Object> extraParams) {
+        Future<Boolean> result = wrapper.submit(new ItemTranslateTask(config, input, output, outputType, translationTemplates, extraParams));
     }
 
     static void awaitShutdown() {
@@ -82,8 +84,9 @@ final class TranslationServiceImpl {
         //TODO: unstitch config layer?
         private final TranslationServiceConfig config;
         private final Map<String, Object> extraParams;
-        private ElementsStoredItem inputItem;
-        private ElementsRdfStore outputStore;
+        private final ElementsStoredItem inputItem;
+        private final ElementsItemStore outputStore;
+        private final StorableResourceType outputType;
 
         private InputStream getInputStream() throws IOException{
             return inputItem.getInputStream();
@@ -94,19 +97,22 @@ final class TranslationServiceImpl {
         }
 
         private void storeOutput(byte[] translatedData) throws IOException{
-            outputStore.storeTranslatedItem(inputItem.getItemInfo(), translatedData);
+            outputStore.storeItem(inputItem.getItemInfo(), outputType, translatedData);
         }
         private String getOutputDescription(){return "RDF store";}
 
-        ItemTranslateTask(TranslationServiceConfig config, ElementsStoredItem inputItem, ElementsRdfStore outputStore,
-                          TemplatesHolder translationTemplates, Map<String, Object> extraParams) {
+        ItemTranslateTask(TranslationServiceConfig config, ElementsStoredItem inputItem, ElementsItemStore outputStore,
+                          StorableResourceType outputType, TemplatesHolder translationTemplates, Map<String, Object> extraParams) {
             if(translationTemplates == null) throw new NullArgumentException("translationTemplates");
             if(config == null) throw new NullArgumentException("config");
             if(inputItem == null) throw new NullArgumentException("inputItem");
             if(outputStore == null) throw new NullArgumentException("outputStore");
+            if(outputType == null) throw new NullArgumentException("outputType");
+            if(inputItem.getResourceType().getKeyItemType() != outputType.getKeyItemType()) throw new IllegalArgumentException("outputType must be compatible with input item type");
 
             this.inputItem = inputItem;
             this.outputStore = outputStore;
+            this.outputType = outputType;
             this.translationTemplates = translationTemplates;
             this.config = config;
             this.extraParams = extraParams;

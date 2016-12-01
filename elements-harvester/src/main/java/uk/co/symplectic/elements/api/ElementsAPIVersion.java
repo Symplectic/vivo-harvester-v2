@@ -121,6 +121,6 @@ public class ElementsAPIVersion {
                 return versionMap.get(lookupValue);
             }
         }
-        throw new IllegalStateException(MessageFormat.format("String \"{0}\" could not be parsed to a known Elements API version", value == null ? "" : value));
+        throw new IllegalStateException(MessageFormat.format("String \"{0}\" could not be parsed to a supported Elements API version", value == null ? "" : value));
     }
 }

@@ -34,7 +34,7 @@ public class ElementsRelationshipTranslateObserver extends ElementsTranslateObse
     private final ElementsItemFileStore rawDataStore;
 
     public ElementsRelationshipTranslateObserver(ElementsItemFileStore rawDataStore, ElementsRdfStore rdfStore, String xslFilename){
-        super(rdfStore, xslFilename, StorableResourceType.RAW_RELATIONSHIP);
+        super(rdfStore, xslFilename, StorableResourceType.RAW_RELATIONSHIP, StorableResourceType.TRANSLATED_RELATIONSHIP);
         if(rawDataStore == null) throw new NullArgumentException("rawDataStore");
         this.rawDataStore = rawDataStore;
     }
@@ -54,8 +54,7 @@ public class ElementsRelationshipTranslateObserver extends ElementsTranslateObse
             Element mainDocRootElement = doc.createElement("extraObjects");
             doc.appendChild(mainDocRootElement);
             for (ElementsItemId.ObjectId id : info.getObjectIds()) {
-                ElementsItemInfo storedItemInfo = ElementsItemInfo.createObjectItem(id.getCategory(), id.getId());
-                BasicElementsStoredItem storedRawObject = rawDataStore.retrieveItem(storedItemInfo.getItemId(), StorableResourceType.RAW_OBJECT);
+                BasicElementsStoredItem storedRawObject = rawDataStore.retrieveItem(id, StorableResourceType.RAW_OBJECT);
                 if(storedRawObject != null) {
                     StoredData storedRawData = storedRawObject.getStoredData();
                     InputStream storedItemInputStream = null;
@@ -92,5 +91,10 @@ public class ElementsRelationshipTranslateObserver extends ElementsTranslateObse
         catch (ParserConfigurationException pce) {
             throw new IllegalStateException(pce);
         }
+    }
+
+    @Override
+    protected void observeRelationshipDeletion(ElementsItemId.RelationshipId relationsipId, StorableResourceType type){
+        safelyDeleteItem(relationsipId, MessageFormat.format("Unable to delete translated-rdf for relationship {0}", relationsipId.toString()));
     }
 }

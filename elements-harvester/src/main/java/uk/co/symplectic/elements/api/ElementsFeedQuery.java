@@ -6,6 +6,8 @@
  ******************************************************************************/
 package uk.co.symplectic.elements.api;
 
+import java.util.Date;
+
 abstract public class ElementsFeedQuery {
 
     //occasionally useful hack for testing.
@@ -61,4 +63,16 @@ abstract public class ElementsFeedQuery {
      * @return
      */
     public abstract String getUrlString(String apiBaseUrl, ElementsAPIURLBuilder builder);
+
+
+    public abstract static class DeltaCapable extends ElementsFeedQuery{
+        private final Date modifiedSince;
+
+        public Date getModifiedSince(){return modifiedSince;}
+
+        public DeltaCapable(Date modifiedSince, boolean fullDetails, boolean processAllPages, int perPage){
+            super(fullDetails, processAllPages, perPage);
+            this.modifiedSince = modifiedSince;
+        }
+    }
 }

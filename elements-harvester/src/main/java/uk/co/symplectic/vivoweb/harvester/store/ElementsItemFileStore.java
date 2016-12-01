@@ -10,18 +10,18 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.NullArgumentException;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemInfo;
-import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectInfoCache;
-
+import uk.co.symplectic.vivoweb.harvester.model.ElementsItemType;
 import java.io.*;
 import java.util.*;
 import java.util.zip.GZIPOutputStream;
 
 
-public class ElementsItemFileStore implements ElementsItemStore {
+public class ElementsItemFileStore implements ElementsItemStore.ElementsDeletableItemStore {
     List<StorableResourceType> supportedTypes = new ArrayList<StorableResourceType>();
     protected File dir = null;
     final private LayoutStrategy layoutStrategy;
     private List<IElementsStoredItemObserver> itemObservers = new ArrayList<IElementsStoredItemObserver>();
+    private final Map<StorableResourceType, Set<ElementsItemId>> affectedItems = new HashMap<StorableResourceType, Set<ElementsItemId>>();
     private boolean keepEmpty = false;
     private boolean zipFiles = true;
 
@@ -37,11 +37,27 @@ public class ElementsItemFileStore implements ElementsItemStore {
 
         this.layoutStrategy = layoutStrategy != null ? layoutStrategy : new DefaultLayoutStrategy();
         this.supportedTypes.addAll(Arrays.asList(supportedTypes));
+        //intialise affected item lists for each resource type
+        for(StorableResourceType type : supportedTypes){
+            affectedItems.put(type, new HashSet<ElementsItemId>());
+        }
+    }
+
+    public Set<ElementsItemId> getAffectedItems(StorableResourceType resourceType){
+        if(!supportedTypes.contains(resourceType)) throw new IllegalStateException("resourceType is incompatible with store");
+        return Collections.unmodifiableSet(affectedItems.get(resourceType));
+    }
+
+    //returns true if the item has already been affected
+    private boolean markItemAsAffected(StorableResourceType resourceType, ElementsItemId itemId){
+        //TODO: do checks that resource type is valid for store and item? its only ever called from places that already do their own checks?
+        Set<ElementsItemId> currentList = affectedItems.get(resourceType);
+        if(currentList != null) return currentList.add(itemId);
+        return false;
     }
 
     public void addItemObserver(IElementsStoredItemObserver observer){ itemObservers.add(observer); }
 
-    //todo : returns all "possible" items without checking if item is actually present in the store - decide if this is for the best?
     public Collection<BasicElementsStoredItem> retrieveAllItems(ElementsItemId itemId){
         List<BasicElementsStoredItem> items = new ArrayList<BasicElementsStoredItem>();
         for(StorableResourceType resourceType : supportedTypes){
@@ -69,26 +85,76 @@ public class ElementsItemFileStore implements ElementsItemStore {
     }
 
     public Collection<StoredData.InFile> getAllExistingFilesOfType(StorableResourceType resourceType){
+        return getAllExistingFilesOfType(resourceType, null);
+    }
+
+    public Collection<StoredData.InFile> getAllExistingFilesOfType(StorableResourceType resourceType, ElementsItemType.SubType subType){
         if(!supportedTypes.contains(resourceType)) throw new IllegalStateException("resourceType is incompatible with store");
-        Collection<File> files = layoutStrategy.getAllExistingFilesOfType(dir,resourceType);
+        Collection<File> files = subType == null ? layoutStrategy.getAllExistingFilesOfType(dir,resourceType) : layoutStrategy.getAllExistingFilesOfType(dir, resourceType, subType);
         boolean isZipped = shouldZipResourceFile(resourceType);
         Collection<StoredData.InFile> data = new ArrayList<StoredData.InFile>();
         for(File file : files) data.add(new StoredData.InFile(file, isZipped));
         return data;
     }
 
-    public ElementsStoredItem storeItem(ElementsItemInfo itemInfo, StorableResourceType resourceType, byte[] data) throws IOException{
+    public ElementsStoredItem innerStoreItem(ElementsItemInfo itemInfo, StorableResourceType resourceType, byte[] data, boolean actuallyStoreData) throws IOException{
         //TODO: do something better here with error message?
         if(!resourceType.isAppropriateForItem(itemInfo.getItemId())) throw new IllegalStateException("resourceType is incompatible with item");
         if(!supportedTypes.contains(resourceType)) throw new IllegalStateException("resourceType is incompatible with store");
         File file = layoutStrategy.getItemFile(dir, itemInfo.getItemId(), resourceType);
         ElementsStoredItem storedItem = new ElementsStoredItem.InFile(file, itemInfo, resourceType, shouldZipResourceFile(resourceType));
-        //TODO: move this to an observer?
-        if(itemInfo.isObjectInfo()) ElementsObjectInfoCache.put(itemInfo.asObjectInfo());
-        store(file, data, zipFiles && resourceType.shouldZip());
-        for(IElementsStoredItemObserver observer : itemObservers)
-            observer.observe(storedItem);
+        if(actuallyStoreData){ store(file, data, zipFiles && resourceType.shouldZip()); }
+        else if(!file.exists()){ throw new FileNotFoundException(file.getAbsolutePath()); }
+
+        //flag the item as having been affected during this run
+        //if it is a newly affected item during this processing run then process any observers
+        if(markItemAsAffected(resourceType, itemInfo.getItemId())) {
+            for (IElementsStoredItemObserver observer : itemObservers) {
+                observer.observe(storedItem);
+            }
+        }
         return storedItem;
+    }
+
+    @Override
+    public ElementsStoredItem storeItem(ElementsItemInfo itemInfo, StorableResourceType resourceType, byte[] data) throws IOException{
+        return innerStoreItem(itemInfo, resourceType, data, true);
+    }
+
+    @Override
+    public ElementsStoredItem touchItem(ElementsItemInfo itemInfo, StorableResourceType resourceType) throws IOException{
+        return innerStoreItem(itemInfo, resourceType, null, false);
+    }
+
+    @Override
+    public void deleteItem(ElementsItemId itemId, StorableResourceType resourceType) throws IOException{
+        //TODO: do something better here with error message?
+        if(!resourceType.isAppropriateForItem(itemId)) throw new IllegalStateException("resourceType is incompatible with item");
+        if(!supportedTypes.contains(resourceType)) throw new IllegalStateException("resourceType is incompatible with store");
+        File file = layoutStrategy.getItemFile(dir, itemId, resourceType);
+        //TODO: should this log if there is nothing to delete?, note that file would not always be present, e.g. for a translated prof-activity?
+        if(file.exists())
+            file.delete();
+        //TODO: should this use markAsAffected?
+        for(IElementsStoredItemObserver observer : itemObservers) {
+            observer.observeDeletion(itemId, resourceType);
+        }
+    }
+
+    public void cleardown(StorableResourceType resourceType) throws IOException{
+        cleardown(resourceType, true);
+    }
+
+    @Override
+    public void cleardown(StorableResourceType resourceType, boolean followObservers) throws IOException {
+        for (StoredData.InFile data : getAllExistingFilesOfType(resourceType)) {
+            data.delete();
+        }
+        if (followObservers){
+            for (IElementsStoredItemObserver observer : itemObservers) {
+                observer.observeCleardown(resourceType, this);
+            }
+        }
     }
 
     private boolean shouldZipResourceFile(StorableResourceType resourceType) {return zipFiles && resourceType.shouldZip();}

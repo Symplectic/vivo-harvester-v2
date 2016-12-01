@@ -36,7 +36,7 @@ public class ElementsGroupTranslateObserver extends ElementsTranslateObserver {
     private final ElementsItemKeyedCollection.ItemInfo includedUsers;
 
     public ElementsGroupTranslateObserver(ElementsRdfStore rdfStore, String xslFilename, ElementsGroupCollection groupCache, ElementsItemKeyedCollection.ItemInfo includedUsers){
-        super(rdfStore, xslFilename, StorableResourceType.RAW_GROUP);
+        super(rdfStore, xslFilename, StorableResourceType.RAW_GROUP, StorableResourceType.TRANSLATED_GROUP);
         if (groupCache == null) throw new NullArgumentException("groupCache");
         if (includedUsers == null) throw new NullArgumentException("includedUsers");
         this.groupCache = groupCache;

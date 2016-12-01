@@ -14,6 +14,9 @@ import uk.co.symplectic.elements.api.queries.ElementsAPIFeedObjectRelationshipsQ
 import uk.co.symplectic.elements.api.queries.ElementsAPIFeedRelationshipQuery;
 import uk.co.symplectic.utils.URLBuilder;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
+
+import java.text.SimpleDateFormat;
 
 public class ElementsAPIv4_XURLBuilder extends ElementsAPIURLBuilder.GenericBase {
     @Override
@@ -51,11 +54,18 @@ public class ElementsAPIv4_XURLBuilder extends ElementsAPIURLBuilder.GenericBase
             queryUrl.addParam("per-page", calculatePerPage(feedQuery.getPerPage(), feedQuery.getFullDetails()));
         }
 
-        if (!StringUtils.isEmpty(feedQuery.getModifiedSince())) {
+        if (feedQuery.getModifiedSince() != null) {
+            String modifiedSinceString = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").format(feedQuery.getModifiedSince());
             if(feedQuery.getQueryDeletedObjects())
-                queryUrl.addParam("deleted-since", feedQuery.getModifiedSince());
-            else
-                queryUrl.addParam("modified-since", feedQuery.getModifiedSince());
+                queryUrl.addParam("deleted-since", modifiedSinceString);
+            else {
+                queryUrl.addParam("modified-since", modifiedSinceString);
+                //TODO: this needs to exist on the equivalent deleted resource to make things better (really needs to be a continuation token)
+                //TODO: also same concepts need extending to relationships and deleted relationships - relationships in particular definitely need it for deleted I think.
+                queryUrl.addParam("order-by", "id");
+            }
+            //always order by id if using modified since..
+
         }
 
         //hack in a page for testing
@@ -70,12 +80,30 @@ public class ElementsAPIv4_XURLBuilder extends ElementsAPIURLBuilder.GenericBase
 
         queryUrl.appendPath("relationships");
 
+        if(feedQuery.getQueryDeletedObjects()){
+            queryUrl.appendPath("deleted");
+        }
+
         if (feedQuery.getFullDetails()) {
             queryUrl.addParam("detail", "full");
         }
 
         if (feedQuery.getPerPage() > 0) {
             queryUrl.addParam("per-page", calculatePerPage(feedQuery.getPerPage(), feedQuery.getFullDetails()));
+        }
+
+        if (feedQuery.getModifiedSince() != null) {
+            String modifiedSinceString = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").format(feedQuery.getModifiedSince());
+            if(feedQuery.getQueryDeletedObjects())
+                queryUrl.addParam("deleted-since", modifiedSinceString);
+            else {
+                queryUrl.addParam("modified-since", modifiedSinceString);
+                //TODO: this needs to exist on the equivalent deleted resource to make things better (really needs to be a continuation token)
+                //TODO: also same concepts need extending to relationships and deleted relationships - relationships in particular definitely need it for deleted I think.
+                //queryUrl.addParam("order-by", "id");
+            }
+            //always order by id if using modified since..
+
         }
 
         //hack in a page for testing
@@ -89,7 +117,7 @@ public class ElementsAPIv4_XURLBuilder extends ElementsAPIURLBuilder.GenericBase
         URLBuilder queryUrl = new URLBuilder(endpointUrl);
 
         ElementsItemId.ObjectId objectId = feedQuery.getObjectId();
-        queryUrl.appendPath(objectId.getCategory().getPlural());
+        queryUrl.appendPath(( (ElementsObjectCategory) objectId.getItemSubType()).getPlural());
         queryUrl.appendPath(Integer.toString(objectId.getId()));
         queryUrl.appendPath("relationships");
 

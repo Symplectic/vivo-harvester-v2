@@ -19,11 +19,12 @@ import java.util.zip.GZIPInputStream;
  */
 public interface StoredData {
     String getAddress();
-
     InputStream getInputStream() throws IOException;
+    void delete();
+
 
     static class InRam implements StoredData {
-        private final byte[] data;
+        private byte[] data;
 
         public InRam(byte[] data) {
             if (data == null) throw new NullArgumentException("data");
@@ -42,6 +43,11 @@ public interface StoredData {
         @Override
         public String getAddress() {
             return "in ram";
+        }
+
+        @Override
+        public void delete(){
+            data = null;
         }
     }
 
@@ -73,6 +79,10 @@ public interface StoredData {
         @Override
         public String getAddress() {
             return getFile().getAbsolutePath();
+        }
+
+        public void delete(){
+            if(file.exists()) file.delete();
         }
     }
 }

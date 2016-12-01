@@ -36,21 +36,6 @@ public abstract class ElementsItemInfo {
         return new ElementsGroupInfo(id);
     }
 
-    //todo: move these onto the itemids?
-    public static Collection<String> validItemDescriptorsForType(ElementsItemType itemType){
-        Set<String> validDescriptors = new HashSet<String>();
-        switch(itemType){
-            case OBJECT:
-                for(ElementsObjectCategory category : ElementsObjectCategory.knownCategories()){
-                    validDescriptors.add(category.getSingular());
-                }
-                break;
-            default:
-                validDescriptors.add(itemType.getName());
-        }
-        return validDescriptors;
-    }
-
     //Main class definition
     private final ElementsItemId itemId;
 
