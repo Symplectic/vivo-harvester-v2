@@ -11,13 +11,6 @@ package uk.co.symplectic.vivoweb.harvester.model;
 
 import org.apache.commons.lang.NullArgumentException;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
-
-/**
- * Created by ajpc2_000 on 10/08/2016.
- */
 public abstract class ElementsItemInfo {
 
     //Static portion to deal with construction of Concrete ItemInfos

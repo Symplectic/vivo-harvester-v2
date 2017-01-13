@@ -6,12 +6,6 @@
  ******************************************************************************/
 package uk.co.symplectic.vivoweb.harvester.store;
 
-import org.apache.commons.lang.NullArgumentException;
-import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
-import uk.co.symplectic.vivoweb.harvester.model.ElementsItemInfo;
-
-import java.io.IOException;
-
 public class ElementsRdfStore extends ElementsItemFileStore {
 
     private static LayoutStrategy layoutStrategy = new DefaultLayoutStrategy(
@@ -23,18 +17,4 @@ public class ElementsRdfStore extends ElementsItemFileStore {
         super(dir, keepEmpty, zipFiles, ElementsRdfStore.layoutStrategy,
             StorableResourceType.TRANSLATED_OBJECT, StorableResourceType.TRANSLATED_RELATIONSHIP, StorableResourceType.TRANSLATED_GROUP, StorableResourceType.TRANSLATED_USER_PHOTO_DESCRIPTION);
     }
-
-    //wrapper to decide on the stored resource type...
-//    public void storeTranslatedItem(ElementsItemInfo itemInfo, byte[] translatedData) throws IOException{
-//        if(itemInfo == null) throw new NullArgumentException("itemInfo");
-//
-//        if(itemInfo.isObjectInfo())
-//            storeItem(itemInfo, StorableResourceType.TRANSLATED_OBJECT, translatedData);
-//        else if(itemInfo.isRelationshipInfo())
-//            storeItem(itemInfo, StorableResourceType.TRANSLATED_RELATIONSHIP, translatedData);
-//        else if(itemInfo.isGroupInfo())
-//            storeItem(itemInfo, StorableResourceType.TRANSLATED_GROUP, translatedData);
-//        else
-//            throw new IllegalStateException("Unstorable item translated");
-//    }
 }

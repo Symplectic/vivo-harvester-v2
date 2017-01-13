@@ -44,7 +44,7 @@
                     <descriptors>
                         <descriptor>assembly.xml</descriptor>
                     </descriptors>
-                    <finalName>${pom.artifactId}</finalName>
+                    <finalName>${project.artifactId}</finalName>
                 </configuration>
                 <executions>
                     <execution>
@@ -80,7 +80,7 @@
 			<artifactId>harvester</artifactId>
 			<version>1.5</version>
             <!-- Exclude the Saxon processor to use a newer version -->
-            <!-- exclusions>
+            <exclusions>
                 <exclusion>
                     <groupId>net.sf.saxon</groupId>
                     <artifactId>saxon</artifactId>
@@ -89,27 +89,41 @@
                     <groupId>net.sf.saxon</groupId>
                     <artifactId>saxon-dom</artifactId>
                 </exclusion>
-            </exclusions -->
+                <exclusion>
+                    <groupId>commons-httpclient</groupId>
+                    <artifactId>commons-httpclient</artifactId>
+                </exclusion>
+            </exclusions>
 		</dependency>
 
         <!-- Newer versions of Saxon - use the exclude above to enable -->
-        <!-- dependency>
-            <groupId>net.sourceforge.saxon</groupId>
-            <artifactId>saxon</artifactId>
-            <version>9.1.0.8</version>
-        </dependency>
-
         <dependency>
             <groupId>net.sf.saxon</groupId>
             <artifactId>Saxon-HE</artifactId>
             <version>9.4.0.7</version>
-        </dependency -->
+        </dependency>
 
+        <!-- https://mvnrepository.com/artifact/org.apache.httpcomponents/httpcore -->
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpcore</artifactId>
+            <version>4.4.5</version>
+        </dependency>
+
+		<!-- https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient -->
+		<dependency>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpclient</artifactId>
+			<version>4.5.2</version>
+		</dependency>
+
+        <!-- junit for unit test-->
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.10</version>
             <scope>test</scope>
         </dependency>
+
 	</dependencies>
 </project>

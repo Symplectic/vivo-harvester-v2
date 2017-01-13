@@ -6,18 +6,20 @@
  ******************************************************************************/
 package uk.co.symplectic.elements.api;
 
+import org.apache.commons.lang.NullArgumentException;
+
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 class ElementsValidatedUrl {
-    private static final List<String> allowedInsecureSchemes = Arrays.asList(new String[]{"http"});
-    private static final List<String> allowedSecureSchemes = Arrays.asList(new String[]{"https"});
+    private static final List<String> allowedInsecureSchemes = Collections.singletonList("http");
+    private static final List<String> allowedSecureSchemes = Collections.singletonList("https");
 
     private final String url;
     private final String rewrittenUrl;
@@ -30,6 +32,8 @@ class ElementsValidatedUrl {
     }
 
     ElementsValidatedUrl(String url, String comparisonUrl) throws URISyntaxException {
+        if (url == null) throw new NullArgumentException("url");
+
         URI comparisonUri = null;
         String comprisonTestHost = null;
         if(comparisonUrl != null) {
@@ -43,8 +47,6 @@ class ElementsValidatedUrl {
         }
 
         try {
-            if (url == null) throw new URISyntaxException(url, "URL must not be null");
-
             URL urlCheck = new URL(url);
             URI uriTest = urlCheck.toURI();
 

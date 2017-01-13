@@ -11,8 +11,6 @@ import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectInfo;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsRdfStore;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItem;
 import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
-
-import java.io.IOException;
 import java.text.MessageFormat;
 
 public class ElementsObjectTranslateObserver extends ElementsTranslateObserver{

@@ -10,7 +10,6 @@
 package uk.co.symplectic.vivoweb.harvester.fetch;
 
 import org.apache.commons.lang.NullArgumentException;
-import sun.plugin.dom.exception.InvalidStateException;
 import uk.co.symplectic.vivoweb.harvester.model.*;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsItemStore;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItem;
@@ -19,9 +18,6 @@ import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
 import java.io.IOException;
 import java.util.Set;
 
-/**
- * Created by ajpc2_000 on 18/08/2016.
- */
 public class ElementsGroupCollection extends ElementsItemKeyedCollection<ElementsGroupInfo.GroupHierarchyWrapper> {
     private ElementsGroupInfo.GroupHierarchyWrapper topLevel = null;
     private boolean membershipPopulated = false;
@@ -50,15 +46,15 @@ public class ElementsGroupCollection extends ElementsItemKeyedCollection<Element
                         topLevel = group;
                     } else {
                         topLevel = null;
-                        throw new InvalidStateException("Invalid Group Hierarchy detected");
+                        throw new IllegalStateException("Invalid Group Hierarchy detected");
                     }
                 }
             }
             if (topLevel == null)
-                throw new InvalidStateException("Invalid Group Hierarchy detected");
+                throw new IllegalStateException("Invalid Group Hierarchy detected");
 
             if (topLevel.getGroupInfo().getItemId().getId() != 1)
-                throw new InvalidStateException("Invalid Group Hierarchy detected - organisation group not topLevel");
+                throw new IllegalStateException("Invalid Group Hierarchy detected - organisation group not topLevel");
         }
         return topLevel;
     }
@@ -68,11 +64,12 @@ public class ElementsGroupCollection extends ElementsItemKeyedCollection<Element
         if(!membershipPopulated) {
             //fetch memberships from the API
             for (ElementsGroupInfo.GroupHierarchyWrapper group : this.values()) {
+                //take care with == here - this really is the same reference...
                 if (topLevel == group) continue; //don't process explicit memberships for the org group
                 fetcher.execute(new ElementsFetch.GroupMembershipConfig(group.getGroupInfo().getItemId().getId()),new GroupMembershipStore(group));
             }
 
-           //TODO: calculate organisation membership from user cache - requires cache to be present first, which will make other things easier too.
+           //calculate organisation membership from passed in user cache information
             Set<ElementsItemId> usersInNonOrgGroups = topLevel.getImplicitUsers();
             for (ElementsItemId userID : systemUsers) {
                 if(userID instanceof ElementsItemId.ObjectId) {

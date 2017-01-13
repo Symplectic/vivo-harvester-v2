@@ -7,12 +7,8 @@ import org.apache.commons.lang.NullArgumentException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.co.symplectic.vivoweb.harvester.model.*;
-
-import java.io.IOException;
-import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 public interface IElementsStoredItemObserver{
@@ -89,7 +85,7 @@ public interface IElementsStoredItemObserver{
 
     }
 
-    public class ElementsStoredResourceObserverAdapter extends ElementsStoredResourceObserver{
+    class ElementsStoredResourceObserverAdapter extends ElementsStoredResourceObserver{
 
         public ElementsStoredResourceObserverAdapter(StorableResourceType... resourceTypes){
             super(resourceTypes);

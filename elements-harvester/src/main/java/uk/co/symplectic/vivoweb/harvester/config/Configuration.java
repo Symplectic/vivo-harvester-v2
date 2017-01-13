@@ -122,8 +122,6 @@ public class Configuration {
 
     }
 
-    ;
-
     private static ConfigurationValues values = new ConfigurationValues();
 
     public static Integer getMaxThreadsResource() {
@@ -223,7 +221,7 @@ public class Configuration {
 
     //Has the system being successfully configured to move forwards?
     public static boolean isConfigured() {
-        return argList == null ? false : configErrors.size() == 0;
+        return argList != null && configErrors.size() == 0;
     }
 
     public static String getUsage() {
@@ -342,10 +340,11 @@ public class Configuration {
         String catList = argList.get(key);
         if (!StringUtils.isEmpty(catList)) {
             for (String category : catList.split("\\s*,\\s*")) {
-                if (category == null) {
+                ElementsObjectCategory cat = ElementsObjectCategory.valueOf(category);
+                if (cat == null) {
                     configErrors.add(MessageFormat.format("Invalid value ({0}) provided within argument {1} : {2} (every value must represent a valid Elements Category)", category, key, argList.get(key)));
                 }
-                categories.add(ElementsObjectCategory.valueOf(category));
+                categories.add(cat);
             }
         } else if(!tolerateNull) {
             configErrors.add(MessageFormat.format("Invalid value provided within argument {0} : {1} (must supply at least one Elements Category)", key, argList.get(key)));
@@ -379,7 +378,7 @@ public class Configuration {
         } else if ("true".equalsIgnoreCase(value)) {
             return true;
         } else {
-            if (defValue != null) return defValue.booleanValue();
+            if (defValue != null) return defValue;
             configErrors.add(MessageFormat.format("Invalid value provided for argument {0} : {1} (must be \"true\" or \"false\")", key, argList.get(key)));
             return false;
         }
@@ -395,7 +394,7 @@ public class Configuration {
         } catch (NumberFormatException nfe) {
             configErrors.add(MessageFormat.format("Invalid value provided for argument {0} : {1} (must be an integer)", key, argList.get(key)));
         }
-        if(defValue != null) return defValue.intValue();
+        if(defValue != null) return defValue;
         return -1;
     }
 
@@ -424,7 +423,7 @@ public class Configuration {
     }
 
     private static String getFileDirFromConfig(String key, String defValue) {
-        String fileDir= null;
+        String fileDir;
         try {
             fileDir = getRawFileDirFromConfig(key, defValue);
         }catch(Exception e){
@@ -458,35 +457,27 @@ public class Configuration {
 
     private static String getRawFileDirFromConfig(String key, String defValue) throws SAXException, ParserConfigurationException, IOException {
         String filename = argList.get(key);
-        try {
-            if (filename != null) {
-                File file = new File(filename);
-                if (file.exists()) {
-                    DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-                    DocumentBuilder db = dbf.newDocumentBuilder();
+        if (filename != null) {
+            File file = new File(filename);
+            if (file.exists()) {
+                DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+                DocumentBuilder db = dbf.newDocumentBuilder();
 
-                    Document doc = db.parse(file);
-                    if (doc != null) {
-                        doc.getDocumentElement().normalize();
-                        NodeList nodes = doc.getDocumentElement().getChildNodes();
-                        for (int i = 0; i < nodes.getLength(); i++) {
-                            Node node = nodes.item(i);
-                            if (node.hasAttributes()) {
-                                Node nameAttr = node.getAttributes().getNamedItem("name");
-                                if (nameAttr != null && "fileDir".equals(nameAttr.getTextContent())) {
-                                    return node.getTextContent();
-                                }
+                Document doc = db.parse(file);
+                if (doc != null) {
+                    doc.getDocumentElement().normalize();
+                    NodeList nodes = doc.getDocumentElement().getChildNodes();
+                    for (int i = 0; i < nodes.getLength(); i++) {
+                        Node node = nodes.item(i);
+                        if (node.hasAttributes()) {
+                            Node nameAttr = node.getAttributes().getNamedItem("name");
+                            if (nameAttr != null && "fileDir".equals(nameAttr.getTextContent())) {
+                                return node.getTextContent();
                             }
                         }
                     }
                 }
             }
-        } catch (SAXException e) {
-            throw e;
-        } catch (ParserConfigurationException e) {
-            throw e;
-        } catch (IOException e) {
-            throw e;
         }
         return defValue;
     }

@@ -6,6 +6,7 @@
  ******************************************************************************/
 package uk.co.symplectic.vivoweb.harvester.model;
 
+import uk.co.symplectic.elements.api.ElementsAPI;
 import uk.co.symplectic.xml.XMLEventProcessor;
 
 import javax.xml.namespace.QName;
@@ -13,6 +14,9 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.events.EndElement;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
+
+import static uk.co.symplectic.elements.api.ElementsAPI.apiNS;
+import static uk.co.symplectic.elements.api.ElementsAPI.atomNS;
 
 public class ElementsObjectInfo extends ElementsItemInfo{
 
@@ -39,19 +43,20 @@ public class ElementsObjectInfo extends ElementsItemInfo{
             ElementsObjectCategory objectCategory = ElementsObjectCategory.valueOf(initialElement.getAttributeByName(new QName("category")).getValue());
             int objectId = Integer.parseInt(initialElement.getAttributeByName(new QName("id")).getValue());
             workspace = ElementsItemInfo.createObjectItem(objectCategory, objectId);
+            //reset additional Data..
             additionalUserData = null;
+            if(workspace.getItemId().getItemSubType() == ElementsObjectCategory.USER ) {
+                getAdditionalUserData().setUsername(initialElement.getAttributeByName(new QName("username")).getValue());
+            }
         }
 
         @Override
         protected void processEvent(XMLEvent event, XMLEventProcessor.ReaderProxy readerProxy) throws XMLStreamException {
-            if (workspace instanceof ElementsUserInfo) {
-                ElementsUserInfo userInfo = (ElementsUserInfo) workspace;
+            if (workspace.getItemId().getItemSubType() == ElementsObjectCategory.USER) {
                 if (event.isStartElement()) {
                     StartElement startElement = event.asStartElement();
                     QName name = startElement.getName();
-                    if (name.equals(new QName(apiNS, "object")) || name.equals(new QName(apiNS, "deleted-object"))) {
-                        getAdditionalUserData().setUsername(startElement.getAttributeByName(new QName("username")).getValue());
-                    } else if (name.equals(new QName(apiNS, "is-current-staff"))) {
+                    if (name.equals(new QName(apiNS, "is-current-staff"))) {
                         XMLEvent nextEvent = readerProxy.peek();
                         if (nextEvent.isCharacters())
                             getAdditionalUserData().setIsCurrentStaff(Boolean.parseBoolean(nextEvent.asCharacters().getData()));

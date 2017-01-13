@@ -12,21 +12,20 @@
  ******************************************************************************/
 package uk.co.symplectic.vivoweb.harvester.app;
 
-import org.apache.axis2.jaxws.marshaller.impl.alt.Element;
-import org.apache.axis2.jaxws.message.Message;
-import org.apache.commons.httpclient.protocol.Protocol;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vivoweb.harvester.util.args.UsageException;
 import org.vivoweb.harvester.util.repo.JenaConnect;
 import org.vivoweb.harvester.util.repo.TDBJenaConnect;
+import uk.co.symplectic.TripleStoreUtils.DiffUtility;
+import uk.co.symplectic.TripleStoreUtils.FileSplitter;
+import uk.co.symplectic.TripleStoreUtils.ModelOutput;
+import uk.co.symplectic.TripleStoreUtils.TDBLoadUtility;
 import uk.co.symplectic.elements.api.ElementsAPI;
 import uk.co.symplectic.elements.api.ElementsAPIHttpClient;
 import uk.co.symplectic.elements.api.ElementsAPIVersion;
-import uk.co.symplectic.elements.api.IgnoreSSLErrorsProtocolSocketFactory;
 import uk.co.symplectic.translate.TranslationService;
 import uk.co.symplectic.utils.ExecutorServiceUtils;
 import uk.co.symplectic.vivoweb.harvester.config.Configuration;
@@ -40,169 +39,307 @@ import uk.co.symplectic.vivoweb.harvester.translate.ElementsVivoIncludeMonitor;
 
 import java.io.*;
 import java.text.MessageFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class ElementsFetchAndTranslate {
     /**
      * SLF4J Logger
      */
-    private static final Logger log = LoggerFactory.getLogger(ElementsFetchAndTranslate.class);
+    final private static Logger log = LoggerFactory.getLogger(ElementsFetchAndTranslate.class);
+
 
     /**
-     * Main method
+     * Date format that is used within state file to keep track of when the last successfully completed run occurred.
+     */
+    final private static SimpleDateFormat lastRunDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
+
+
+    /**
+     * StateType keeps track of whether this is an odd or an even run (i.e if this process has been run n times, is n%2 0 or 1)
+     */
+    private enum StateType{
+        ODD,
+        EVEN
+    }
+
+    /**
+     * Main entry method for ElementsFetchAndTranslate
+     * valid args defined by Configuration class
+     *
+     * The Purpose of process is to update a local cache of Elements data to the current time.
+     * The data in this cache is translated (to the Vivo ontology) using the configured XSLT scripts.
+     * The process then calculates what data is to be sent to vivo given the current configuration
+     * it then populates a TDB triple store with that data.
+     * This temporary triple store is  compared to the equivalent output from the previous run and difference files created.
+     * These additions and subtractions files are then split into fragments.
+     * These fragments can then be loaded into a live vivo using a FragmentLoader monitor process.
+     *
      * @param args commandline arguments
      */
     public static void main(String[] args) {
-        //TODO: fix issues with Config taking ages to load if data is present in the source directory, -needs to work for deltas
         Throwable caught = null;
         try {
             try {
+                boolean performFullPull = false; //todo: make configurable (command line switch)?
+                boolean updateLocalTDB = false;
+
+                //when did we start this run (i.e how "up to date" can we claim to be at the end).
+                Date runStartedAt = new Date();
+                //todo: move to config?
+                File stateFile = new File("state.txt");
+                //how many times has this process been run?
+                int runCount = 0;
+                //initially we assume there never has been a previous run (or at least we don't know when it was).
+                //TODO: decide if having no prior run should remove any prior loads in the TDB layer..?
+                Date lastRunDate = null;
+
+                //TODO: improve logging about loading state file... improve it when writing it too.
+                BufferedReader reader = null;
+                if(stateFile.exists()) {
+                    try {
+                        reader = new BufferedReader(new InputStreamReader(new FileInputStream(stateFile), "utf-8"));
+                        String str;
+                        int counter = 0;
+                        while ((str = reader.readLine()) != null) {
+                            if (counter == 0) {
+                                //load number of last completed run
+                                runCount = Integer.parseInt(str);
+                                //increment for this run.
+                                runCount++;
+                            } else if (counter == 1) {
+                                lastRunDate = lastRunDateFormat.parse(str);
+                            } else {
+                                log.debug("state.txt file appears to be corrupt - too many lines detected");
+                                throw new IllegalStateException("state.txt is corrupt");
+                            }
+                            counter++;
+                        }
+
+                    } catch (IOException e) {
+                        log.debug("Could not successfully load information from state.txt file");
+                        throw e; //todo: decide on correct behaviour
+                    } catch (NumberFormatException e) {
+                        log.debug("Could not successfully load run count from state.txt file. ");
+                        throw e; //todo: decide on correct behaviour
+                    } catch (ParseException e) {
+                        log.debug("Could not successfully load last run date from state.txt file. ");
+                        throw e; //todo: decide on correct behaviour
+                    } finally {
+                        if (reader != null) reader.close();
+                    }
+                }
+
+                //test if we have successfully loaded a run count, if not set it to zero and initiate a full;
+                StateType runType = (runCount%2 == 0) ? StateType.EVEN : StateType.ODD;
+
+                //if we are pulling all data then we want to force the run to be a full reload of the on disk cache.
+                if(performFullPull) lastRunDate = null;
+
+                //hacks for testing
+                //from next line read the date time
+                //String aString = "2016-11-23T17:41:39+0000";
+                //for melbourne testing
+                //aString = "2016-10-10T17:41:39+0000"; //old date - 50000 pubs 200000 affected rels
+                //aString = "2016-10-13T16:01:39+0000"; //much smaller diff date - 7500 off pubs
+                //Date aDate = lastRunDateFormat.parse(aString);
+
+                //runType = StateType.ODD;
+                //end of hacks for testing.
+
                 Configuration.parse("ElementsFetchAndTranslate", args);
-                //TODO: move working data directory to operate as a simple string passed in and have it delete that here too.
+                //TODO: worry about how manage TDB directory output (i.e. how we marshall it to previous-harvest?)
                 //TODO: ensure that configured directories are valid (either already exist or can be created?)
                 String interimTdbDirectory = Configuration.getTdbOutputDir();
+                File currentStore = new File(interimTdbDirectory, runType == StateType.EVEN ? "0" : "1");
+                File previousStore = new File(interimTdbDirectory, runType == StateType.ODD ? "0" : "1");
 
                 log.debug("ElementsFetchAndTranslate: Start");
 
-                //Set up the services that will be used to do asynchronous work
-                //TODO: move these elsewhere, or remove entirely?
-                setExecutorServiceMaxThreadsForPool("TranslationService",   Configuration.getMaxThreadsXsl());
-                setExecutorServiceMaxThreadsForPool("ResourceFetchService", Configuration.getMaxThreadsResource());
 
-                //Set up the Elements API and a fetcher that uses it.
-                ElementsAPI elementsAPI = ElementsFetchAndTranslate.getElementsAPI();
-                ElementsFetch elementsFetcher = new ElementsFetch(elementsAPI);
 
-                //Set up the objectStore (for raw Elements API data) and the rdfStore (for translated RDF XML data)
-                ElementsItemFileStore objectStore = ElementsStoreFactory.getObjectStore();
-                ElementsRdfStore rdfStore = ElementsStoreFactory.getRdfStore();
+                if(updateLocalTDB) {
+                    //Set up the services that will be used to do asynchronous work
+                    //TODO: move these elsewhere, or remove entirely?
+                    setExecutorServiceMaxThreadsForPool("TranslationService", Configuration.getMaxThreadsXsl());
+                    setExecutorServiceMaxThreadsForPool("ResourceFetchService", Configuration.getMaxThreadsResource());
 
-                //Get some config needed for wiring up the translation observers
-                String xslFilename = Configuration.getXslTemplate();
-                File vivoImageDir = ElementsFetchAndTranslate.getDirectoryFromPath(Configuration.getVivoImageDir());
-                String vivoBaseURI = Configuration.getBaseURI();
+                    //TODO: make these configurable?
+                    Set<String> relationshipTypesNeedingObjectsForTranslation = new HashSet<String>(Arrays.asList("activity-user-association", "user-teaching-association"));
 
-                //Hook item observers to the object store so that translations happen for any objects and relationships that arrive in that store
-                //translations are configured to output to the rdfStore;
-                objectStore.addItemObserver(new ElementsObjectTranslateObserver(rdfStore, xslFilename));
-                objectStore.addItemObserver(new ElementsRelationshipTranslateObserver(objectStore, rdfStore, xslFilename));
+                    //Set up the Elements API and a fetcher that uses it.
+                    ElementsAPI elementsAPI = ElementsFetchAndTranslate.getElementsAPI();
+                    ElementsFetch elementsFetcher = new ElementsFetch(elementsAPI);
 
-                //TODO: decide if this pattern is necessary - exists to minimise putting photos of users that are not to be included in a web acessible area..
-                //TODO: this is inaccurate though as "translated" has nothing to do with "included" anymore.
-                //Hook a photo retrieval observer onto the rdf store so that photos will be fetched and dropped in the object store for any translated users.
-                objectStore.addItemObserver(new ElementsUserPhotoRetrievalObserver(elementsAPI, objectStore));
-                //Hook a photo RDF generating observer onto the object store so that any fetched photos have corresponding "rdf" created in the translated output.
-                objectStore.addItemObserver(new ElementsUserPhotoRdfGeneratingObserver(rdfStore, vivoImageDir, vivoBaseURI, null));
 
-                //TODO: decide if a full harvest should still work this way...
-                //Hook a monitor to the object store to work out which objects and relationships we want to send to vivo
-                //ElementsVivoIncludeMonitor monitor = new ElementsVivoIncludeMonitor(includedUsers.keySet(), includedGroups.keySet(), visibleLinksOnly);
-                //objectStore.addItemObserver(monitor);
+                    ElementsRdfStore rdfStore = ElementsStoreFactory.getRdfStore();
+                    //Set up the objectStore (for raw Elements API data) and the rdfStore (for translated RDF XML data)
+                    ElementsItemFileStore objectStore = ElementsStoreFactory.getObjectStore();
 
-                String aString = "2016-11-23T17:41:39+0000";
-                //for melbourne testing
-                aString = "2016-10-10T17:41:39+0000";
-                SimpleDateFormat dateParser = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
-                Date aDate = dateParser.parse(aString);
-                //aDate = null;
+                    //Get some config needed for wiring up the translation observers
+                    String xslFilename = Configuration.getXslTemplate();
+                    File vivoImageDir = ElementsFetchAndTranslate.getDirectoryFromPath(Configuration.getVivoImageDir());
+                    String vivoBaseURI = Configuration.getBaseURI();
 
-                //TODO: make it configurable whether do deltas or not for different sections..
-                //Now we have wired up all our store observers perform the main fetches
-                processObjects(objectStore, elementsFetcher, aDate);
-                //fetch relationships.
-                processRelationships(objectStore, elementsFetcher, aDate);
+                    //Hook item observers to the object store so that translations happen for any objects and relationships that arrive in that store
+                    //translations are configured to output to the rdfStore;
+                    objectStore.addItemObserver(new ElementsObjectTranslateObserver(rdfStore, xslFilename));
+                    objectStore.addItemObserver(new ElementsRelationshipTranslateObserver(objectStore, rdfStore, xslFilename, relationshipTypesNeedingObjectsForTranslation));
 
-                //load the user cache from the now up to date full cache of user definitions on disk ..(they MUST be present)..
-                ElementsItemKeyedCollection.ItemRestrictor restrictToUsers = new ElementsItemKeyedCollection.RestrictToSubTypes(ElementsObjectCategory.USER);
-                ElementsItemKeyedCollection.ItemInfo userInfoCache = new ElementsItemKeyedCollection.ItemInfo(restrictToUsers);
-                for (StoredData.InFile userData : objectStore.getAllExistingFilesOfType(StorableResourceType.RAW_OBJECT, ElementsObjectCategory.USER)){
-                    ElementsStoredItem userItem = ElementsStoredItem.InFile.loadRawObject(userData.getFile(), userData.isZipped());
-                    userInfoCache.put(userItem.getItemInfo().getItemId(), userItem.getItemInfo());
-                }
+                    //TODO: work out how to marshall user photos into a web accessible area in a sensible manner based on included user set...
+                    //Hook a photo retrieval observer onto the rdf store so that photos will be fetched and dropped in the object store for any translated users.
+                    objectStore.addItemObserver(new ElementsUserPhotoRetrievalObserver(elementsAPI, objectStore));
+                    //Hook a photo RDF generating observer onto the object store so that any fetched photos have corresponding "rdf" created in the translated output.
+                    objectStore.addItemObserver(new ElementsUserPhotoRdfGeneratingObserver(rdfStore, vivoImageDir, vivoBaseURI, null));
 
-                //Now query the groups, post processing to build a group hierarchy containing users.
-                //TODO: only process group membership ? and maybe even user cache above for harvested groups?
-                //TODO: - note user cache would break optimisation to not process them later when pulling objects (need full set during translation stage)
-                ElementsGroupCollection groupCache = new ElementsGroupCollection();
-                elementsFetcher.execute(new ElementsFetch.GroupConfig(), groupCache.getStoreWrapper());
-                ElementsGroupInfo.GroupHierarchyWrapper groupHierarchy = groupCache.constructHierarchy();
-                groupCache.populateUserMembership(elementsFetcher, userInfoCache.keySet());
+                    //Now we have wired up all our store observers perform the main fetches
+                    //NOTE: order is absolutely vital (relationship translation scripts can rely on raw object data having been fetched)
+                    processObjects(objectStore, elementsFetcher, lastRunDate);
+                    //fetch relationships.
+                    //TODO: alter processRelationships call to just do re-processing of the the relevant links when re-pulling is not necessary.. (do based on API version?)
+                    //processRelationships(objectStore, elementsFetcher, aDate, true, relationshipTypesNeedingObjectsForTranslation);
+                    processRelationships(objectStore, elementsFetcher, lastRunDate, true, relationshipTypesNeedingObjectsForTranslation);
 
-                //work out the included users
-                ElementsItemKeyedCollection.ItemInfo includedUsers = CalculateIncludedUsers(userInfoCache, groupCache);
-                //work out the included groups too..
-                ElementsItemKeyedCollection.ItemInfo includedGroups = CalculateIncludedGroups(groupCache);
 
-                //Wire up the group translation observer...(needs group cache to work out members Ids and included users to get the user info of those members)
-                objectStore.addItemObserver(new ElementsGroupTranslateObserver(rdfStore, xslFilename, groupCache, includedUsers));
-                //fetch the groups and translate them
-                objectStore.cleardown(StorableResourceType.RAW_GROUP);
-                elementsFetcher.execute(new ElementsFetch.GroupConfig(), objectStore);
+                    //load the user cache from the now up to date full cache of user definitions on disk ..(they MUST be present)..
+                    ElementsItemKeyedCollection.ItemRestrictor restrictToUsers = new ElementsItemKeyedCollection.RestrictToSubTypes(ElementsObjectCategory.USER);
+                    ElementsItemKeyedCollection.ItemInfo userInfoCache = new ElementsItemKeyedCollection.ItemInfo(restrictToUsers);
+                    for (StoredData.InFile userData : objectStore.getAllExistingFilesOfType(StorableResourceType.RAW_OBJECT, ElementsObjectCategory.USER)) {
+                        ElementsStoredItem userItem = ElementsStoredItem.InFile.loadRawObject(userData.getFile(), userData.isZipped());
+                        userInfoCache.put(userItem.getItemInfo().getItemId(), userItem.getItemInfo());
+                    }
 
-                //Initiate the shutdown of the asynchronous translation engine - note this will actually block until
-                //the engine has completed all its enqueued tasks - think of it as "await completion".
-                TranslationService.awaitShutdown();
+                    //Now query the groups, post processing to build a group hierarchy containing users.
+                    ElementsGroupCollection groupCache = new ElementsGroupCollection();
+                    elementsFetcher.execute(new ElementsFetch.GroupConfig(), groupCache.getStoreWrapper());
+                    groupCache.constructHierarchy();
+                    groupCache.populateUserMembership(elementsFetcher, userInfoCache.keySet());
 
-                //changes towards making include monitoring a separate step in the process?
+                    //work out the included users
+                    ElementsItemKeyedCollection.ItemInfo includedUsers = CalculateIncludedUsers(userInfoCache, groupCache);
+                    //work out the included groups too..
+                    ElementsItemKeyedCollection.ItemInfo includedGroups = CalculateIncludedGroups(groupCache);
 
-                //Hook a monitor up to work out which objects and relationships we want to send to vivo
-                // when building a triple store to represent the current state after this connector run.
-                //write out a list of translated rdf files that ought to be included
-                //TODO: establish if a full load should do this in line as it used to....
-                log.debug("ElementsFetchAndTranslate: Processing all relationships to establish which items to include in final output");
-                //TODO: better logging and also test performance against spinning rust...
+                    //Wire up the group translation observer...(needs group cache to work out members Ids and included users to get the user info of those members)
+                    objectStore.addItemObserver(new ElementsGroupTranslateObserver(rdfStore, xslFilename, groupCache, includedUsers));
+                    //fetch the groups and translate them
+                    objectStore.cleardown(StorableResourceType.RAW_GROUP);
+                    elementsFetcher.execute(new ElementsFetch.GroupConfig(), objectStore);
 
-                boolean visibleLinksOnly = Configuration.getVisibleLinksOnly();
-                ElementsVivoIncludeMonitor monitor = new ElementsVivoIncludeMonitor(includedUsers.keySet(), includedGroups.keySet(), visibleLinksOnly);
+                    //Initiate the shutdown of the asynchronous translation engine - note this will actually block until
+                    //the engine has completed all its enqueued tasks - think of it as "await completion".
+                    TranslationService.awaitShutdown();
 
-                for(StoredData.InFile relData : objectStore.getAllExistingFilesOfType(StorableResourceType.RAW_RELATIONSHIP)){
-                    ElementsStoredItem relItem = ElementsStoredItem.InFile.loadRawRelationship(relData.getFile(), relData.isZipped());
-                    monitor.observe(relItem);
-                }
+                    //changes towards making include monitoring a separate step in the process?
 
-                List<StoredData.InFile> filesToProcess = new ArrayList<StoredData.InFile>();
-                BufferedWriter writer = null;
-                try {
-                    //TODO: check this all works as expected and move file location to config remove prune stuff
-                    writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("fileList.txt"), "utf-8"));
+                    //Hook a monitor up to work out which objects and relationships we want to send to vivo
+                    // when building a triple store to represent the current state after this connector run.
+                    //write out a list of translated rdf files that ought to be included
+                    log.debug("ElementsFetchAndTranslate: Processing cached relationships to establish which items to include in final output");
+                    //TODO: test performance against spinning rust...
 
-                    //TODO: make ElementsItemCollections order things better - particularly within the objects type
-                    for(ElementsItemType type : ElementsItemType.values()) {
-                        for (ElementsItemId includedItem : monitor.getIncludedItems().get(type)) {
-                            //TODO: restrict to certain output resource types?
-                            for (BasicElementsStoredItem item : rdfStore.retrieveAllItems(includedItem)) {
-                                filesToProcess.add((StoredData.InFile) item.getStoredData());
-                                writer.write(item.getStoredData().getAddress());
-                                writer.newLine();
+                    boolean visibleLinksOnly = Configuration.getVisibleLinksOnly();
+                    ElementsVivoIncludeMonitor monitor = new ElementsVivoIncludeMonitor(includedUsers.keySet(), includedGroups.keySet(), visibleLinksOnly);
+
+                    int counter = 0;
+                    for (StoredData.InFile relData : objectStore.getAllExistingFilesOfType(StorableResourceType.RAW_RELATIONSHIP)) {
+                        ElementsStoredItem relItem = ElementsStoredItem.InFile.loadRawRelationship(relData.getFile(), relData.isZipped());
+                        monitor.observe(relItem);
+                        counter++;
+                        if (counter % 10000 == 0)
+                            log.debug(MessageFormat.format("ElementsFetchAndTranslate: {0} relationships processed from cache", counter));
+                    }
+                    log.debug(MessageFormat.format("ElementsFetchAndTranslate: finished processing relationships from cache, {0} items processed in total", counter));
+
+                    log.debug("ElementsFetchAndTranslate: Calculating output files related to included objects");
+                    List<StoredData.InFile> filesToProcess = new ArrayList<StoredData.InFile>();
+                    BufferedWriter writer = null;
+                    try {
+                        //TODO: check this all works as expected and move file location to config remove prune stuff
+                        writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("fileList.txt"), "utf-8"));
+
+                        //TODO: make ElementsItemCollections order things better - particularly within the objects type
+                        for (ElementsItemType type : ElementsItemType.values()) {
+                            for (ElementsItemId includedItem : monitor.getIncludedItems().get(type)) {
+                                //TODO: restrict to certain output resource types?
+                                for (BasicElementsStoredItem item : rdfStore.retrieveAllItems(includedItem)) {
+                                    filesToProcess.add((StoredData.InFile) item.getStoredData());
+                                    writer.write(item.getStoredData().getAddress());
+                                    writer.newLine();
+                                }
                             }
                         }
+                    } finally {
+                        if (writer != null) writer.close();
                     }
+                    log.debug("ElementsFetchAndTranslate: Finished calculating output files related to included objects");
+                    //end of changes towards making include monitoring a separate step in the process
+
+                    currentStore.mkdirs();
+                    previousStore.mkdirs();
+
+                    //clear the current store ahead of re-loading
+                    FileUtils.deleteDirectory(currentStore);
+                    //TODO: ensure that comparison store is nulled out too if we are starting with no state....
+
+                    log.debug(MessageFormat.format("ElementsFetchAndTranslate: Transferring output data to triplestore \"{0}\"", currentStore.getAbsolutePath()));
+                    JenaConnect currentJC = new TDBJenaConnect(currentStore.getAbsolutePath());
+                    //JenaConnect jc = new TDBJenaConnect(currentStore.getAbsolutePath(), "http://vitro.mannlib.cornell.edu/default/vitro-kb-2");
+                    TDBLoadUtility.load(currentJC, filesToProcess.iterator());
+                    log.debug("ElementsFetchAndTranslate: Finished transferring data to triplestore");
+                }
+
+                log.debug("ElementsFetchAndTranslate: Calculating additions based on comparison to previous run");
+                JenaConnect currentJC = new TDBJenaConnect(currentStore.getAbsolutePath());
+                JenaConnect previousJC = new TDBJenaConnect(previousStore.getAbsolutePath());
+                File additionsFile = new File(interimTdbDirectory, "additions.n3");
+                ModelOutput additionsOutput = new ModelOutput.FileOutput(additionsFile);
+                DiffUtility.diff(currentJC, previousJC, additionsOutput);
+                log.debug("ElementsFetchAndTranslate: Calculating subtractions based on comparison to previous run");
+
+                File subtractionsFile = new File(interimTdbDirectory, "subtractions.n3");
+                ModelOutput subtractionsOutput = new ModelOutput.FileOutput(subtractionsFile);
+                DiffUtility.diff(previousJC, currentJC, subtractionsOutput);
+
+                //TODO: ? make this action configurable?
+                File fragmentStore = new File(interimTdbDirectory, "fragments");
+                //FileSplitter splitter = new FileSplitter(fragmentStore);
+                FileSplitter splitter = new FileSplitter.NTriplesSplitter(fragmentStore);
+                splitter.split(additionsFile, runStartedAt, FileSplitter.Type.Additions);
+                splitter.split(subtractionsFile, runStartedAt, FileSplitter.Type.Subtractions);
+
+                //if completed successfully manage state file..
+                //TODO: worry about how to handle failures tha mean state file is not updated after the diff phase.
+                boolean stateFileManagementErrorDetected = false;
+                //manage state file
+                BufferedWriter stateWriter = null;
+                try {
+                    stateWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(stateFile), "utf-8"));
+                    stateWriter.write(Integer.toString(runCount));
+                    stateWriter.newLine();
+                    stateWriter.write(lastRunDateFormat.format(runStartedAt));
+                }
+                catch(IOException e){
+                    stateFileManagementErrorDetected = true;
                 }
                 finally{
-                    if(writer != null) writer.close();
+                    try {
+                        if(stateWriter != null) stateWriter.close();
+                    }catch(IOException e){
+                        stateFileManagementErrorDetected = true;
+                    }
                 }
-                log.debug("ElementsFetchAndTranslate: Finished processing relationships");
-                //end of changes towards making include monitoring a separate step in the process
 
-                //todo: move this to configuration
-                FileUtils.deleteDirectory(new File(interimTdbDirectory));
-                log.debug(MessageFormat.format("ElementsFetchAndTranslate: Transferring data to triplestore \"{0}\"", interimTdbDirectory));
-                JenaConnect jc = new TDBJenaConnect(interimTdbDirectory);
-                //JenaConnect jc = new TDBJenaConnect(interimTdbDirectory, "http://vitro.mannlib.cornell.edu/default/vitro-kb-2");
-                TDBLoadUtility.load(jc, filesToProcess.iterator());
-                log.debug("ElementsFetchAndTranslate: Finished transferring data to triplestore");
-
+                if(stateFileManagementErrorDetected){
+                    //todo : make it do something about state file errors - what is a good question...
+                }
 
             } catch (IOException e) {
                 System.err.println("Caught IOException initialising ElementsFetchAndTranslate");
                 e.printStackTrace(System.err);
                 caught = e;
             }
-
         } catch (UsageException e) {
             caught = e;
             if (!Configuration.isConfigured()) {
@@ -242,11 +379,11 @@ public class ElementsFetchAndTranslate {
             ElementsFetch.ObjectConfig delObjConfig = new ElementsFetch.DeletedObjectConfig(true, 100, modifiedSince, categories);
             elementsFetcher.execute(objConfig, objectStore);
             elementsFetcher.execute(delObjConfig, objectStore);
-            //todo: need to capture all delta affected objects and update their corresponding relationships to handle translation dependancies (and also to workaround issues in API)
         }
     }
 
-    private static void processRelationships(ElementsItemFileStore objectStore, ElementsFetch elementsFetcher, Date modifiedSince) throws IOException{
+    private static void processRelationships(ElementsItemFileStore objectStore, ElementsFetch elementsFetcher, Date modifiedSince,
+                                             boolean repullAllRelationshipsForModifiedObjects, Set<String> relationshipTypesToReprocess) throws IOException{
         if(modifiedSince == null) {
             //TODO: make this at least log what is happening
             objectStore.cleardown(StorableResourceType.RAW_RELATIONSHIP);
@@ -254,14 +391,71 @@ public class ElementsFetchAndTranslate {
             ElementsFetch.RelationshipConfig relConfig = new ElementsFetch.RelationshipConfig(null, Configuration.getApiRelationshipsPerPage());
             elementsFetcher.execute(relConfig, objectStore);
         }
-        else{
+        else {
             ElementsFetch.RelationshipConfig relConfig = new ElementsFetch.RelationshipConfig(modifiedSince, Configuration.getApiRelationshipsPerPage());
             ElementsFetch.RelationshipConfig delRelConfig = new ElementsFetch.DeletedRelationshipConfig(modifiedSince, Configuration.getApiRelationshipsPerPage());
-            ElementsFetch.ObjectsRelationshipsConfig reprocessForModifiedObjectsConfig = new ElementsFetch.ObjectsRelationshipsConfig(objectStore.getAffectedItems(StorableResourceType.RAW_OBJECT), Configuration.getApiRelationshipsPerPage());
             elementsFetcher.execute(relConfig, objectStore);
             //TODO : make this not translate if already processed relationship this run?
-            elementsFetcher.execute(reprocessForModifiedObjectsConfig, objectStore);
             elementsFetcher.execute(delRelConfig, objectStore);
+
+            //Work out if we need to do any re-processing
+            Set<ElementsItemId> modifiedObjects = objectStore.getAffectedItems(StorableResourceType.RAW_OBJECT);
+
+            //Note these sections below are kept separate to facilitate easy removal of repull All when API supports better behaviour
+            //if we are going to repull everything (to avoid issues with visibility not showing up correctly).
+            if (repullAllRelationshipsForModifiedObjects) {
+                log.debug("ElementsFetchAndTranslate: Processing relationship cache to establish which to repull based on objects modified this run");
+                Set<ElementsItemId> relationshipsToRepull = new HashSet<ElementsItemId>();
+                //loop over the current state of our raw object cache (which is up to date on this thread) to establish which relationships are related to the recently modified objects
+                int counter = 0;
+                for (StoredData.InFile relData : objectStore.getAllExistingFilesOfType(StorableResourceType.RAW_RELATIONSHIP)) {
+                    ElementsStoredItem relItem = ElementsStoredItem.InFile.loadRawRelationship(relData.getFile(), relData.isZipped());
+                    //check if the object on either side is one that has been modified, if so then flag this relationship as needing re-pulling
+                    for (ElementsItemId.ObjectId objectId : relItem.getItemInfo().asRelationshipInfo().getObjectIds()) {
+                        if (modifiedObjects.contains(objectId)) {
+                            relationshipsToRepull.add(relItem.getItemInfo().getItemId());
+                            break;
+                        }
+                    }
+                    counter++;
+                    if(counter % 10000 == 0) log.debug(MessageFormat.format("ElementsFetchAndTranslate: {0} relationships processed from cache", counter));
+                }
+                log.debug(MessageFormat.format("ElementsFetchAndTranslate: finished processing relationships from cache, {0} items processed in total", counter));
+                //re-pull data for those relationships batched up sensibly.
+                if(!relationshipsToRepull.isEmpty()) {
+                    ElementsFetch.RelationshipsListConfig reprocessForModifiedObjectsConfig = new ElementsFetch.RelationshipsListConfig(relationshipsToRepull);
+                    elementsFetcher.execute(reprocessForModifiedObjectsConfig, objectStore);
+                }
+            }
+            //if not repulling all relationships for modified objects and if set up to re-process certain relationship types then do that re-processing
+            else if (relationshipTypesToReprocess != null && !relationshipTypesToReprocess.isEmpty()) {
+                log.debug("ElementsFetchAndTranslate: Processing relationship cache to establish which to re-process based on objects modified this run");
+                Set<ElementsItemInfo> relationshipsToReprocess = new HashSet<ElementsItemInfo>();
+                int counter = 0;
+                for (StoredData.InFile relData : objectStore.getAllExistingFilesOfType(StorableResourceType.RAW_RELATIONSHIP)) {
+                    ElementsStoredItem relItem = ElementsStoredItem.InFile.loadRawRelationship(relData.getFile(), relData.isZipped());
+                    //if this relationship is of a type we may need to reprocess
+                    if (relationshipTypesToReprocess.contains("all") || relationshipTypesToReprocess.contains(relItem.getItemInfo().asRelationshipInfo().getType())) {
+                        //check if the object on either side is one that has been modified, if so then flag the relationship as needing re-processing
+                        for (ElementsItemId.ObjectId objectId : relItem.getItemInfo().asRelationshipInfo().getObjectIds()) {
+                            if (modifiedObjects.contains(objectId)) {
+                                relationshipsToReprocess.add(relItem.getItemInfo());
+                                break;
+                            }
+                        }
+                    }
+                    counter++;
+                    if(counter % 10000 == 0) log.debug(MessageFormat.format("ElementsFetchAndTranslate: {0} relationships processed from cache", counter));
+                }
+                log.debug(MessageFormat.format("ElementsFetchAndTranslate: finished processing relationships from cache, {0} items processed in total", counter));
+
+                //re-pull data for those relationships batched up sensibly.
+                for(ElementsItemInfo relInfo : relationshipsToReprocess){
+                    objectStore.touchItem(relInfo, StorableResourceType.RAW_RELATIONSHIP);
+                }
+
+                log.debug(MessageFormat.format("ElementsFetchAndTranslate: Enqueued {0} relationships for reprocessing", relationshipsToReprocess.size()));
+            }
         }
     }
 
@@ -291,7 +485,6 @@ public class ElementsFetchAndTranslate {
         }
 
         for(ElementsItemId.GroupId groupId : Configuration.getGroupsToExclude()){
-            //todo: ensure boxing can't fail here?
             ElementsGroupInfo.GroupHierarchyWrapper currentGroup = groupCache.get(groupId);
             ElementsGroupInfo info = currentGroup.getGroupInfo();
             includedGroups.remove(info.getItemId());
@@ -305,7 +498,7 @@ public class ElementsFetchAndTranslate {
     }
 
     private static ElementsItemKeyedCollection.ItemInfo CalculateIncludedUsers(ElementsItemKeyedCollection.ItemInfo userInfoCache, ElementsGroupCollection groupCache){
-        //TODO : move academics into a config item.
+        //TODO : move academicsOnly into a config item.
         boolean academicsOnly = false; //Configuration.getAcademicsOnly();
         boolean currentStaffOnly = Configuration.getCurrentStaffOnly();
 
@@ -340,7 +533,6 @@ public class ElementsFetchAndTranslate {
         }
 
         for(ElementsItemId.GroupId groupId : Configuration.getGroupsToExclude()){
-            //todo: ensure boxing can't fail here?
             ElementsGroupInfo.GroupHierarchyWrapper group = groupCache.get(groupId);
             includedUsers.removeAll(group.getImplicitUsers());
         }
@@ -349,15 +541,15 @@ public class ElementsFetchAndTranslate {
     }
 
     private static ElementsAPI getElementsAPI() {
-        if (Configuration.getIgnoreSSLErrors()) {
-            Protocol.registerProtocol("https", new Protocol("https", new IgnoreSSLErrorsProtocolSocketFactory(), 443));
-        }
-
         String apiEndpoint = Configuration.getApiEndpoint();
         ElementsAPIVersion apiVersion = Configuration.getApiVersion();
 
         String apiUsername = Configuration.getApiUsername();
         String apiPassword = Configuration.getApiPassword();
+
+        if (Configuration.getIgnoreSSLErrors()) {
+            ElementsAPIHttpClient.ignoreSslErrors();
+        }
 
         int soTimeout = Configuration.getApiSoTimeout();
         if (soTimeout > 4999 && soTimeout < (30 * 60 * 1000)) {
@@ -369,12 +561,12 @@ public class ElementsFetchAndTranslate {
             ElementsAPIHttpClient.setRequestDelay(requestDelay);
         }
 
-        return new ElementsAPI(apiVersion, apiEndpoint, apiUsername, apiPassword);
+        //TODO: move "true" for reqrite mismatched urls to config.
+        return new ElementsAPI(apiVersion, apiEndpoint, apiUsername, apiPassword, true);
     }
 
     private static File getDirectoryFromPath(String path) {
         File file = null;
-        // TODO: This should be a required configuration parameter that specifies a path accessible by the VIVO web container
         if (!StringUtils.isEmpty(path)) {
             file = new File(path);
             if (file.exists()) {
@@ -394,3 +586,4 @@ public class ElementsFetchAndTranslate {
         }
     }
 }
+

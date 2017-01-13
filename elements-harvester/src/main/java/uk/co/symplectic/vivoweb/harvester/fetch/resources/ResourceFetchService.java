@@ -17,7 +17,6 @@ import java.net.MalformedURLException;
 
 public final class ResourceFetchService {
     private static Logger log = LoggerFactory.getLogger(ResourceFetchService.class);
-    ResourceFetchServiceImpl impl;
 
     public ResourceFetchService() {
 
@@ -27,9 +26,9 @@ public final class ResourceFetchService {
         ResourceFetchServiceImpl.fetchUserPhoto(api, userInfo, objectStore);
     }
 
-    public void fetchExternal(String url, File outputFile) throws MalformedURLException {
-        ResourceFetchServiceImpl.fetchExternal(url, outputFile);
-    }
+//    public void fetchExternal(String url, File outputFile) throws MalformedURLException {
+//        ResourceFetchServiceImpl.fetchExternal(url, outputFile);
+//    }
 
     public static void awaitShutdown() {
         ResourceFetchServiceImpl.awaitShutdown();

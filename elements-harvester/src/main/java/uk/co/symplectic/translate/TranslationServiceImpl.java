@@ -11,7 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.co.symplectic.utils.ExecutorServiceUtils;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsItemStore;
-import uk.co.symplectic.vivoweb.harvester.store.ElementsRdfStore;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItem;
 import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
 
@@ -38,7 +37,7 @@ import java.util.concurrent.Future;
 final class TranslationServiceImpl {
     private static final Logger log = LoggerFactory.getLogger(TranslationServiceImpl.class);
 
-    private static final ExecutorServiceUtils.ExecutorServiceWrapper wrapper = ExecutorServiceUtils.newFixedThreadPool("TranslationService", Boolean.class);
+    private static final ExecutorServiceUtils.ExecutorServiceWrapper<Boolean> wrapper = ExecutorServiceUtils.newFixedThreadPool("TranslationService");
 
     private TranslationServiceImpl() {}
 
@@ -51,27 +50,22 @@ final class TranslationServiceImpl {
         }
     }
 
-    static TransformerFactory getFactory() {
+    private static TransformerFactory getFactory() {
         TransformerFactory factory = null;
         try {
             factory =  TransformerFactory.newInstance("net.sf.saxon.TransformerFactoryImpl", null);
         } catch (TransformerFactoryConfigurationError transformerFactoryConfigurationError) {
-            log.warn("Unable to obtain Saxon XSLT factory. Attempting fallback to default.", transformerFactoryConfigurationError);
-        }
-        //TODO: remove this fallback - xalan WILL NOT WORK!
-        if (null == factory) {
-            factory = TransformerFactory.newInstance();
+            log.error("Unable to obtain Saxon XSLT factory.", transformerFactoryConfigurationError);
         }
 
         if (null == factory) {
             throw new IllegalStateException("Unable to obtain a TransformerFactory instance");
         }
-
         return factory;
     }
 
     static void translate(TranslationServiceConfig config, ElementsStoredItem input, ElementsItemStore output, StorableResourceType outputType, TemplatesHolder translationTemplates, Map<String, Object> extraParams) {
-        Future<Boolean> result = wrapper.submit(new ItemTranslateTask(config, input, output, outputType, translationTemplates, extraParams));
+        wrapper.submit(new ItemTranslateTask(config, input, output, outputType, translationTemplates, extraParams));
     }
 
     static void awaitShutdown() {
@@ -160,7 +154,15 @@ final class TranslationServiceImpl {
                     if (!config.getUseFullUTF8()) {
                         xml = xml.replaceAll("[^\\u0000-\\uFFFF]", "\uFFFD");
                     }
-                    storeOutput(xml.getBytes("utf-8"));
+
+                    //work around saxon oddness
+                    if(xml.equals("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")) {
+                        storeOutput(null);
+//                        log.info(MessageFormat.format("no translated output for item {0}", inputItem.getItemInfo().getItemId()));
+                    }
+                    else {
+                        storeOutput(xml.getBytes("utf-8"));
+                    }
 
                 } catch (IOException e) {
                     log.error(MessageFormat.format("Unable to write to {0}", getOutputDescription()), e);
@@ -170,10 +172,6 @@ final class TranslationServiceImpl {
                     log.error(MessageFormat.format("Unable to perform translation on {0}", getInputDescription()), e);
                     if (!tolerateTransformErrors) throw e;
                     retCode = Boolean.FALSE;
-                } catch (IndexOutOfBoundsException e){
-                    log.error(MessageFormat.format("Unexpected error performing translation on {0}",getInputDescription()),e);
-                    //TODO: SOLVE THE ISSUES SAXON SEEMS TO HAVE? OR MAKE THIS AN OFFICIAL SWITCH?
-                    //throw e;
                 }
                 finally {
                     try {

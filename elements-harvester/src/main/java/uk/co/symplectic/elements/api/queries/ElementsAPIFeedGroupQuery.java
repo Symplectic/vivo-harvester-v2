@@ -16,7 +16,7 @@ public class ElementsAPIFeedGroupQuery extends ElementsFeedQuery {
     }
 
     @Override
-    public String getUrlString(String apiBaseUrl, ElementsAPIURLBuilder builder) {
+    protected String getUrlString(String apiBaseUrl, ElementsAPIURLBuilder builder) {
         return builder.buildGroupQuery(apiBaseUrl, this);
     }
 }

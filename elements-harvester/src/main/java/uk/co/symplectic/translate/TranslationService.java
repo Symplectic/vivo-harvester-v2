@@ -9,7 +9,6 @@ package uk.co.symplectic.translate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsItemStore;
-import uk.co.symplectic.vivoweb.harvester.store.ElementsRdfStore;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItem;
 import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
 

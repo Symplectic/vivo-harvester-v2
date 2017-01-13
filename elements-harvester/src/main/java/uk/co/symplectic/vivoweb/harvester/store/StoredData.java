@@ -14,16 +14,13 @@ import org.apache.commons.lang.NullArgumentException;
 import java.io.*;
 import java.util.zip.GZIPInputStream;
 
-/**
- * Created by ajpc2_000 on 08/11/2016.
- */
 public interface StoredData {
     String getAddress();
     InputStream getInputStream() throws IOException;
     void delete();
 
 
-    static class InRam implements StoredData {
+    class InRam implements StoredData {
         private byte[] data;
 
         public InRam(byte[] data) {
@@ -51,7 +48,7 @@ public interface StoredData {
         }
     }
 
-    static class InFile implements StoredData {
+    class InFile implements StoredData {
         private final File file;
         private final boolean isZipped;
 

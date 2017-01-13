@@ -27,9 +27,6 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Created by ajpc2_000 on 05/09/2016.
- */
 public class ElementsGroupTranslateObserver extends ElementsTranslateObserver {
 
     private final ElementsGroupCollection groupCache;

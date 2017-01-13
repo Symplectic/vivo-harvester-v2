@@ -30,7 +30,7 @@ public class ElementsItemCollection {
         }
     }
 
-    protected Set<ElementsItemId> getOrCreateSetForCategory(ElementsItemType type) {
+    private Set<ElementsItemId> getOrCreateSetForCategory(ElementsItemType type) {
         Set<ElementsItemId> itemSet = mData.get(type);
         if (itemSet == null) {
             itemSet = new HashSet<ElementsItemId>();
@@ -61,8 +61,7 @@ public class ElementsItemCollection {
     }
 
     public synchronized Set<ElementsItemId> get(ElementsItemType type) {
-        Set<ElementsItemId> resultSet = Collections.unmodifiableSet(getOrCreateSetForCategory(type));
-        return resultSet;
+        return Collections.unmodifiableSet(getOrCreateSetForCategory(type));
     }
 }
 

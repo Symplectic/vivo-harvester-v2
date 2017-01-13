@@ -7,9 +7,7 @@
  *  *****************************************************************************
  */
 
-package uk.co.symplectic.vivoweb.harvester.store;
-
-import com.hp.hpl.jena.graph.Node;
+package uk.co.symplectic.TripleStoreUtils;
 import com.hp.hpl.jena.graph.Triple;
 import com.hp.hpl.jena.tdb.nodetable.NodeTupleTable;
 import com.hp.hpl.jena.tdb.store.DatasetGraphTDB;
@@ -24,15 +22,12 @@ import org.openjena.riot.RiotReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vivoweb.harvester.util.repo.JenaConnect;
+import uk.co.symplectic.vivoweb.harvester.store.StoredData;
 
 import java.io.IOException;
 import java.text.MessageFormat;
-import java.util.Date;
 import java.util.Iterator;
 
-/**
- * Created by ajpc2_000 on 10/11/2016.
- */
 public class TDBLoadUtility {
 
     private static final Logger log = LoggerFactory.getLogger(TDBLoadUtility.class);
@@ -41,7 +36,7 @@ public class TDBLoadUtility {
         //GraphTDB graph = (GraphTDB) new ModTDBDataset().getDataset().getDefaultModel().getGraph();
         GraphTDB graph = (GraphTDB) jc.getJenaModel().getGraph();
 
-        Destination dest = destinationDefaultGraph(graph.getDataset());
+        Destination<Triple> dest = destinationDefaultGraph(graph.getDataset());
 
         dest.start();
         int processCount = 0;
@@ -51,7 +46,7 @@ public class TDBLoadUtility {
                 log.info(MessageFormat.format("{0} records processed : current record = {1}", processCount, current.getFile().getAbsolutePath()));
             }
             try {
-                RiotReader.parseTriples(current.getInputStream(), Lang.RDFXML, (String) null, dest);
+                RiotReader.parseTriples(current.getInputStream(), Lang.RDFXML, null, dest);
             }
             catch(IOException e) {
                 log.warn(MessageFormat.format("Item : {0} is corrupt.", current.getFile().getAbsolutePath()));
@@ -64,7 +59,6 @@ public class TDBLoadUtility {
             processCount++;
         }
         dest.finish();
-
     }
 
     private static Destination<Triple> destinationDefaultGraph(DatasetGraphTDB dsg) {
@@ -76,7 +70,7 @@ public class TDBLoadUtility {
         //LoadMonitor monitor = createLoadMonitor(dsg, "triples", showProgress);
         LoadMonitor monitor = new LoadMonitor(dsg, (Logger)null, "triples", (long) BulkLoader.DataTickPoint, BulkLoader.IndexTickPoint);
         final LoaderNodeTupleTable loaderTriples = new LoaderNodeTupleTable(nodeTupleTable, "triples", monitor);
-        Destination sink = new Destination<Triple>() {
+        return new Destination<Triple>() {
             long count = 0L;
 
             public final void start() {
@@ -85,7 +79,7 @@ public class TDBLoadUtility {
             }
 
             public final void send(Triple triple) {
-                loaderTriples.load(new Node[]{triple.getSubject(), triple.getPredicate(), triple.getObject()});
+                loaderTriples.load(triple.getSubject(), triple.getPredicate(), triple.getObject());
                 ++this.count;
             }
 
@@ -102,7 +96,5 @@ public class TDBLoadUtility {
                 loaderTriples.loadFinish();
             }
         };
-        return sink;
     }
-
 }

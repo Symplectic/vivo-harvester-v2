@@ -6,17 +6,13 @@
  ******************************************************************************/
 package uk.co.symplectic.elements.api.versions;
 
-import org.apache.commons.lang.StringUtils;
 import uk.co.symplectic.elements.api.ElementsAPIURLBuilder;
 import uk.co.symplectic.elements.api.queries.ElementsAPIFeedGroupQuery;
 import uk.co.symplectic.elements.api.queries.ElementsAPIFeedObjectQuery;
-import uk.co.symplectic.elements.api.queries.ElementsAPIFeedObjectRelationshipsQuery;
 import uk.co.symplectic.elements.api.queries.ElementsAPIFeedRelationshipQuery;
 import uk.co.symplectic.utils.URLBuilder;
-import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
-import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
-
 import java.text.SimpleDateFormat;
+import java.util.Set;
 
 public class ElementsAPIv4_XURLBuilder extends ElementsAPIURLBuilder.GenericBase {
     @Override
@@ -75,7 +71,7 @@ public class ElementsAPIv4_XURLBuilder extends ElementsAPIURLBuilder.GenericBase
     }
 
     @Override
-    public String buildRelationshipFeedQuery(String endpointUrl, ElementsAPIFeedRelationshipQuery feedQuery) {
+    public String buildRelationshipFeedQuery(String endpointUrl, ElementsAPIFeedRelationshipQuery feedQuery, Set<Integer> relationshipIds) {
         URLBuilder queryUrl = new URLBuilder(endpointUrl);
 
         queryUrl.appendPath("relationships");
@@ -92,7 +88,10 @@ public class ElementsAPIv4_XURLBuilder extends ElementsAPIURLBuilder.GenericBase
             queryUrl.addParam("per-page", calculatePerPage(feedQuery.getPerPage(), feedQuery.getFullDetails()));
         }
 
-        if (feedQuery.getModifiedSince() != null) {
+        if(relationshipIds != null && !relationshipIds.isEmpty()){
+            queryUrl.addParam("ids", convertIntegerArrayToQueryString(relationshipIds));
+        }
+        else if (feedQuery.getModifiedSince() != null) {
             String modifiedSinceString = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").format(feedQuery.getModifiedSince());
             if(feedQuery.getQueryDeletedObjects())
                 queryUrl.addParam("deleted-since", modifiedSinceString);
@@ -109,25 +108,6 @@ public class ElementsAPIv4_XURLBuilder extends ElementsAPIURLBuilder.GenericBase
         //hack in a page for testing
         //queryUrl.addParam("types", Integer.toString(83));
 
-        return queryUrl.toString();
-    }
-
-    @Override
-    public String buildObjectRelationshipsFeedQuery(String endpointUrl, ElementsAPIFeedObjectRelationshipsQuery feedQuery) {
-        URLBuilder queryUrl = new URLBuilder(endpointUrl);
-
-        ElementsItemId.ObjectId objectId = feedQuery.getObjectId();
-        queryUrl.appendPath(( (ElementsObjectCategory) objectId.getItemSubType()).getPlural());
-        queryUrl.appendPath(Integer.toString(objectId.getId()));
-        queryUrl.appendPath("relationships");
-
-        if (feedQuery.getFullDetails()) {
-            queryUrl.addParam("detail", "full");
-        }
-
-        if (feedQuery.getPerPage() > 0) {
-            queryUrl.addParam("per-page", calculatePerPage(feedQuery.getPerPage(), feedQuery.getFullDetails()));
-        }
         return queryUrl.toString();
     }
 

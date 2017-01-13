@@ -14,12 +14,12 @@ import java.util.Collection;
 
 public interface LayoutStrategy {
 
-    public File getItemFile(File storeDir, ElementsItemId itemId, StorableResourceType resourceType);
+    File getItemFile(File storeDir, ElementsItemId itemId, StorableResourceType resourceType);
 
-    public Collection<File> getAllExistingFilesOfType(File storeDir, StorableResourceType resourceType);
+    Collection<File> getAllExistingFilesOfType(File storeDir, StorableResourceType resourceType);
 
-    public Collection<File> getAllExistingFilesOfType(File storeDir, StorableResourceType resourceType, ElementsItemType.SubType subType);
+    Collection<File> getAllExistingFilesOfType(File storeDir, StorableResourceType resourceType, ElementsItemType.SubType subType);
 
     //todo: remove this!? once decide what to do with legacy layout?
-    public String getRootNodeForType(String type);
+    String getRootNodeForType(String type);
 }

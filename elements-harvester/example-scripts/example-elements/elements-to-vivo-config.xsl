@@ -81,14 +81,20 @@
             <config:record-precedence>dblp</config:record-precedence>
             <config:record-precedence>figshare</config:record-precedence>
             <config:record-precedence>manual</config:record-precedence>
+            <config:record-precedence>c-inst-1</config:record-precedence>
+            <config:record-precedence>c-inst-2</config:record-precedence>
         </config:record-precedences>
         <config:record-precedences for="grant" select-by="field">
             <config:record-precedence>dimensions</config:record-precedence>
             <config:record-precedence>source-3</config:record-precedence>
             <config:record-precedence>manual</config:record-precedence>
+            <config:record-precedence>c-inst-1</config:record-precedence>
+            <config:record-precedence>c-inst-2</config:record-precedence>
         </config:record-precedences>
         <config:record-precedences for="default" select-by="field">
             <config:record-precedence>manual</config:record-precedence>
+            <config:record-precedence>c-inst-1</config:record-precedence>
+            <config:record-precedence>c-inst-2</config:record-precedence>
         </config:record-precedences>
     </config:record-precedences>
 

@@ -7,7 +7,6 @@
 package uk.co.symplectic.vivoweb.harvester.model;
 
 import uk.co.symplectic.xml.XMLEventProcessor;
-
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.events.EndElement;
@@ -16,6 +15,9 @@ import javax.xml.stream.events.XMLEvent;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import static uk.co.symplectic.elements.api.ElementsAPI.apiNS;
+import static uk.co.symplectic.elements.api.ElementsAPI.atomNS;
 
 public class ElementsRelationshipInfo extends ElementsItemInfo{
 
@@ -42,7 +44,11 @@ public class ElementsRelationshipInfo extends ElementsItemInfo{
             if (event.isStartElement()) {
                 StartElement startElement = event.asStartElement();
                 QName name = startElement.getName();
-                if (name.equals(new QName(apiNS, "object"))) {
+                //only pull type id for "relationship" not "deleted-relationship" where it is not present.
+                if(name.equals(new QName(apiNS, "relationship"))){
+                    workspace.setType(startElement.getAttributeByName(new QName("type")).getValue());
+                }
+                else if (name.equals(new QName(apiNS, "object"))) {
                     ElementsObjectCategory objectCategory = ElementsObjectCategory.valueOf(startElement.getAttributeByName(new QName("category")).getValue());
                     int objectID = Integer.parseInt(startElement.getAttributeByName(new QName("id")).getValue());
                     workspace.addObjectId(ElementsItemId.createObjectId(objectCategory, objectID));
@@ -61,16 +67,25 @@ public class ElementsRelationshipInfo extends ElementsItemInfo{
         }
     }
 
+    //default visible to "true" so that relationships that are not marked as visible at all (e.g those between a grant and a publication) are definitely included.
     private boolean isVisible = true;
+    private String type = null;
     private final List<ElementsItemId.ObjectId> objectIds = new ArrayList<ElementsItemId.ObjectId>();
 
     //package private as should only ever be constructed by create calls into superclass
     ElementsRelationshipInfo(int id) { super(ElementsItemId.createRelationshipId(id)); }
 
+    public String getType() {
+        if(type == null) throw new IllegalAccessError("typeId has not been initialised");
+        return type;
+    }
+    public void setType(String type) {
+        this.type = type;
+    }
+
     public boolean getIsVisible() {
         return isVisible;
     }
-
     public void setIsVisible(boolean isVisible) {
         this.isVisible = isVisible;
     }

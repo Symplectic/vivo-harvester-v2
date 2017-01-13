@@ -11,7 +11,6 @@ package uk.co.symplectic.vivoweb.harvester.model;
 
 import org.apache.commons.lang.NullArgumentException;
 import uk.co.symplectic.xml.XMLEventProcessor;
-
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.events.EndElement;
@@ -21,9 +20,9 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-/**
- * Created by ajpc2_000 on 17/08/2016.
- */
+import static uk.co.symplectic.elements.api.ElementsAPI.apiNS;
+import static uk.co.symplectic.elements.api.ElementsAPI.atomNS;
+
 public class ElementsGroupInfo extends ElementsItemInfo{
     public static class Extractor extends XMLEventProcessor.ItemExtractingFilter<ElementsGroupInfo>{
 

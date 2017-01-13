@@ -5,23 +5,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  ******************************************************************************/
 package uk.co.symplectic.elements.api;
-
-import org.apache.commons.httpclient.HttpException;
-import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.NullArgumentException;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.co.symplectic.xml.StAXUtils;
 import uk.co.symplectic.xml.XMLEventProcessor;
-
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.events.StartElement;
-import javax.xml.stream.events.XMLEvent;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -36,9 +31,13 @@ import java.util.List;
  */
 public class ElementsAPI {
 
-    public static long timeSpentInNetwork = 0;
-    public static long timeSpentInProcessing = 0;
-    public static void resetTimers(){
+    //Useful API Namespaces -
+    public static final String apiNS = "http://www.symplectic.co.uk/publications/api";
+    public static final String atomNS = "http://www.w3.org/2005/Atom";
+
+    private static long timeSpentInNetwork = 0;
+    private static long timeSpentInProcessing = 0;
+    private static void resetTimers(){
         timeSpentInNetwork = 0;
         timeSpentInProcessing = 0;
     }
@@ -74,15 +73,16 @@ public class ElementsAPI {
     private final String url;
     private final String username;
     private final String password;
+    private final boolean rewriteMismatchedURLsInNextPage;
 
     private int maxRetries = 5;
     private int retryDelayMillis = 500;
 
     public ElementsAPI(ElementsAPIVersion version, String url){
-        this(version, url, null, null);
+        this(version, url, null, null, false);
     }
 
-    public ElementsAPI(ElementsAPIVersion version, String url, String username, String password) {
+    public ElementsAPI(ElementsAPIVersion version, String url, String username, String password, boolean rewriteMismatchedURLsInNextPage) {
         if(version == null){
             log.error("provided version must not be null on construction");
             throw new NullArgumentException("version");
@@ -109,6 +109,8 @@ public class ElementsAPI {
             this.username = null;
             this.password = null;
         }
+
+        this.rewriteMismatchedURLsInNextPage = rewriteMismatchedURLsInNextPage;
     }
 
     private ElementsValidatedUrl getValidatedUrl(String urlString, MessageFormat failureMessageTemplate){
@@ -126,9 +128,9 @@ public class ElementsAPI {
         }
     }
 
-    public XMLEventProcessor.ItemCountingFilter getEntryCounter(){
+    private XMLEventProcessor.ItemCountingFilter getEntryCounter(){
         XMLEventProcessor.EventFilter.DocumentLocation entryLocation = new XMLEventProcessor.EventFilter.DocumentLocation(
-            new QName(XMLEventProcessor.EventFilter.atomNS, "feed"), new QName(XMLEventProcessor.EventFilter.atomNS, "entry")
+            new QName(atomNS, "feed"), new QName(atomNS, "entry")
         );
         return new XMLEventProcessor.ItemCountingFilter(entryLocation);
     }
@@ -147,45 +149,38 @@ public class ElementsAPI {
         XMLEventProcessor.ItemCountingFilter itemCounter = getEntryCounter();
         eventFilters.add(itemCounter);
 
-        String feedUrl = feedQuery.getUrlString(url, version.getUrlBuilder());
-        ElementsValidatedUrl currentQueryUrl = getValidatedUrl(feedUrl, new MessageFormat("Invalid API query detected : {0}"));
-
-        ElementsFeedPagination pagination = executeInternalQuery(currentQueryUrl, eventFilters);
-
-        //todo: decide if keep low level logging.
+        ElementsFeedQuery.QueryIterator iterator = feedQuery.getQueryIterator(url, version.getUrlBuilder());
+        ElementsFeedPagination pagination = null;
+        ElementsValidatedUrl previousQuery = null;
         int queryCounter = 1;
-        if (pagination != null && feedQuery.getProcessAllPages()) {
-            //hack hack
-            while (pagination.getNextURL() != null) {
-                // Some versions of Elements incorrectly return the pagination information
-                // Check that the next URL is valid before continuing
-                //TODO: make this test if pagination has been retrieved correctly (e.g. test current against last to exit or something?)
-                ElementsValidatedUrl nextQueryUrl = getValidatedUrl(pagination.getNextURL(), currentQueryUrl.getUrl(), new MessageFormat("Next URL for a feed was invalid: {0}"));
-                if(nextQueryUrl.isMismatched()){
-                    if(queryCounter == 1) {
-                        log.warn(MessageFormat.format("Next URL in a feed \"{0}\" has a different host to the previous URL: {1}", nextQueryUrl.getUrl(), currentQueryUrl));
+        while(iterator.hasNext(pagination)){
+            String previousUrl = previousQuery == null ? null : previousQuery.getUrl();
+            ElementsValidatedUrl currentQuery = getValidatedUrl(iterator.next(pagination), previousUrl, new MessageFormat("Invalid API query detected : {0}"));
+            if(previousQuery != null) {
+                if (currentQuery.isMismatched()) {
+                    if (queryCounter == 1) {
+                        log.warn(MessageFormat.format("Next URL in a feed \"{0}\" has a different host to the previous URL: {1}", currentQuery.getUrl(), previousQuery.getUrl()));
                         log.warn("There is probably a mismatch between the configured API URL in this program and the API baseURI configured in Elements");
                     }
-                    //TODO : make this a config option - or remove entirely..
-                    nextQueryUrl.useRewrittenVersion(true);
+                    //if we want to rewrite any mismatched urls to use the original base url from our query
+                    if(rewriteMismatchedURLsInNextPage) currentQuery.useRewrittenVersion(true);
                 }
-                //System.out.println(nextQueryUrl);
-                if (nextQueryUrl.getUrl().equals(currentQueryUrl.getUrl())) {
+                if (currentQuery.getUrl().equals(previousQuery.getUrl())) {
                     throw new IllegalStateException("Error detected in the pagination response from Elements - unable to continue processing");
                 }
-
-                currentQueryUrl = nextQueryUrl;
-                pagination = executeInternalQuery(currentQueryUrl, eventFilters);
-
-                //todo: decide if keep low level logging.
-                queryCounter++;
-                if(queryCounter % 40 == 0){
-                    log.info(MessageFormat.format("{0} queries processed: network-time: {1}, processing-time: {2}", queryCounter, ElementsAPI.timeSpentInNetwork, ElementsAPI.timeSpentInProcessing));
-                    ElementsAPI.resetTimers();
-                }
             }
+            pagination = executeInternalQuery(currentQuery, eventFilters);
+
+            //todo: make traced logs end up in a sensible place.
+            queryCounter++;
+            if (queryCounter % 40 == 0) {
+                log.trace(MessageFormat.format("{0} queries processed: network-time: {1}, processing-time: {2}", queryCounter, ElementsAPI.timeSpentInNetwork, ElementsAPI.timeSpentInProcessing));
+                ElementsAPI.resetTimers();
+            }
+
+            previousQuery = currentQuery;
         }
-        log.info(MessageFormat.format("Query completed {0} items processed in total", itemCounter.getItemCount()));
+        log.trace(MessageFormat.format("Query completed {0} items processed in total", itemCounter.getItemCount()));
     }
 
     //TODO : rationalise with main query call to have common usage of the underlying client with nice retry behaviour etc.
@@ -207,7 +202,6 @@ public class ElementsAPI {
                 }
             }
         }
-
         return true;
     }
 
@@ -224,8 +218,8 @@ public class ElementsAPI {
                 return parseEventResponse(apiResponse.getResponseStream(), eventFilters);
             }
             catch (IOException e) {
-                if(e instanceof HttpException){
-                    int statusCode = ((HttpException) e).getReasonCode();
+                if(e instanceof InvalidResponseException){
+                    int statusCode = ((InvalidResponseException) e).getResponseCode();
                     //if forbidden then just jump out here..
                     if(statusCode == HttpStatus.SC_FORBIDDEN || statusCode == HttpStatus.SC_UNAUTHORIZED) {
                         throw new IllegalStateException(e.getMessage(), e);
@@ -276,4 +270,15 @@ public class ElementsAPI {
         timeSpentInProcessing += (endTime - startTime);
         return paginationFilter.getExtractedItem();
     }
+
+    public static class InvalidResponseException extends IOException{
+        final int responseCode;
+        public int getResponseCode(){ return responseCode; }
+
+        public InvalidResponseException(String message, int responseCode){
+            super(message);
+            this.responseCode = responseCode;
+        }
+    }
+
 }

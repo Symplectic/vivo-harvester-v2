@@ -4,6 +4,7 @@
 
 package uk.co.symplectic.elements.api.versions;
 
+import uk.co.symplectic.elements.api.ElementsAPI;
 import uk.co.symplectic.elements.api.ElementsAPIVersion;
 import uk.co.symplectic.elements.api.ElementsAPIVersion.PaginationExtractingFilterFactory;
 import uk.co.symplectic.elements.api.ElementsFeedPagination;
@@ -19,6 +20,9 @@ import javax.xml.stream.events.XMLEvent;
 public class GeneralPaginationExtractingFilterFactory extends PaginationExtractingFilterFactory {
 
     static class GeneralPaginationExtractingFilter extends ElementsAPIVersion.PaginationExtractingFilter {
+
+        private static final String apiNS = ElementsAPI.apiNS;
+        private static final String atomNS = ElementsAPI.atomNS;
 
         ElementsFeedPagination workspace = null;
 

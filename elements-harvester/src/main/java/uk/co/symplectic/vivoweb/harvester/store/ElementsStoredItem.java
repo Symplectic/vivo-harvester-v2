@@ -10,7 +10,6 @@
 package uk.co.symplectic.vivoweb.harvester.store;
 
 import org.apache.commons.lang.NullArgumentException;
-import sun.plugin.dom.exception.InvalidStateException;
 import uk.co.symplectic.vivoweb.harvester.model.*;
 import uk.co.symplectic.xml.StAXUtils;
 import uk.co.symplectic.xml.XMLEventProcessor;
@@ -23,9 +22,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.MessageFormat;
 
-/**
- * Created by ajpc2_000 on 09/08/2016.
- */
 public class ElementsStoredItem {
     private final ElementsItemInfo itemInfo;
     protected final BasicElementsStoredItem innerItem;
@@ -123,7 +119,7 @@ public class ElementsStoredItem {
             if (idToCompareTo != null && !idToCompareTo.equals(objectInfo.getObjectId())) {
                 String message = MessageFormat.format("Elements object loaded from file \"{0}\" ({1}) does not match supplied check value ({2})",
                         file.getName(), objectInfo.getItemId().toString(), idToCompareTo.toString());
-                throw new InvalidStateException(message);
+                throw new IllegalStateException(message);
             }
             return new InFile(file, objectInfo, StorableResourceType.RAW_OBJECT, zipped);
         }
@@ -142,7 +138,7 @@ public class ElementsStoredItem {
             if (idToCompareTo != null && !idToCompareTo.equals(relationshipInfo.getItemId())) {
                 String message = MessageFormat.format("Elements relationship loaded from file \"{0}\" ({1}) does not match supplied check values ({2})",
                     file.getName(), relationshipInfo.getItemId().toString(), idToCompareTo.toString());
-                throw new InvalidStateException(message);
+                throw new IllegalStateException(message);
             }
             return new InFile(file, relationshipInfo, StorableResourceType.RAW_RELATIONSHIP, zipped);
         }

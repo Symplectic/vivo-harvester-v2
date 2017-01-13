@@ -10,8 +10,6 @@ import org.apache.commons.lang.NullArgumentException;
 import uk.co.symplectic.elements.api.ElementsAPIURLBuilder;
 import uk.co.symplectic.elements.api.ElementsFeedQuery;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
-
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class ElementsAPIFeedObjectQuery extends ElementsFeedQuery.DeltaCapable {
@@ -58,11 +56,10 @@ public class ElementsAPIFeedObjectQuery extends ElementsFeedQuery.DeltaCapable {
         return approvedObjectsOnly;
     }
 
-    //TODO: make this flag properly useable instead of hard coded to true..
     public boolean getQueryDeletedObjects(){ return false;}
 
     @Override
-    public String getUrlString(String apiBaseUrl, ElementsAPIURLBuilder builder){
+    protected String getUrlString(String apiBaseUrl, ElementsAPIURLBuilder builder){
         return builder.buildObjectFeedQuery(apiBaseUrl, this);
     }
 

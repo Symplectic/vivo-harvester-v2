@@ -13,35 +13,32 @@ import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemInfo;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+//import java.util.ArrayList;
+//import java.util.Arrays;
+//import java.util.List;
 
-/**
- * Created by ajpc2_000 on 12/08/2016.
- */
 public interface ElementsItemStore {
     ElementsStoredItem storeItem(ElementsItemInfo itemInfo, StorableResourceType resourceType, byte[] data) throws IOException;
 
-    class MultiStore implements ElementsItemStore {
-        List<ElementsItemStore> stores = new ArrayList<ElementsItemStore>();
+//    class MultiStore implements ElementsItemStore {
+//        List<ElementsItemStore> stores = new ArrayList<ElementsItemStore>();
+//
+//        public MultiStore(ElementsItemStore... stores) {
+//            if (stores == null || stores.length == 0)
+//                throw new IllegalArgumentException("stores must not be null or empty");
+//            this.stores.addAll(Arrays.asList(stores));
+//        }
+//
+//        @Override
+//        public ElementsStoredItem storeItem(ElementsItemInfo itemInfo, StorableResourceType resourceType, byte[] data) throws IOException {
+//            for (ElementsItemStore store : stores) {
+//                store.storeItem(itemInfo, resourceType, data);
+//            }
+//            return null;
+//        }
+//    }
 
-        public MultiStore(ElementsItemStore... stores) {
-            if (stores == null || stores.length == 0)
-                throw new IllegalArgumentException("stores must not be null or empty");
-            this.stores.addAll(Arrays.asList(stores));
-        }
-
-        @Override
-        public ElementsStoredItem storeItem(ElementsItemInfo itemInfo, StorableResourceType resourceType, byte[] data) throws IOException {
-            for (ElementsItemStore store : stores) {
-                store.storeItem(itemInfo, resourceType, data);
-            }
-            return null;
-        }
-    }
-
-    public static interface ElementsDeletableItemStore extends ElementsItemStore{
+    interface ElementsDeletableItemStore extends ElementsItemStore{
         //TODO move touch, its not in a good place.
         ElementsStoredItem touchItem(ElementsItemInfo itemInfo, StorableResourceType resourceType) throws IOException;
         void deleteItem(ElementsItemId itemId, StorableResourceType resourceType) throws IOException;

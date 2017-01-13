@@ -26,23 +26,23 @@ import java.util.concurrent.Future;
 public final class ResourceFetchServiceImpl {
     private static final Logger log = LoggerFactory.getLogger(ResourceFetchServiceImpl.class);
 
-    private static final ExecutorServiceUtils.ExecutorServiceWrapper wrapper = ExecutorServiceUtils.newFixedThreadPool("ResourceFetchService", Boolean.class);
+    private static final ExecutorServiceUtils.ExecutorServiceWrapper<Boolean> wrapper = ExecutorServiceUtils.newFixedThreadPool("ResourceFetchService");
 
     private ResourceFetchServiceImpl() {}
 
     static void fetchUserPhoto(ElementsAPI api, ElementsUserInfo userInfo, ElementsItemFileStore objectStore) throws MalformedURLException {
-        Future<Boolean> result = wrapper.submit(new UserPhotoFetchTask(api, userInfo, objectStore));
+        wrapper.submit(new UserPhotoFetchTask(api, userInfo, objectStore));
     }
 
-    static void fetchExternal(String url, File outputFile) throws MalformedURLException {
-        Future<Boolean> result = wrapper.submit(new ExternalFetchTask(new URL(url), outputFile));
-    }
+//    static void fetchExternal(String url, File outputFile) throws MalformedURLException {
+//        wrapper.submit(new ExternalFetchTask(new URL(url), outputFile));
+//    }
 
     static void awaitShutdown() {
         wrapper.awaitShutdown();
     }
 
-    static class UserPhotoFetchTask implements Callable<Boolean> {
+    private static class UserPhotoFetchTask implements Callable<Boolean> {
         private ElementsAPI api;
         ElementsUserInfo userInfo;
         private ElementsItemFileStore objectStore;
@@ -59,30 +59,28 @@ public final class ResourceFetchServiceImpl {
 
         @Override
         public Boolean call() throws Exception {
-            Boolean retCode = Boolean.TRUE;
-
             ByteArrayOutputStream os = new ByteArrayOutputStream();
-            retCode = api.fetchResource(userInfo.getPhotoUrl(), os);
-            ElementsStoredItem storedItem = objectStore.storeItem(userInfo, StorableResourceType.RAW_USER_PHOTO, os.toByteArray());
+            Boolean retCode = api.fetchResource(userInfo.getPhotoUrl(), os);
+            objectStore.storeItem(userInfo, StorableResourceType.RAW_USER_PHOTO, os.toByteArray());
             //TODO: better error handling here?
             return retCode;
         }
     }
 
-    static class ExternalFetchTask implements Callable<Boolean> {
-        private URL url;
-        private File outputFile;
-
-        ExternalFetchTask(URL url, File outputFile) {
-            this.url = url;
-            this.outputFile = outputFile;
-        }
-
-        @Override
-        public Boolean call() throws Exception {
-            // Not implemented yet
-            return Boolean.TRUE;
-        }
-    }
+//    private static class ExternalFetchTask implements Callable<Boolean> {
+//        private URL url;
+//        private File outputFile;
+//
+//        ExternalFetchTask(URL url, File outputFile) {
+//            this.url = url;
+//            this.outputFile = outputFile;
+//        }
+//
+//        @Override
+//        public Boolean call() throws Exception {
+//            // Not implemented yet
+//            return Boolean.TRUE;
+//        }
+//    }
 
 }

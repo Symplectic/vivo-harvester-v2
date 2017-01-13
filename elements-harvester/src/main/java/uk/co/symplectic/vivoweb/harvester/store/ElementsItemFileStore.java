@@ -49,11 +49,10 @@ public class ElementsItemFileStore implements ElementsItemStore.ElementsDeletabl
     }
 
     //returns true if the item has already been affected
-    private boolean markItemAsAffected(StorableResourceType resourceType, ElementsItemId itemId){
+    private boolean markItemAsAffected(StorableResourceType resourceType, ElementsItemId itemId) {
         //TODO: do checks that resource type is valid for store and item? its only ever called from places that already do their own checks?
         Set<ElementsItemId> currentList = affectedItems.get(resourceType);
-        if(currentList != null) return currentList.add(itemId);
-        return false;
+        return currentList != null && currentList.add(itemId);
     }
 
     public void addItemObserver(IElementsStoredItemObserver observer){ itemObservers.add(observer); }
@@ -107,8 +106,8 @@ public class ElementsItemFileStore implements ElementsItemStore.ElementsDeletabl
         else if(!file.exists()){ throw new FileNotFoundException(file.getAbsolutePath()); }
 
         //flag the item as having been affected during this run
-        //if it is a newly affected item during this processing run then process any observers
-        if(markItemAsAffected(resourceType, itemInfo.getItemId())) {
+        //if it is a newly affected item, or if the data is actually being updated during this processing run then process any observers
+        if(markItemAsAffected(resourceType, itemInfo.getItemId()) || actuallyStoreData) {
             for (IElementsStoredItemObserver observer : itemObservers) {
                 observer.observe(storedItem);
             }

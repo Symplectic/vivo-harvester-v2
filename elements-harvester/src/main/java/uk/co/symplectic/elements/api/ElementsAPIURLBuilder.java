@@ -8,21 +8,19 @@ package uk.co.symplectic.elements.api;
 
 import uk.co.symplectic.elements.api.queries.ElementsAPIFeedGroupQuery;
 import uk.co.symplectic.elements.api.queries.ElementsAPIFeedObjectQuery;
-import uk.co.symplectic.elements.api.queries.ElementsAPIFeedObjectRelationshipsQuery;
 import uk.co.symplectic.elements.api.queries.ElementsAPIFeedRelationshipQuery;
 
 import java.util.Collection;
+import java.util.Set;
 
 public interface ElementsAPIURLBuilder {
-    public String buildObjectFeedQuery(String endpointUrl, ElementsAPIFeedObjectQuery feedQuery);
+    String buildObjectFeedQuery(String endpointUrl, ElementsAPIFeedObjectQuery feedQuery);
 
-    public String buildObjectRelationshipsFeedQuery(String endpointUrl, ElementsAPIFeedObjectRelationshipsQuery feedQuery);
+    String buildRelationshipFeedQuery(String endpointUrl, ElementsAPIFeedRelationshipQuery feedQuery, Set<Integer> relationshipIds);
 
-    public String buildRelationshipFeedQuery(String endpointUrl, ElementsAPIFeedRelationshipQuery feedQuery);
+    String buildGroupQuery(String endpointUrl, ElementsAPIFeedGroupQuery feedQuery);
 
-    public String buildGroupQuery(String endpointUrl, ElementsAPIFeedGroupQuery feedQuery);
-
-    public abstract static class GenericBase implements ElementsAPIURLBuilder {
+    abstract class GenericBase implements ElementsAPIURLBuilder {
         protected String convertIntegerArrayToQueryString(Collection<Integer> integers){
             //StringUtils.join(integers, ","); simpler? - could potentially remove GenericBase then
             StringBuilder builder = new StringBuilder();

@@ -8,8 +8,8 @@ package uk.co.symplectic.elements.api.queries;
 
 import uk.co.symplectic.elements.api.ElementsAPIURLBuilder;
 import uk.co.symplectic.elements.api.ElementsFeedQuery;
-
-import java.util.Date;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
+import java.util.*;
 
 public class ElementsAPIFeedRelationshipQuery extends ElementsFeedQuery.DeltaCapable {
 
@@ -25,12 +25,11 @@ public class ElementsAPIFeedRelationshipQuery extends ElementsFeedQuery.DeltaCap
         super(modifiedSince, fullDetails, processAllPages, perPage);
     }
 
-    //TODO: make this flag properly useable instead of hard coded to true..
     public boolean getQueryDeletedObjects(){ return false;}
 
     @Override
-    public String getUrlString(String apiBaseUrl, ElementsAPIURLBuilder builder){
-        return builder.buildRelationshipFeedQuery(apiBaseUrl, this);
+    protected String getUrlString(String apiBaseUrl, ElementsAPIURLBuilder builder){
+        return builder.buildRelationshipFeedQuery(apiBaseUrl, this, null);
     }
 
 
@@ -45,5 +44,33 @@ public class ElementsAPIFeedRelationshipQuery extends ElementsFeedQuery.DeltaCap
 
         @Override
         public boolean getQueryDeletedObjects(){ return true;}
+    }
+
+    public static class IdList extends ElementsAPIFeedRelationshipQuery{
+        List<Integer> relationshipIds = new ArrayList<Integer>();
+
+        public IdList(Set<ElementsItemId.RelationshipId> ids){
+            super(null, false, true, 100);
+            if(ids == null || ids.isEmpty()) throw new IllegalArgumentException("ids must not be null or empty");
+            for(ElementsItemId id : ids){
+                relationshipIds.add(id.getId());
+            }
+        }
+
+        @Override
+        public QueryIterator getQueryIterator(String apiBaseUrl, ElementsAPIURLBuilder builder){
+            Set<String> queries = new HashSet<String>();
+
+            int counter = 0;
+            int maxIndex;
+            do{
+                //do batches in the amount set in per page..
+                maxIndex = Math.min((counter+1)*getPerPage(), relationshipIds.size());
+                List<Integer> batch = relationshipIds.subList(counter*100, maxIndex);
+                queries.add(builder.buildRelationshipFeedQuery(apiBaseUrl, this, new HashSet<Integer>(batch)));
+                counter++;
+            } while (maxIndex != relationshipIds.size());
+            return new QueryIterator(queries);
+        }
     }
 }

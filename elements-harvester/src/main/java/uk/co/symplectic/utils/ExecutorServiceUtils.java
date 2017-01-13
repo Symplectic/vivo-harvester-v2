@@ -32,7 +32,7 @@ public final class ExecutorServiceUtils {
         return maxPossiblePoolSize;
     }
 
-    public static <T> ExecutorServiceWrapper<T> newFixedThreadPool(String poolName, Class<T> type) {
+    public static <T> ExecutorServiceWrapper<T> newFixedThreadPool(String poolName) {
 
         //See if we have a "cached" value for the appropriate thread pool size?
         int requestedPoolSize = -1;
@@ -43,12 +43,13 @@ public final class ExecutorServiceUtils {
             }
         }
 
-        return newFixedThreadPool(poolName, requestedPoolSize, type);
+        return newFixedThreadPool(poolName, requestedPoolSize);
     }
 
-    public static <T> ExecutorServiceWrapper<T> newFixedThreadPool(String poolName, int requestedPoolSize, Class<T> type) {
+    public static <T> ExecutorServiceWrapper<T> newFixedThreadPool(String poolName, int requestedPoolSize) {
         return  new ExecutorServiceWrapper<T>(poolName, getThreadPoolSizeForPool(requestedPoolSize));
     }
+
 
     private static class ShutdownHook extends Thread {
         private ExecutorServiceWrapper wrapper;
@@ -120,7 +121,7 @@ public final class ExecutorServiceUtils {
                 }
             });
 
-            if(aService == null || !(aService instanceof ThreadPoolExecutor))
+            if(!(aService instanceof ThreadPoolExecutor))
                 throw new IllegalStateException("Could not set up ExecutorService for pool : " + poolName);
 
             service = (ThreadPoolExecutor) aService;

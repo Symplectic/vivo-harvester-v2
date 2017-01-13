@@ -15,9 +15,6 @@ import org.apache.commons.lang.StringUtils;
 import java.text.MessageFormat;
 import java.util.*;
 
-/**
- * Created by ajpc2_000 on 10/08/2016.
- */
 public enum ElementsItemType {
     OBJECT("object"),
     RELATIONSHIP("relationship"),

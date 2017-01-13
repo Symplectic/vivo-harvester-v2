@@ -6,7 +6,7 @@
  ******************************************************************************/
 package uk.co.symplectic.elements.api;
 
-import java.util.Date;
+import java.util.*;
 
 abstract public class ElementsFeedQuery {
 
@@ -19,8 +19,8 @@ abstract public class ElementsFeedQuery {
 
     /**
      *
-     * @param fullDetails should the feed contain full object details
-     * @param processAllPages should all the pages be processed
+     * @param fullDetails to request whether the feed contain full object details or reference level information
+     * @param processAllPages to indicate whether all the pages be processed
      * @param perPage An integer, 0 or below uses the feed default
      */
     public ElementsFeedQuery(boolean fullDetails, boolean processAllPages, int perPage) {
@@ -57,13 +57,23 @@ abstract public class ElementsFeedQuery {
     }
 
     /**
+     * Call to convert this particular query into a set of URLs using the passed in builder to account for version differences.
+     * Will normally just return a single url, but in the general case could be a set.
+     * @param apiBaseUrl the base url of the api you want to query
+     * @param builder an api version specific builder that knows how to construct different types of query URL.
+     * @return
+     */
+    public QueryIterator getQueryIterator(String apiBaseUrl, ElementsAPIURLBuilder builder){
+     return new QueryIterator(getUrlString(apiBaseUrl, builder));
+    }
+
+    /**
      * Call to convert this particular query into a URL using the passed in builder to account for version differences.
      * @param apiBaseUrl the base url of the api you want to query
      * @param builder an api version specific builder that knows how to construct different types of query URL.
      * @return
      */
-    public abstract String getUrlString(String apiBaseUrl, ElementsAPIURLBuilder builder);
-
+    protected abstract String getUrlString(String apiBaseUrl, ElementsAPIURLBuilder builder);
 
     public abstract static class DeltaCapable extends ElementsFeedQuery{
         private final Date modifiedSince;
@@ -73,6 +83,34 @@ abstract public class ElementsFeedQuery {
         public DeltaCapable(Date modifiedSince, boolean fullDetails, boolean processAllPages, int perPage){
             super(fullDetails, processAllPages, perPage);
             this.modifiedSince = modifiedSince;
+        }
+    }
+
+    public class QueryIterator{
+
+        private Iterator<String> queryIterator;
+
+        public QueryIterator(String... queries){ this(new HashSet<String>(Arrays.asList(queries))); }
+
+        public QueryIterator(Set<String> queries){
+            if(queries == null || queries.isEmpty()) throw new IllegalArgumentException("queries must not be null or empty");
+            queryIterator = queries.iterator();
+        }
+
+        private boolean hasNextPage(ElementsFeedPagination pagination){
+            return getProcessAllPages() && pagination != null && pagination.getNextURL() != null;
+        }
+
+        public boolean hasNext(ElementsFeedPagination pagination) {
+            return hasNextPage(pagination) || queryIterator.hasNext();
+        }
+
+        public String next(ElementsFeedPagination pagination){
+            if(hasNextPage(pagination))
+                return pagination.getNextURL();
+            else if(queryIterator.hasNext())
+                return queryIterator.next();
+            throw new IllegalStateException("invalid use of QueryIterator");
         }
     }
 }

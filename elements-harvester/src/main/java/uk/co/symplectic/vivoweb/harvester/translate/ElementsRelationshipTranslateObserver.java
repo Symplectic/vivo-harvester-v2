@@ -14,7 +14,6 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
-import uk.co.symplectic.vivoweb.harvester.model.ElementsItemInfo;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsRelationshipInfo;
 import uk.co.symplectic.vivoweb.harvester.store.*;
 
@@ -26,27 +25,39 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.MessageFormat;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class ElementsRelationshipTranslateObserver extends ElementsTranslateObserver{
 
     private static final Logger log = LoggerFactory.getLogger(ElementsRelationshipTranslateObserver.class);
     private final ElementsItemFileStore rawDataStore;
+    private final Set<String> relationshipTypesNeedingObjectsForTranslation;
 
-    public ElementsRelationshipTranslateObserver(ElementsItemFileStore rawDataStore, ElementsRdfStore rdfStore, String xslFilename){
+    public ElementsRelationshipTranslateObserver(ElementsItemFileStore rawDataStore, ElementsRdfStore rdfStore, String xslFilename, Set<String> relationshipTypesNeedingObjectsForTranslation){
         super(rdfStore, xslFilename, StorableResourceType.RAW_RELATIONSHIP, StorableResourceType.TRANSLATED_RELATIONSHIP);
         if(rawDataStore == null) throw new NullArgumentException("rawDataStore");
         this.rawDataStore = rawDataStore;
+        if(relationshipTypesNeedingObjectsForTranslation != null && ! relationshipTypesNeedingObjectsForTranslation.isEmpty()){
+            this.relationshipTypesNeedingObjectsForTranslation = new HashSet<String>(relationshipTypesNeedingObjectsForTranslation);
+        }else {
+            this.relationshipTypesNeedingObjectsForTranslation = null;
+        }
+
+
     }
     @Override
     protected void observeStoredRelationship(ElementsRelationshipInfo info, ElementsStoredItem item) {
         Map<String, Object> extraXSLTParameters = new HashMap<String, Object>();
-        extraXSLTParameters.put("extraObjects", getExtraObjectsDescription(info));
+        if(this.relationshipTypesNeedingObjectsForTranslation == null || this.relationshipTypesNeedingObjectsForTranslation.contains(info.getType())) {
+            extraXSLTParameters.put("extraObjects", getExtraObjectsDescription(info));
+        }
+        //extraXSLTParameters.put("extraObjects", getExtraObjectsDescription(info));
         translate(item, extraXSLTParameters);
     }
 
     private Document getExtraObjectsDescription(ElementsRelationshipInfo info) {
-
         try {
             DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder docBuilder = docFactory.newDocumentBuilder();

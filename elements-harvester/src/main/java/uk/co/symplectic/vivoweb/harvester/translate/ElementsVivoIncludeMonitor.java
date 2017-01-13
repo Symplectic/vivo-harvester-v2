@@ -20,7 +20,7 @@ import java.util.Set;
 
 public class ElementsVivoIncludeMonitor extends IElementsStoredItemObserver.ElementsStoredResourceObserverAdapter {
 
-    final private boolean visibleLinksOnly;
+    final private boolean includeInvisibleLinks;
     final private Set<ElementsItemId> includedUsers;
     final private ElementsItemCollection includedItems = new ElementsItemCollection();
 
@@ -28,7 +28,8 @@ public class ElementsVivoIncludeMonitor extends IElementsStoredItemObserver.Elem
         super(StorableResourceType.RAW_RELATIONSHIP);
         if(includedUsers == null) throw new NullArgumentException("includedUsers");
         this.includedUsers = Collections.unmodifiableSet(includedUsers);
-        this.visibleLinksOnly = visibleLinksOnly;
+        //note not!
+        this.includeInvisibleLinks = !visibleLinksOnly;
 
         //add the included users to the included items set.
         includedItems.addAll(includedUsers);
@@ -42,25 +43,26 @@ public class ElementsVivoIncludeMonitor extends IElementsStoredItemObserver.Elem
 
     @Override
     public void observeStoredRelationship(ElementsRelationshipInfo info, ElementsStoredItem item) {
-        //TODO: make this look at whether translations of the relevant relationships and items exist
-        boolean includeRelationship = true;
+        //if invisible relationships should be included or if this relationship is visible we consider including this relationship for now.
+        boolean includeRelationship = includeInvisibleLinks || info.getIsVisible();
 
-        if (visibleLinksOnly && includeRelationship) {
-            //ensure we only ever make it false once
-            includeRelationship = includeRelationship && info.getIsVisible();
-        }
-
-        List<ElementsItemId.ObjectId> userIds = info.getUserIds();
-        if (!userIds.isEmpty()) {
-            for (ElementsItemId.ObjectId userId : userIds) {
-                includeRelationship = includeRelationship && includedUsers.contains(userId);
+        //optimise for early jump out wherever possible.
+        if(includeRelationship) {
+            //ensure we only ever make includeRelationship false once
+            List<ElementsItemId.ObjectId> userIds = info.getUserIds();
+            if (!userIds.isEmpty()) {
+                for (ElementsItemId.ObjectId userId : userIds) {
+                    includeRelationship = includeRelationship && includedUsers.contains(userId);
+                }
             }
-        }
+            //todo: do we want to account for only including things that were successfully translated? dodgy for the ones where the translation IS in the relationship?
 
-        if (includeRelationship) {
-            includedItems.add(info.getItemId());
-            for (ElementsItemId.ObjectId id : info.getObjectIds()) {
-                includedItems.add(id);
+            //if we still want to include the relationship then add the objects within it into the includedItems set.
+            if (includeRelationship) {
+                includedItems.add(info.getItemId());
+                for (ElementsItemId.ObjectId id : info.getObjectIds()) {
+                    includedItems.add(id);
+                }
             }
         }
     }

@@ -15,8 +15,6 @@ import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectInfo;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsUserInfo;
 import uk.co.symplectic.vivoweb.harvester.store.*;
-
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.text.MessageFormat;
 

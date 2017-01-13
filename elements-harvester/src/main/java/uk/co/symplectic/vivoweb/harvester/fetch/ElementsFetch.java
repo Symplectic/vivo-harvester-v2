@@ -7,7 +7,6 @@
 package uk.co.symplectic.vivoweb.harvester.fetch;
 
 import org.apache.commons.lang.NullArgumentException;
-import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +15,6 @@ import uk.co.symplectic.elements.api.ElementsAPIVersion;
 import uk.co.symplectic.elements.api.ElementsFeedQuery;
 import uk.co.symplectic.elements.api.queries.ElementsAPIFeedGroupQuery;
 import uk.co.symplectic.elements.api.queries.ElementsAPIFeedObjectQuery;
-import uk.co.symplectic.elements.api.queries.ElementsAPIFeedObjectRelationshipsQuery;
 import uk.co.symplectic.elements.api.queries.ElementsAPIFeedRelationshipQuery;
 import uk.co.symplectic.vivoweb.harvester.model.*;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsItemStore;
@@ -40,6 +38,7 @@ import java.util.*;
 public class ElementsFetch {
 
     static abstract class DataStoringFilter<S, T extends XMLEventProcessor.ItemExtractingFilter<S>> extends XMLEventProcessor.EventFilterWrapper<T> {
+
         private static final int logProgressEveryN = 1000;
 
         private XMLEventWriter writer = null;
@@ -87,6 +86,9 @@ public class ElementsFetch {
     }
 
     private static class ItemStoringFilter<S extends ElementsItemInfo, T extends XMLEventProcessor.ItemExtractingFilter<S>> extends DataStoringFilter<S, T> {
+
+        protected static final QName entryLocator = new QName(ElementsAPI.atomNS, "entry");
+
         protected final ElementsItemStore objectStore;
 
         protected ItemStoringFilter(QName rootElement, T innerFilter, ElementsItemStore objectStore) {
@@ -124,43 +126,31 @@ public class ElementsFetch {
 
     private static class FileStoringObjectFilter extends ItemStoringFilter<ElementsObjectInfo, ElementsObjectInfo.Extractor> {
         private FileStoringObjectFilter(ElementsItemStore objectStore){
-            super(new QName(atomNS, "entry"), new ElementsObjectInfo.Extractor(ElementsObjectInfo.Extractor.feedEntryLocation, 0), objectStore);
+            super(entryLocator, new ElementsObjectInfo.Extractor(ElementsObjectInfo.Extractor.feedEntryLocation, 0), objectStore);
         }
     }
 
     private static class FileDeletingObjectFilter extends ItemDeletingFilter<ElementsObjectInfo, ElementsObjectInfo.Extractor> {
         private FileDeletingObjectFilter(ElementsItemStore.ElementsDeletableItemStore objectStore){
-            super(new QName(atomNS, "entry"), new ElementsObjectInfo.Extractor(ElementsObjectInfo.Extractor.feedDeletedEntryLocation, 0), objectStore);
+            super(entryLocator, new ElementsObjectInfo.Extractor(ElementsObjectInfo.Extractor.feedDeletedEntryLocation, 0), objectStore);
         }
     }
 
     private static class FileStoringRelationshipFilter extends ItemStoringFilter<ElementsRelationshipInfo, ElementsRelationshipInfo.Extractor> {
         protected FileStoringRelationshipFilter(ElementsItemStore objectStore){
-            super(new QName(atomNS, "entry"), new ElementsRelationshipInfo.Extractor(ElementsRelationshipInfo.Extractor.feedEntryLocation, 0), objectStore);
-        }
-    }
-
-    private static class FileTouchingRelationshipFilter extends ItemStoringFilter<ElementsRelationshipInfo, ElementsRelationshipInfo.Extractor> {
-        protected FileTouchingRelationshipFilter(ElementsItemStore.ElementsDeletableItemStore objectStore, ElementsRelationshipInfo.Extractor customExtractor){
-            super(new QName(atomNS, "entry"), customExtractor, objectStore);
-        }
-
-        @Override
-        protected void processItem(ElementsRelationshipInfo item, byte[] data) throws IOException {
-            //TODO : improve how casting works here?
-            ((ElementsItemStore.ElementsDeletableItemStore) objectStore).touchItem(item, getResourceType(item));
+            super(entryLocator, new ElementsRelationshipInfo.Extractor(ElementsRelationshipInfo.Extractor.feedEntryLocation, 0), objectStore);
         }
     }
 
     private static class FileDeletingRelationshipFilter extends ItemDeletingFilter<ElementsRelationshipInfo, ElementsRelationshipInfo.Extractor> {
         protected FileDeletingRelationshipFilter(ElementsItemStore.ElementsDeletableItemStore objectStore){
-            super(new QName(atomNS, "entry"), new ElementsRelationshipInfo.Extractor(ElementsRelationshipInfo.Extractor.feedDeletedEntryLocation, 0), objectStore);
+            super(entryLocator, new ElementsRelationshipInfo.Extractor(ElementsRelationshipInfo.Extractor.feedDeletedEntryLocation, 0), objectStore);
         }
     }
 
     private static class FileStoringGroupFilter extends ItemStoringFilter<ElementsGroupInfo, ElementsGroupInfo.Extractor> {
         FileStoringGroupFilter(ElementsItemStore objectStore){
-            super(new QName(atomNS, "entry"), new ElementsGroupInfo.Extractor(ElementsGroupInfo.Extractor.feedEntryLocation, 0), objectStore);
+            super(entryLocator, new ElementsGroupInfo.Extractor(ElementsGroupInfo.Extractor.feedEntryLocation, 0), objectStore);
         }
     }
 
@@ -283,7 +273,7 @@ public class ElementsFetch {
                     return new ElementsAPI.APIResponseFilter(new FileStoringRelationshipFilter(objectStore), ElementsAPIVersion.allVersions());
                 }
             };
-            return Arrays.asList(new DescribedQuery[]{query});
+            return Collections.singletonList(query);
         }
     }
 
@@ -300,58 +290,35 @@ public class ElementsFetch {
                     return new ElementsAPI.APIResponseFilter(new FileDeletingRelationshipFilter((ElementsItemStore.ElementsDeletableItemStore) objectStore), ElementsAPIVersion.allVersions());
                 }
             };
-            return Arrays.asList(new DescribedQuery[]{query});
+            return Collections.singletonList(query);
         }
     }
 
-    public static class ObjectsRelationshipsConfig extends PaginatedFeedConfig{
+    public static class RelationshipsListConfig extends PaginatedFeedConfig{
 
-        private final Set<ElementsItemId.ObjectId> objectsToProcess = new HashSet<ElementsItemId.ObjectId>();
+        private final List<ElementsItemId.RelationshipId> relationshipsToProcess = new ArrayList<ElementsItemId.RelationshipId>();
 
-        public ObjectsRelationshipsConfig(Set<ElementsItemId> objectsToProcess, int relationshipsPerPage){
-            super(false, true, relationshipsPerPage);
-            if(objectsToProcess == null) throw new NullArgumentException("objectsToProcess");
-            for(ElementsItemId object : objectsToProcess) {
-                if(!(object instanceof ElementsItemId.ObjectId)) throw new IllegalArgumentException("objectsToProcess must only contain item ids representing objects");
-                this.objectsToProcess.add((ElementsItemId.ObjectId) object);
+        public RelationshipsListConfig(Set<ElementsItemId> relationshipsToProcess){
+            super(false, true, 100);
+            if(relationshipsToProcess == null) throw new NullArgumentException("relationshipsToProcess");
+            for(ElementsItemId relationshipId : relationshipsToProcess) {
+                if(!(relationshipId instanceof ElementsItemId.RelationshipId)) throw new IllegalArgumentException("relationshipsToProcess must only contain item ids representing relationships");
+                this.relationshipsToProcess.add((ElementsItemId.RelationshipId) relationshipId);
             }
         }
 
         @Override
         protected Collection<DescribedQuery> getQueries(boolean fullDetails, boolean getAllPages, int perPage){
             List<DescribedQuery> queries = new ArrayList<DescribedQuery>();
-            for(ElementsItemId.ObjectId objectId : objectsToProcess) {
-                final ElementsItemId.ObjectId idForExtractor = objectId;
-                DescribedQuery query = new DescribedQuery(
-                        new ElementsAPIFeedObjectRelationshipsQuery(objectId, fullDetails, getAllPages, perPage),
-                        MessageFormat.format("Re-processing relationships for object {0}", objectId)){
-                    @Override
-                    public ElementsAPI.APIResponseFilter getExtractor(ElementsItemStore objectStore) {
-                        //TODO improve how touching is handled - its pretty crudy;
-                        if(!(objectStore instanceof ElementsItemStore.ElementsDeletableItemStore)) throw new IllegalStateException("store must be a ElementsDeletableItemStore if processing touches");
-                        return new ElementsAPI.APIResponseFilter(new FileTouchingRelationshipFilter((ElementsItemStore.ElementsDeletableItemStore) objectStore, new IdInjectingExtractor(idForExtractor)), ElementsAPIVersion.allVersions());
-                    }
-                };
-                queries.add(query);
-            }
+            DescribedQuery query = new DescribedQuery(
+                    new ElementsAPIFeedRelationshipQuery.IdList(new HashSet<ElementsItemId.RelationshipId>(relationshipsToProcess)), "Re-pulling relationships for modified objects"){
+                @Override
+                public ElementsAPI.APIResponseFilter getExtractor(ElementsItemStore objectStore) {
+                    return new ElementsAPI.APIResponseFilter(new FileStoringRelationshipFilter(objectStore), ElementsAPIVersion.allVersions());
+                }
+            };
+            queries.add(query);
             return queries;
-        }
-
-        public static class IdInjectingExtractor extends ElementsRelationshipInfo.Extractor{
-            private final ElementsItemId.ObjectId sourceObjectId;
-
-            public IdInjectingExtractor(ElementsItemId.ObjectId sourceObjectId){
-                super(feedEntryLocation, 0);
-                if(sourceObjectId == null) throw new NullArgumentException("sourceObjectId");
-                this.sourceObjectId = sourceObjectId;
-            }
-
-            @Override
-            protected ElementsRelationshipInfo finaliseItemExtraction(EndElement finalElement, XMLEventProcessor.ReaderProxy readerProxy){
-                ElementsRelationshipInfo info = super.finaliseItemExtraction(finalElement, readerProxy);
-                info.addObjectId(sourceObjectId);
-                return info;
-            }
         }
     }
 
@@ -365,7 +332,7 @@ public class ElementsFetch {
                     return new ElementsAPI.APIResponseFilter(new FileStoringGroupFilter(objectStore), ElementsAPIVersion.allVersions());
                 }
             };
-            return Arrays.asList(new DescribedQuery[]{query});
+            return Collections.singletonList(query);
         }
     }
 
@@ -383,7 +350,7 @@ public class ElementsFetch {
                     return new ElementsAPI.APIResponseFilter(new FileStoringObjectFilter(objectStore), ElementsAPIVersion.allVersions());
                 }
             };
-            return Arrays.asList(new DescribedQuery[]{query});
+            return Collections.singletonList(query);
         }
     }
 

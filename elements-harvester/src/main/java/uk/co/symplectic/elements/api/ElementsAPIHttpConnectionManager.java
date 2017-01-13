@@ -6,36 +6,36 @@
  ******************************************************************************/
 package uk.co.symplectic.elements.api;
 
-import org.apache.commons.httpclient.HttpConnectionManager;
-import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
-import org.apache.commons.httpclient.params.HttpConnectionManagerParams;
+//import org.apache.commons.httpclient.HttpConnectionManager;
+//import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
+//import org.apache.commons.httpclient.params.HttpConnectionManagerParams;
 
-class ElementsAPIHttpConnectionManager {
-    private static HttpConnectionManager connectionManager;
-    private static HttpConnectionManagerParams params = null;
-
-    static {
-        params = new HttpConnectionManagerParams();
-        params.setConnectionTimeout(30000);
-        params.setSoTimeout(60000);
-    }
-
-    private ElementsAPIHttpConnectionManager() {}
-
-    static HttpConnectionManager getInstance() {
-        if (connectionManager == null) {
-            ElementsAPIHttpConnectionManager.initialize();
-        }
-
-        return connectionManager;
-    }
-
-    private static synchronized void initialize() {
-        if (connectionManager == null) {
-            connectionManager = new MultiThreadedHttpConnectionManager();
-            if (params != null) {
-                connectionManager.setParams(params);
-            }
-        }
-    }
-}
+//class ElementsAPIHttpConnectionManager {
+//    private static HttpConnectionManager connectionManager;
+//    private static HttpConnectionManagerParams params = null;
+//
+//    static {
+//        params = new HttpConnectionManagerParams();
+//        params.setConnectionTimeout(30000);
+//        params.setSoTimeout(60000);
+//    }
+//
+//    private ElementsAPIHttpConnectionManager() {}
+//
+//    static HttpConnectionManager getInstance() {
+//        if (connectionManager == null) {
+//            ElementsAPIHttpConnectionManager.initialize();
+//        }
+//
+//        return connectionManager;
+//    }
+//
+//    private static synchronized void initialize() {
+//        if (connectionManager == null) {
+//            connectionManager = new MultiThreadedHttpConnectionManager();
+//            if (params != null) {
+//                connectionManager.setParams(params);
+//            }
+//        }
+//    }
+//}

@@ -21,6 +21,9 @@
         <fileSet>
             <directory>example-scripts</directory>
             <outputDirectory>example-scripts</outputDirectory>
+            <excludes>
+                <exclude>example-elements/data*/**</exclude>
+            </excludes>
         </fileSet>
     </fileSets>
     <dependencySets>
@@ -38,6 +41,10 @@
             -->
             <includes>
                 <include>uk.co.symplectic:elements-vivo-harvester</include>
+                <include>net.sf.saxon:Saxon-HE</include>
+                <include>org.apache.httpcomponents:httpcore</include>
+                <include>org.apache.httpcomponents:httpclient</include>
+                <include>org.vivoweb:harvester</include>
             </includes>
         </dependencySet>
     </dependencySets>

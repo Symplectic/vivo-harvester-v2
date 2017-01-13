@@ -10,21 +10,13 @@
 package uk.co.symplectic.vivoweb.harvester.store;
 
 import org.apache.commons.lang.NullArgumentException;
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import uk.co.symplectic.translate.TemplatesHolder;
-import uk.co.symplectic.translate.TranslationService;
-import uk.co.symplectic.vivoweb.harvester.config.Configuration;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 
 import java.io.IOException;
 import java.text.MessageFormat;
-import java.util.Map;
 
-/**
- * Created by ajpc2_000 on 07/09/2016.
- */
 public abstract class ElementsStoreOutputItemObserver extends IElementsStoredItemObserver.ElementsStoredResourceObserverAdapter {
 
     private static final Logger log = LoggerFactory.getLogger(ElementsStoreOutputItemObserver.class);

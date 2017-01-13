@@ -3,32 +3,28 @@ package uk.co.symplectic.vivoweb.harvester.store;
 import org.apache.commons.lang.NullArgumentException;
 import org.apache.commons.lang.StringUtils;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
-import uk.co.symplectic.vivoweb.harvester.model.ElementsItemInfo;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemType;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
 
 import java.text.MessageFormat;
-import java.util.*;
+//import java.util.*;
 
-/**
- * Created by ajpc2_000 on 08/08/2016.
- */
 public class StorableResourceType {
 
     //Static part of class - for storage
-    private static Map<ElementsItemType, List<StorableResourceType>> availableResources = new HashMap<ElementsItemType, List<StorableResourceType>>();
-
-    public static List<StorableResourceType> getResourcesForType(ElementsItemType type) {
-        return Collections.unmodifiableList(innerGetResourcesForType(type));
-    }
-
-    private static List<StorableResourceType> innerGetResourcesForType(ElementsItemType type) {
-        if (type == null) throw new NullArgumentException("type");
-        if (!availableResources.containsKey(type)) {
-            availableResources.put(type, new ArrayList<StorableResourceType>());
-        }
-        return availableResources.get(type);
-    }
+//    private static Map<ElementsItemType, List<StorableResourceType>> availableResources = new HashMap<ElementsItemType, List<StorableResourceType>>();
+//
+//    public static List<StorableResourceType> getResourcesForType(ElementsItemType type) {
+//        return Collections.unmodifiableList(innerGetResourcesForType(type));
+//    }
+//
+//    private static List<StorableResourceType> innerGetResourcesForType(ElementsItemType type) {
+//        if (type == null) throw new NullArgumentException("type");
+//        if (!availableResources.containsKey(type)) {
+//            availableResources.put(type, new ArrayList<StorableResourceType>());
+//        }
+//        return availableResources.get(type);
+//    }
 
     final public static StorableResourceType RAW_OBJECT = new StorableResourceType(ElementsItemType.OBJECT, "raw", "xml", true);
 	final public static StorableResourceType RAW_USER_PHOTO = new UserRelatedResourceType("photo", null, false);
@@ -73,7 +69,7 @@ public class StorableResourceType {
         this.fileExtension = StringUtils.trimToNull(fileExtension);
         this.shouldZip = shouldZip;
 
-        StorableResourceType.innerGetResourcesForType(this.keyItemType).add(this);
+        //StorableResourceType.innerGetResourcesForType(this.keyItemType).add(this);
     }
 
     public boolean isAppropriateForItem(ElementsItemId id){

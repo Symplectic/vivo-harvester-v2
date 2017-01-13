@@ -12,7 +12,6 @@ package uk.co.symplectic.vivoweb.harvester.fetch;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemInfo;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemType;
-import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsItemStore;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItem;
 import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
@@ -22,9 +21,6 @@ import java.text.MessageFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Created by ajpc2_000 on 19/08/2016.
- */
 public abstract class ElementsItemKeyedCollection<T> {
 
     private final Map<ElementsItemId, T> mData = new ConcurrentHashMap<ElementsItemId, T>();
@@ -83,7 +79,7 @@ public abstract class ElementsItemKeyedCollection<T> {
         }
     }
 
-    public static interface ItemRestrictor{
+    public interface ItemRestrictor{
         //checkItemId shuold throw an IllegalStateException if the item key is invalid
         void checkItemIdIsValid(ElementsItemId itemId);
     }
