@@ -8,7 +8,7 @@ import uk.co.symplectic.elements.api.ElementsAPI;
 import uk.co.symplectic.elements.api.ElementsAPIVersion;
 import uk.co.symplectic.elements.api.ElementsAPIVersion.PaginationExtractingFilterFactory;
 import uk.co.symplectic.elements.api.ElementsFeedPagination;
-import uk.co.symplectic.xml.XMLEventProcessor;
+import uk.co.symplectic.utils.xml.XMLEventProcessor;
 
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLStreamException;

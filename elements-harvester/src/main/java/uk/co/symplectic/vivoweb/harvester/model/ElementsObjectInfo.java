@@ -6,8 +6,7 @@
  ******************************************************************************/
 package uk.co.symplectic.vivoweb.harvester.model;
 
-import uk.co.symplectic.elements.api.ElementsAPI;
-import uk.co.symplectic.xml.XMLEventProcessor;
+import uk.co.symplectic.utils.xml.XMLEventProcessor;
 
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLStreamException;
@@ -20,16 +19,31 @@ import static uk.co.symplectic.elements.api.ElementsAPI.atomNS;
 
 public class ElementsObjectInfo extends ElementsItemInfo{
 
-    public static class Extractor extends XMLEventProcessor.ItemExtractingFilter<ElementsObjectInfo>{
+    public abstract static class Extractor extends XMLEventProcessor.ItemExtractingFilter<ElementsObjectInfo>{
 
-        public static DocumentLocation fileEntryLocation = new DocumentLocation(new QName(atomNS, "entry"), new QName(apiNS, "object"));
-        public static DocumentLocation feedEntryLocation = new DocumentLocation(new QName(atomNS, "feed"), new QName(atomNS, "entry"), new QName(apiNS, "object"));
-        public static DocumentLocation feedDeletedEntryLocation = new DocumentLocation(new QName(atomNS, "feed"), new QName(atomNS, "entry"), new QName(apiNS, "deleted-object"));
+        private static DocumentLocation fileEntryLocation = new DocumentLocation(new QName(atomNS, "entry"), new QName(apiNS, "object"));
+        private static DocumentLocation feedEntryLocation = new DocumentLocation(new QName(atomNS, "feed"), new QName(atomNS, "entry"), new QName(apiNS, "object"));
+        private static DocumentLocation feedDeletedEntryLocation = new DocumentLocation(new QName(atomNS, "feed"), new QName(atomNS, "entry"), new QName(apiNS, "deleted-object"));
+
+        public static class FromFeed extends Extractor {
+            public FromFeed(){ this(0); }
+            public FromFeed(int maximumAmountExpected){ super(feedEntryLocation, maximumAmountExpected); }
+        }
+
+        public static class DeletedFromFeed extends Extractor {
+            public DeletedFromFeed(){ this(0); }
+            public DeletedFromFeed(int maximumAmountExpected){ super(feedDeletedEntryLocation, maximumAmountExpected); }
+        }
+
+        public static class FromFile extends Extractor {
+            public FromFile(){ this(0); }
+            public FromFile(int maximumAmountExpected){ super(fileEntryLocation, maximumAmountExpected); }
+        }
 
         private ElementsObjectInfo workspace  = null;
         private ElementsUserInfo.UserExtraData additionalUserData = null;
 
-        public Extractor(DocumentLocation location, int maximumAmountExpected){
+        protected  Extractor(DocumentLocation location, int maximumAmountExpected){
             super(location, maximumAmountExpected);
         }
 

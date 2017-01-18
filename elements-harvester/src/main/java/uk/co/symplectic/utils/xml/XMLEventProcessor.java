@@ -7,7 +7,7 @@
  *  *****************************************************************************
  */
 
-package uk.co.symplectic.xml;
+package uk.co.symplectic.utils.xml;
 
 import org.apache.commons.lang.NullArgumentException;
 

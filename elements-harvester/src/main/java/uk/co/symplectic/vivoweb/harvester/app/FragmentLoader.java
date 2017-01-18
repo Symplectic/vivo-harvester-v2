@@ -26,9 +26,8 @@ import org.apache.http.message.BasicNameValuePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vivoweb.harvester.util.FileAide;
-import uk.co.symplectic.TripleStoreUtils.FileSplitter;
-import uk.co.symplectic.elements.api.ElementsAPI;
-import uk.co.symplectic.elements.api.ElementsAPIHttpClient;
+import uk.co.symplectic.utils.triplestore.FileSplitter;
+import uk.co.symplectic.utils.http.HttpClient;
 import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -76,7 +75,7 @@ public class FragmentLoader {
                     try {
                         URI validGraphURI = new URI(graphUri);
                         int count = 0;
-                        ElementsAPIHttpClient.setSocketTimeout(15 * 60 * 1000); //15 min in milliseconds
+                        HttpClient.setSocketTimeout(15 * 60 * 1000); //15 min in milliseconds
                         for (File file : filesToSort) {
                             //if (count > 10) break;
                             //get the content we are sending from the fragment file
@@ -151,15 +150,15 @@ public class FragmentLoader {
     private static void trySendFragment(SparqlUpdateHttpClient client, String sparqlContent, boolean shouldDeleteContent) throws IllegalStateException {
         int retryCount = 0;
         do {
-            ElementsAPIHttpClient.ApiResponse apiResponse = null;
+            HttpClient.ApiResponse apiResponse = null;
             try {
                 apiResponse = client.postSparqlFragment(sparqlContent, shouldDeleteContent);
                 if(retryCount != 0) System.out.print(')');
                 return;
             }
             catch (IOException e) {
-                if(e instanceof ElementsAPI.InvalidResponseException){
-                    int statusCode = ((ElementsAPI.InvalidResponseException) e).getResponseCode();
+                if(e instanceof HttpClient.InvalidResponseException){
+                    int statusCode = ((HttpClient.InvalidResponseException) e).getResponseCode();
                     //if forbidden then just jump out here..
                     if(statusCode == HttpStatus.SC_FORBIDDEN || statusCode == HttpStatus.SC_UNAUTHORIZED) {
                         throw new IllegalStateException(e.getMessage(), e);
@@ -225,7 +224,7 @@ public class FragmentLoader {
         }
     }
 
-    static class SparqlUpdateHttpClient extends ElementsAPIHttpClient {
+    static class SparqlUpdateHttpClient extends HttpClient {
 
         final private String username;
         final private String password;
@@ -264,12 +263,12 @@ public class FragmentLoader {
             CloseableHttpResponse response = httpclient.execute(post);
 
             ///convert non 200 responses into exceptions.
-            ElementsAPI.InvalidResponseException exception;
+            HttpClient.InvalidResponseException exception;
             int responseCode = response.getStatusLine().getStatusCode();
             if(responseCode != HttpStatus.SC_OK){
                 String codeDescription = EnglishReasonPhraseCatalog.INSTANCE.getReason(responseCode, null);
                 String message = MessageFormat.format("Invalid Http response code received: {0} ({1})", responseCode, codeDescription);
-                exception = new ElementsAPI.InvalidResponseException(message, responseCode);
+                exception = new HttpClient.InvalidResponseException(message, responseCode);
                 throw exception;
             }
             return new ApiResponse(response);

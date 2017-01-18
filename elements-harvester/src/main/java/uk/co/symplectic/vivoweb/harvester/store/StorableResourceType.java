@@ -26,26 +26,23 @@ public class StorableResourceType {
 //        return availableResources.get(type);
 //    }
 
-    final public static StorableResourceType RAW_OBJECT = new StorableResourceType(ElementsItemType.OBJECT, "raw", "xml", true);
-	final public static StorableResourceType RAW_USER_PHOTO = new UserRelatedResourceType("photo", null, false);
-    final public static StorableResourceType RAW_RELATIONSHIP = new StorableResourceType(ElementsItemType.RELATIONSHIP, "raw", "xml", true);
-    final public static StorableResourceType RAW_GROUP = new StorableResourceType(ElementsItemType.GROUP, "raw", "xml", true);
+    final public static StorableResourceType RAW_OBJECT = new StorableResourceType(ElementsItemType.AllObjects, "raw", "xml", true);
+	final public static StorableResourceType RAW_USER_PHOTO = new StorableResourceType(ElementsObjectCategory.USER, "photo", null, false);
+    final public static StorableResourceType RAW_RELATIONSHIP = new StorableResourceType(ElementsItemType.AllRelationships, "raw", "xml", true);
+    final public static StorableResourceType RAW_GROUP = new StorableResourceType(ElementsItemType.AllGroups, "raw", "xml", true);
 
-    final public static StorableResourceType TRANSLATED_OBJECT = new StorableResourceType(ElementsItemType.OBJECT, "translated", "rdf", true);
-    final public static StorableResourceType TRANSLATED_USER_PHOTO_DESCRIPTION = new UserRelatedResourceType("photo", "rdf", true);
-    final public static StorableResourceType TRANSLATED_RELATIONSHIP = new StorableResourceType(ElementsItemType.RELATIONSHIP, "translated", "rdf", true);
-    final public static StorableResourceType TRANSLATED_GROUP = new StorableResourceType(ElementsItemType.GROUP, "translated", "rdf", true);
+    final public static StorableResourceType TRANSLATED_OBJECT = new StorableResourceType(ElementsItemType.AllObjects, "translated", "rdf", true);
+    final public static StorableResourceType TRANSLATED_USER_PHOTO_DESCRIPTION = new StorableResourceType(ElementsObjectCategory.USER, "photo", "rdf", true);
+    final public static StorableResourceType TRANSLATED_RELATIONSHIP = new StorableResourceType(ElementsItemType.AllRelationships, "translated", "rdf", true);
+    final public static StorableResourceType TRANSLATED_GROUP = new StorableResourceType(ElementsItemType.AllGroups, "translated", "rdf", true);
 
     //Item part of class to define structure
-    private final ElementsItemType keyItemType;
+    private final ElementsItemType.SubType keySubItemType;
     private final String name;
     private final String fileExtension;
     private final boolean shouldZip;
 
-    public ElementsItemType getKeyItemType() {
-        return keyItemType;
-    }
-
+    public ElementsItemType getKeyItemType() { return keySubItemType.getMainType(); }
     public String getName() {
         return name;
     }
@@ -57,44 +54,40 @@ public class StorableResourceType {
 
     @Override
     public String toString(){
-        return MessageFormat.format("{0}-{1}", getName(), keyItemType.getName());
+        return MessageFormat.format("{0}-{1}", getName(), keySubItemType.getSingular());
     }
 
-    private StorableResourceType(ElementsItemType keyItemType, String name, String fileExtension, boolean shouldZip) {
-        if (keyItemType == null) throw new NullArgumentException("keyItemType");
+    private StorableResourceType(ElementsItemType.SubType keySubItemType, String name, String fileExtension, boolean shouldZip) {
+        if (keySubItemType == null) throw new NullArgumentException("keySubItemType");
         if (StringUtils.isEmpty(name) || StringUtils.isWhitespace(name))
             throw new IllegalArgumentException("argument name must not be null or empty");
-        this.keyItemType = keyItemType;
+        this.keySubItemType = keySubItemType;
         this.name = name;
         this.fileExtension = StringUtils.trimToNull(fileExtension);
         this.shouldZip = shouldZip;
-
-        //StorableResourceType.innerGetResourcesForType(this.keyItemType).add(this);
     }
 
-    public boolean isAppropriateForItem(ElementsItemId id){
-        return keyItemType == id.getItemType();
-    }
+    public boolean isAppropriateForItem(ElementsItemId id){ return keySubItemType.matches(id.getItemSubType()); }
 
     public boolean shouldZip() { return shouldZip; }
 
-    private static class UserRelatedResourceType extends StorableResourceType {
-        UserRelatedResourceType(String name, String fileExtension, boolean shouldZip) {
-            super(ElementsItemType.OBJECT, name, fileExtension, shouldZip);
-        }
-
-        @Override
-        public boolean isAppropriateForItem(ElementsItemId id) {
-            //return super.isAppropriateForItem(id) && id instanceof ElementsItemId.ObjectId && ((ElementsItemId.ObjectId) id).getCategory() == ElementsObjectCategory.USER;
-            //must be an object id if is appropriate for object item type...
-            return super.isAppropriateForItem(id) && id.getItemSubType() == ElementsObjectCategory.USER;
-        }
-
-        @Override
-        public String toString(){
-            return MessageFormat.format("{0}-{1}", getName(), "user");
-        }
-    }
+//    private static class UserRelatedResourceType extends StorableResourceType {
+//        UserRelatedResourceType(String name, String fileExtension, boolean shouldZip) {
+//            super(ElementsItemType.OBJECT, name, fileExtension, shouldZip);
+//        }
+//
+//        @Override
+//        public boolean isAppropriateForItem(ElementsItemId id) {
+//            //return super.isAppropriateForItem(id) && id instanceof ElementsItemId.ObjectId && ((ElementsItemId.ObjectId) id).getCategory() == ElementsObjectCategory.USER;
+//            //must be an object id if is appropriate for object item type...
+//            return super.isAppropriateForItem(id) && id.getItemSubType() == ElementsObjectCategory.USER;
+//        }
+//
+//        @Override
+//        public String toString(){
+//            return MessageFormat.format("{0}-{1}", getName(), "user");
+//        }
+//    }
 
 }
 

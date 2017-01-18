@@ -6,7 +6,8 @@
  *  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  *  *****************************************************************************
  */
-package uk.co.symplectic.elements.api;
+
+package uk.co.symplectic.utils.http;
 
 import org.apache.commons.lang.NullArgumentException;
 import org.apache.http.HttpEntity;
@@ -38,7 +39,7 @@ import java.net.URISyntaxException;
 import java.text.MessageFormat;
 import java.util.Date;
 
-public class ElementsAPIHttpClient {
+public class HttpClient {
     final private String username;
     final private String password;
     final private String url;
@@ -113,15 +114,15 @@ public class ElementsAPIHttpClient {
         }
     }
 
-    public ElementsAPIHttpClient(String url) throws URISyntaxException {
+    public HttpClient(String url) throws URISyntaxException {
         this(url, null, null);
     }
 
-    public ElementsAPIHttpClient(String url, String username, String password) throws URISyntaxException {
-        this(new ElementsValidatedUrl(url), username, password);
+    public HttpClient(String url, String username, String password) throws URISyntaxException {
+        this(new ValidatedUrl(url), username, password);
     }
 
-    public ElementsAPIHttpClient(ElementsValidatedUrl url, String username, String password) {
+    public HttpClient(ValidatedUrl url, String username, String password) {
         if(url == null) throw new NullArgumentException("url");
         this.url = url.getUrl();
 
@@ -153,12 +154,12 @@ public class ElementsAPIHttpClient {
         CloseableHttpResponse response = httpclient.execute(getMethod);
 
         ///convert non 200 responses into exceptions.
-        ElementsAPI.InvalidResponseException exception;
+        InvalidResponseException exception;
         int responseCode = response.getStatusLine().getStatusCode();
         if(responseCode != HttpStatus.SC_OK){
             String codeDescription = EnglishReasonPhraseCatalog.INSTANCE.getReason(responseCode, null);
             String message = MessageFormat.format("Invalid Http response code received: {0} ({1})", responseCode, codeDescription);
-            exception = new ElementsAPI.InvalidResponseException(message, responseCode);
+            exception = new InvalidResponseException(message, responseCode);
             throw exception;
         }
         return new ApiResponse(response);
@@ -222,6 +223,16 @@ public class ElementsAPIHttpClient {
 
         public int getResponseCode() {
             return response.getStatusLine().getStatusCode();
+        }
+    }
+
+    public static class InvalidResponseException extends IOException{
+        final int responseCode;
+        public int getResponseCode(){ return responseCode; }
+
+        public InvalidResponseException(String message, int responseCode){
+            super(message);
+            this.responseCode = responseCode;
         }
     }
 }

@@ -10,7 +10,7 @@
 package uk.co.symplectic.vivoweb.harvester.model;
 
 import org.apache.commons.lang.NullArgumentException;
-import uk.co.symplectic.xml.XMLEventProcessor;
+import uk.co.symplectic.utils.xml.XMLEventProcessor;
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.events.EndElement;
@@ -24,14 +24,24 @@ import static uk.co.symplectic.elements.api.ElementsAPI.apiNS;
 import static uk.co.symplectic.elements.api.ElementsAPI.atomNS;
 
 public class ElementsGroupInfo extends ElementsItemInfo{
-    public static class Extractor extends XMLEventProcessor.ItemExtractingFilter<ElementsGroupInfo>{
+    public abstract static class Extractor extends XMLEventProcessor.ItemExtractingFilter<ElementsGroupInfo>{
 
-        public static DocumentLocation fileEntryLocation = new DocumentLocation(new QName(atomNS, "entry"), new QName(apiNS, "user-group"));
-        public static DocumentLocation feedEntryLocation = new DocumentLocation(new QName(atomNS, "feed"), new QName(atomNS, "entry"), new QName(apiNS, "user-group"));
+        private static DocumentLocation fileEntryLocation = new DocumentLocation(new QName(atomNS, "entry"), new QName(apiNS, "user-group"));
+        private static DocumentLocation feedEntryLocation = new DocumentLocation(new QName(atomNS, "feed"), new QName(atomNS, "entry"), new QName(apiNS, "user-group"));
+
+        public static class FromFeed extends Extractor {
+            public FromFeed(){ this(0); }
+            public FromFeed(int maximumAmountExpected){ super(feedEntryLocation, maximumAmountExpected); }
+        }
+
+        public static class FromFile extends Extractor {
+            public FromFile(){ this(0); }
+            public FromFile(int maximumAmountExpected){ super(fileEntryLocation, maximumAmountExpected); }
+        }
 
         private ElementsGroupInfo workspace;
 
-        public Extractor(DocumentLocation location, int maximumAmountExpected){
+        protected Extractor(DocumentLocation location, int maximumAmountExpected){
             super(location, maximumAmountExpected);
         }
 

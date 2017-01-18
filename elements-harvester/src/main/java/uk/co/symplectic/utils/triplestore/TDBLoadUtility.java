@@ -7,7 +7,7 @@
  *  *****************************************************************************
  */
 
-package uk.co.symplectic.TripleStoreUtils;
+package uk.co.symplectic.utils.triplestore;
 import com.hp.hpl.jena.graph.Triple;
 import com.hp.hpl.jena.tdb.nodetable.NodeTupleTable;
 import com.hp.hpl.jena.tdb.store.DatasetGraphTDB;

@@ -7,7 +7,7 @@
  *  *****************************************************************************
  */
 
-package uk.co.symplectic.TripleStoreUtils;
+package uk.co.symplectic.utils.triplestore;
 
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.RDFWriter;
@@ -21,7 +21,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
-import java.text.MessageFormat;
 
 public abstract class ModelOutput {
 

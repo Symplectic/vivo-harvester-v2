@@ -27,11 +27,11 @@ public class ElementsItemFileStore implements ElementsItemStore.ElementsDeletabl
 
     public List<StorableResourceType> getSupportedTypes(){return Collections.unmodifiableList(supportedTypes);}
 
-    public ElementsItemFileStore(String dir, boolean keepEmpty, boolean zipFiles, LayoutStrategy layoutStrategy, StorableResourceType... supportedTypes) {
+    public ElementsItemFileStore(File dir, boolean keepEmpty, boolean zipFiles, LayoutStrategy layoutStrategy, StorableResourceType... supportedTypes) {
         if(dir == null) throw new NullArgumentException("dir");
         if(supportedTypes == null || supportedTypes.length == 0) throw new IllegalArgumentException("supportedTypes must not be null or empty");
 
-        this.dir = new File(dir);
+        this.dir = dir;
         this.keepEmpty = keepEmpty;
         this.zipFiles = zipFiles;
 
@@ -184,11 +184,11 @@ public class ElementsItemFileStore implements ElementsItemStore.ElementsDeletabl
                 new StorableResourceType[]{StorableResourceType.RAW_USER_PHOTO}
         );
 
-        public ElementsRawDataStore(String dir) {
+        public ElementsRawDataStore(File dir) {
             this(dir, false, false);
         }
 
-        public ElementsRawDataStore(String dir, boolean keepEmpty, boolean zipFiles){
+        public ElementsRawDataStore(File dir, boolean keepEmpty, boolean zipFiles){
             super(dir, keepEmpty, zipFiles, ElementsRawDataStore.layoutStrategy,
                     StorableResourceType.RAW_OBJECT, StorableResourceType.RAW_RELATIONSHIP, StorableResourceType.RAW_USER_PHOTO, StorableResourceType.RAW_GROUP);
         }

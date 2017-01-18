@@ -4,7 +4,7 @@ import org.apache.commons.lang.NullArgumentException;
 import org.apache.commons.lang.StringUtils;
 import uk.co.symplectic.elements.api.versions.ElementsAPIv4_XURLBuilder;
 import uk.co.symplectic.elements.api.versions.GeneralPaginationExtractingFilterFactory;
-import uk.co.symplectic.xml.XMLEventProcessor;
+import uk.co.symplectic.utils.xml.XMLEventProcessor;
 
 import java.text.MessageFormat;
 import java.util.Collection;

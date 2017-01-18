@@ -16,15 +16,14 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.vivoweb.harvester.util.args.UsageException;
 import org.vivoweb.harvester.util.repo.JenaConnect;
 import org.vivoweb.harvester.util.repo.TDBJenaConnect;
-import uk.co.symplectic.TripleStoreUtils.DiffUtility;
-import uk.co.symplectic.TripleStoreUtils.FileSplitter;
-import uk.co.symplectic.TripleStoreUtils.ModelOutput;
-import uk.co.symplectic.TripleStoreUtils.TDBLoadUtility;
+import uk.co.symplectic.utils.triplestore.DiffUtility;
+import uk.co.symplectic.utils.triplestore.FileSplitter;
+import uk.co.symplectic.utils.triplestore.ModelOutput;
+import uk.co.symplectic.utils.triplestore.TDBLoadUtility;
 import uk.co.symplectic.elements.api.ElementsAPI;
-import uk.co.symplectic.elements.api.ElementsAPIHttpClient;
+import uk.co.symplectic.utils.http.HttpClient;
 import uk.co.symplectic.elements.api.ElementsAPIVersion;
 import uk.co.symplectic.translate.TranslationService;
 import uk.co.symplectic.utils.ExecutorServiceUtils;
@@ -42,6 +41,9 @@ import java.text.MessageFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+
+
+//import org.vivoweb.harvester.util.args.UsageException;
 
 public class ElementsFetchAndTranslate {
     /**
@@ -82,8 +84,8 @@ public class ElementsFetchAndTranslate {
         Throwable caught = null;
         try {
             try {
-                boolean performFullPull = false; //todo: make configurable (command line switch)?
-                boolean updateLocalTDB = false;
+                boolean performFullPull = true; //todo: make configurable (command line switch)?
+                boolean updateLocalTDB = true;
 
                 //when did we start this run (i.e how "up to date" can we claim to be at the end).
                 Date runStartedAt = new Date();
@@ -151,9 +153,9 @@ public class ElementsFetchAndTranslate {
                 Configuration.parse("ElementsFetchAndTranslate", args);
                 //TODO: worry about how manage TDB directory output (i.e. how we marshall it to previous-harvest?)
                 //TODO: ensure that configured directories are valid (either already exist or can be created?)
-                String interimTdbDirectory = Configuration.getTdbOutputDir();
-                File currentStore = new File(interimTdbDirectory, runType == StateType.EVEN ? "0" : "1");
-                File previousStore = new File(interimTdbDirectory, runType == StateType.ODD ? "0" : "1");
+                File interimTdbDirectory = Configuration.getTdbOutputDir();
+                File currentTdbStore = new File(interimTdbDirectory, runType == StateType.EVEN ? "0" : "1");
+                File previousTdbStore = new File(interimTdbDirectory, runType == StateType.ODD ? "0" : "1");
 
                 log.debug("ElementsFetchAndTranslate: Start");
 
@@ -276,23 +278,23 @@ public class ElementsFetchAndTranslate {
                     log.debug("ElementsFetchAndTranslate: Finished calculating output files related to included objects");
                     //end of changes towards making include monitoring a separate step in the process
 
-                    currentStore.mkdirs();
-                    previousStore.mkdirs();
+                    currentTdbStore.mkdirs();
+                    previousTdbStore.mkdirs();
 
                     //clear the current store ahead of re-loading
-                    FileUtils.deleteDirectory(currentStore);
+                    FileUtils.deleteDirectory(currentTdbStore);
                     //TODO: ensure that comparison store is nulled out too if we are starting with no state....
 
-                    log.debug(MessageFormat.format("ElementsFetchAndTranslate: Transferring output data to triplestore \"{0}\"", currentStore.getAbsolutePath()));
-                    JenaConnect currentJC = new TDBJenaConnect(currentStore.getAbsolutePath());
+                    log.debug(MessageFormat.format("ElementsFetchAndTranslate: Transferring output data to triplestore \"{0}\"", currentTdbStore.getAbsolutePath()));
+                    JenaConnect currentJC = new TDBJenaConnect(currentTdbStore.getAbsolutePath());
                     //JenaConnect jc = new TDBJenaConnect(currentStore.getAbsolutePath(), "http://vitro.mannlib.cornell.edu/default/vitro-kb-2");
                     TDBLoadUtility.load(currentJC, filesToProcess.iterator());
                     log.debug("ElementsFetchAndTranslate: Finished transferring data to triplestore");
                 }
 
                 log.debug("ElementsFetchAndTranslate: Calculating additions based on comparison to previous run");
-                JenaConnect currentJC = new TDBJenaConnect(currentStore.getAbsolutePath());
-                JenaConnect previousJC = new TDBJenaConnect(previousStore.getAbsolutePath());
+                JenaConnect currentJC = new TDBJenaConnect(currentTdbStore.getAbsolutePath());
+                JenaConnect previousJC = new TDBJenaConnect(previousTdbStore.getAbsolutePath());
                 File additionsFile = new File(interimTdbDirectory, "additions.n3");
                 ModelOutput additionsOutput = new ModelOutput.FileOutput(additionsFile);
                 DiffUtility.diff(currentJC, previousJC, additionsOutput);
@@ -340,7 +342,7 @@ public class ElementsFetchAndTranslate {
                 e.printStackTrace(System.err);
                 caught = e;
             }
-        } catch (UsageException e) {
+        } catch (Configuration.UsageException e) {
             caught = e;
             if (!Configuration.isConfigured()) {
                 System.out.println(Configuration.getUsage());
@@ -370,13 +372,13 @@ public class ElementsFetchAndTranslate {
         if(modifiedSince == null) {
             //TODO: make this at least log what is happening ..check is doing deletes of additional resources correctly.
             objectStore.cleardown(StorableResourceType.RAW_OBJECT);
-            ElementsFetch.ObjectConfig objConfig = new ElementsFetch.ObjectConfig(true, Configuration.getApiObjectsPerPage(), null, categories);
+            ElementsFetch.ObjectConfig objConfig = new ElementsFetch.ObjectConfig(true, null, categories);
             elementsFetcher.execute(objConfig, objectStore);
         }
         else{
-            ElementsFetch.ObjectConfig objConfig = new ElementsFetch.ObjectConfig(true, Configuration.getApiObjectsPerPage(), modifiedSince, categories);
+            ElementsFetch.ObjectConfig objConfig = new ElementsFetch.ObjectConfig(true, modifiedSince, categories);
             //todo : move higher value per page to config somehow
-            ElementsFetch.ObjectConfig delObjConfig = new ElementsFetch.DeletedObjectConfig(true, 100, modifiedSince, categories);
+            ElementsFetch.ObjectConfig delObjConfig = new ElementsFetch.DeletedObjectConfig(true, modifiedSince, categories);
             elementsFetcher.execute(objConfig, objectStore);
             elementsFetcher.execute(delObjConfig, objectStore);
         }
@@ -388,14 +390,13 @@ public class ElementsFetchAndTranslate {
             //TODO: make this at least log what is happening
             objectStore.cleardown(StorableResourceType.RAW_RELATIONSHIP);
             //fetch relationships.
-            ElementsFetch.RelationshipConfig relConfig = new ElementsFetch.RelationshipConfig(null, Configuration.getApiRelationshipsPerPage());
+            ElementsFetch.RelationshipConfig relConfig = new ElementsFetch.RelationshipConfig(null);
             elementsFetcher.execute(relConfig, objectStore);
         }
         else {
-            ElementsFetch.RelationshipConfig relConfig = new ElementsFetch.RelationshipConfig(modifiedSince, Configuration.getApiRelationshipsPerPage());
-            ElementsFetch.RelationshipConfig delRelConfig = new ElementsFetch.DeletedRelationshipConfig(modifiedSince, Configuration.getApiRelationshipsPerPage());
+            ElementsFetch.RelationshipConfig relConfig = new ElementsFetch.RelationshipConfig(modifiedSince);
+            ElementsFetch.RelationshipConfig delRelConfig = new ElementsFetch.DeletedRelationshipConfig(modifiedSince);
             elementsFetcher.execute(relConfig, objectStore);
-            //TODO : make this not translate if already processed relationship this run?
             elementsFetcher.execute(delRelConfig, objectStore);
 
             //Work out if we need to do any re-processing
@@ -548,21 +549,25 @@ public class ElementsFetchAndTranslate {
         String apiPassword = Configuration.getApiPassword();
 
         if (Configuration.getIgnoreSSLErrors()) {
-            ElementsAPIHttpClient.ignoreSslErrors();
+            HttpClient.ignoreSslErrors();
         }
 
         int soTimeout = Configuration.getApiSoTimeout();
         if (soTimeout > 4999 && soTimeout < (30 * 60 * 1000)) {
-            ElementsAPIHttpClient.setSocketTimeout(soTimeout);
+            HttpClient.setSocketTimeout(soTimeout);
         }
 
         int requestDelay = Configuration.getApiRequestDelay();
         if (requestDelay > -1 && requestDelay < (5 * 60 * 1000)) {
-            ElementsAPIHttpClient.setRequestDelay(requestDelay);
+            HttpClient.setRequestDelay(requestDelay);
         }
 
-        //TODO: move "true" for reqrite mismatched urls to config.
-        return new ElementsAPI(apiVersion, apiEndpoint, apiUsername, apiPassword, true);
+        int fullDetailPerPage = Configuration.getApiObjectsPerPage();
+        int refDetailPerPage = Configuration.getApiRelationshipsPerPage();
+        ElementsAPI.ProcessingDefaults defaults = new ElementsAPI.ProcessingDefaults(true, fullDetailPerPage, refDetailPerPage);
+        //TODO: move "true" for reqrite mismatched urls to config, set up ProcessingDefaults properly..
+        return new ElementsAPI(apiVersion, apiEndpoint, apiUsername, apiPassword, true, defaults);
+
     }
 
     private static File getDirectoryFromPath(String path) {

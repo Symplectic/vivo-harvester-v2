@@ -119,8 +119,6 @@ public interface IElementsStoredItemObserver{
         protected void observeTypeCleardown(StorableResourceType type, ElementsItemStore source){
             throw new IllegalAccessError("unexpected use of observeTypeCleardown");
         }
-
-
     }
 }
 

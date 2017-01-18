@@ -6,6 +6,8 @@
  ******************************************************************************/
 package uk.co.symplectic.elements.api;
 
+import org.apache.commons.lang.NullArgumentException;
+
 import java.util.*;
 
 abstract public class ElementsFeedQuery {
@@ -14,19 +16,13 @@ abstract public class ElementsFeedQuery {
     //public int page;
 
     private final boolean fullDetails;
-    private final boolean processAllPages;
-    private final int perPage;
 
     /**
      *
      * @param fullDetails to request whether the feed contain full object details or reference level information
-     * @param processAllPages to indicate whether all the pages be processed
-     * @param perPage An integer, 0 or below uses the feed default
      */
-    public ElementsFeedQuery(boolean fullDetails, boolean processAllPages, int perPage) {
+    public ElementsFeedQuery(boolean fullDetails)  {
         this.fullDetails = fullDetails;
-        this.processAllPages = processAllPages;
-        this.perPage = perPage;
     }
 
     /**
@@ -39,66 +35,57 @@ abstract public class ElementsFeedQuery {
     }
 
     /**
-     * Number of records per page in the feed
-     *
-     * @return An integer, 0 or below uses the feed default
-     */
-    public int getPerPage() {
-        return perPage;
-    }
-
-    /**
-     * For a query that goes over multiple pages, should all the pages be processed
-     *
-     * @return true to process all pages, false to only process the first
-     */
-    public boolean getProcessAllPages() {
-        return processAllPages;
-    }
-
-    /**
      * Call to convert this particular query into a set of URLs using the passed in builder to account for version differences.
      * Will normally just return a single url, but in the general case could be a set.
      * @param apiBaseUrl the base url of the api you want to query
      * @param builder an api version specific builder that knows how to construct different types of query URL.
      * @return
      */
-    public QueryIterator getQueryIterator(String apiBaseUrl, ElementsAPIURLBuilder builder){
-     return new QueryIterator(getUrlString(apiBaseUrl, builder));
+    public QueryIterator getQueryIterator(String apiBaseUrl, ElementsAPIURLBuilder builder, ElementsAPI.ProcessingOptions options) {
+        Set<String> urls = getUrlStrings(apiBaseUrl, builder, options.getPerPage());
+        return new QueryIterator(options, urls);
     }
 
     /**
-     * Call to convert this particular query into a URL using the passed in builder to account for version differences.
+     * Call to convert this particular query into (generically) a set of URLs to be fetched
+     * Note: each URL in the set may need to have several pages fetched to retrieve all the data for that query.
+     * uses the passed in builder to account for version differences.
      * @param apiBaseUrl the base url of the api you want to query
      * @param builder an api version specific builder that knows how to construct different types of query URL.
+     * @param perpage the number of items to retrieve per page (not always used by the builder).
      * @return
      */
-    protected abstract String getUrlString(String apiBaseUrl, ElementsAPIURLBuilder builder);
+    protected abstract Set<String> getUrlStrings(String apiBaseUrl, ElementsAPIURLBuilder builder, int perPage);
+
+
 
     public abstract static class DeltaCapable extends ElementsFeedQuery{
         private final Date modifiedSince;
 
         public Date getModifiedSince(){return modifiedSince;}
 
-        public DeltaCapable(Date modifiedSince, boolean fullDetails, boolean processAllPages, int perPage){
-            super(fullDetails, processAllPages, perPage);
+        public DeltaCapable(boolean fullDetails, Date modifiedSince){
+            super(fullDetails);
             this.modifiedSince = modifiedSince;
         }
     }
 
     public class QueryIterator{
 
-        private Iterator<String> queryIterator;
+        private final Iterator<String> queryIterator;
+        private final ElementsAPI.ProcessingOptions processingOptions;
 
-        public QueryIterator(String... queries){ this(new HashSet<String>(Arrays.asList(queries))); }
+        //public QueryIterator(String... queries){ this(new HashSet<String>(Arrays.asList(queries))); }
 
-        public QueryIterator(Set<String> queries){
+        public QueryIterator(ElementsAPI.ProcessingOptions processingOptions, Set<String> queries){
+            if(processingOptions == null) throw new NullArgumentException("processingOptions");
             if(queries == null || queries.isEmpty()) throw new IllegalArgumentException("queries must not be null or empty");
-            queryIterator = queries.iterator();
+            this.queryIterator = queries.iterator();
+            this.processingOptions = processingOptions;
         }
 
         private boolean hasNextPage(ElementsFeedPagination pagination){
-            return getProcessAllPages() && pagination != null && pagination.getNextURL() != null;
+            return processingOptions.getProcessAllPages() && pagination != null && pagination.getNextURL() != null;
         }
 
         public boolean hasNext(ElementsFeedPagination pagination) {

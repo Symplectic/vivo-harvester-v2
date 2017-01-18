@@ -7,7 +7,7 @@
  *  *****************************************************************************
  */
 
-package uk.co.symplectic.TripleStoreUtils;
+package uk.co.symplectic.utils.triplestore;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.NotImplementedException;
@@ -115,7 +115,7 @@ public abstract class FileSplitter {
             }
         }
         catch (IOException e) {
-            //TODO: report on where we are (add logging)? try and tidy up a fair bit (e.g. delete any files matching the current date..)
+            //TODO: report on where we are (add logging)?
             //try to clear out any files created during this run - which has now failed..
             for(File file : filesCreated){
                 file.delete(); //allow delete to fail as it is safer - not a massive problem if we can't delete it at this point.

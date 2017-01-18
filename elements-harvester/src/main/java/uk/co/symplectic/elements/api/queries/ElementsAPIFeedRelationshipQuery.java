@@ -16,30 +16,20 @@ public class ElementsAPIFeedRelationshipQuery extends ElementsFeedQuery.DeltaCap
     // How many relationships to request per API request:Default of 100 used for optimal performance (see constructor chain)
     private static int defaultPerPage = 100;
 
-    public ElementsAPIFeedRelationshipQuery(Date modifiedSince, boolean fullDetails, boolean processAllPages) {
-        this(modifiedSince, fullDetails, processAllPages, ElementsAPIFeedRelationshipQuery.defaultPerPage);
-    }
-
-
-    public ElementsAPIFeedRelationshipQuery(Date modifiedSince, boolean fullDetails, boolean processAllPages, int perPage) {
-        super(modifiedSince, fullDetails, processAllPages, perPage);
+    public ElementsAPIFeedRelationshipQuery(boolean fullDetails, Date modifiedSince) {
+        super(fullDetails, modifiedSince);
     }
 
     public boolean getQueryDeletedObjects(){ return false;}
 
     @Override
-    protected String getUrlString(String apiBaseUrl, ElementsAPIURLBuilder builder){
-        return builder.buildRelationshipFeedQuery(apiBaseUrl, this, null);
+    protected Set<String> getUrlStrings(String apiBaseUrl, ElementsAPIURLBuilder builder, int perPage){
+        return Collections.singleton(builder.buildRelationshipFeedQuery(apiBaseUrl, this, perPage));
     }
 
-
     public static class Deleted extends ElementsAPIFeedRelationshipQuery{
-        public Deleted(Date deletedSince, boolean processAllPages) {
-            this(deletedSince, processAllPages, 100);
-        }
-
-        public Deleted(Date deletedSince, boolean processAllPages, int perPage) {
-            super(deletedSince, false, processAllPages, perPage);
+        public Deleted(Date deletedSince) {
+            super(false, deletedSince);
         }
 
         @Override
@@ -50,7 +40,7 @@ public class ElementsAPIFeedRelationshipQuery extends ElementsFeedQuery.DeltaCap
         List<Integer> relationshipIds = new ArrayList<Integer>();
 
         public IdList(Set<ElementsItemId.RelationshipId> ids){
-            super(null, false, true, 100);
+            super(false, null);
             if(ids == null || ids.isEmpty()) throw new IllegalArgumentException("ids must not be null or empty");
             for(ElementsItemId id : ids){
                 relationshipIds.add(id.getId());
@@ -58,19 +48,18 @@ public class ElementsAPIFeedRelationshipQuery extends ElementsFeedQuery.DeltaCap
         }
 
         @Override
-        public QueryIterator getQueryIterator(String apiBaseUrl, ElementsAPIURLBuilder builder){
+        public Set<String> getUrlStrings(String apiBaseUrl, ElementsAPIURLBuilder builder, int perPage){
             Set<String> queries = new HashSet<String>();
-
             int counter = 0;
             int maxIndex;
             do{
                 //do batches in the amount set in per page..
-                maxIndex = Math.min((counter+1)*getPerPage(), relationshipIds.size());
+                maxIndex = Math.min((counter+1)*perPage, relationshipIds.size());
                 List<Integer> batch = relationshipIds.subList(counter*100, maxIndex);
                 queries.add(builder.buildRelationshipFeedQuery(apiBaseUrl, this, new HashSet<Integer>(batch)));
                 counter++;
             } while (maxIndex != relationshipIds.size());
-            return new QueryIterator(queries);
+            return queries;
         }
     }
 }

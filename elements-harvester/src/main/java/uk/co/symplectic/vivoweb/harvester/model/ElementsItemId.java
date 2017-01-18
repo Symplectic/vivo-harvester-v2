@@ -24,6 +24,7 @@ public class ElementsItemId{
 
     protected ElementsItemId(ElementsItemType.SubType subType, int id) {
         if (subType == null) throw new NullArgumentException("subType");
+        if(!subType.isConcrete()) throw new IllegalArgumentException("subType must be a useable concrete sub type when instantiating an ItemId");
         this.subType = subType;
         this.id = id;
     }
@@ -57,6 +58,7 @@ public class ElementsItemId{
         return MessageFormat.format("{0}:{1}", getItemDescriptor(), Integer.toString(id));
     }
 
+    //These concrete sub classes exist to allow stronger typing to a specific one in dependent code.
     public static class ObjectId extends ElementsItemId {
         private ObjectId(ElementsObjectCategory category, int id) { super(category, id); }
     }

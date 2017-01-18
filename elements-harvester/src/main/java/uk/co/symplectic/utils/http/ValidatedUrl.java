@@ -1,10 +1,12 @@
-/*******************************************************************************
- * Copyright (c) 2012 Symplectic Ltd. All rights reserved.
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- ******************************************************************************/
-package uk.co.symplectic.elements.api;
+/*
+ * ******************************************************************************
+ *  * Copyright (c) 2012 Symplectic Ltd. All rights reserved.
+ *  * This Source Code Form is subject to the terms of the Mozilla Public
+ *  * License, v. 2.0. If a copy of the MPL was not distributed with this
+ *  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ *  *****************************************************************************
+ */
+package uk.co.symplectic.utils.http;
 
 import org.apache.commons.lang.NullArgumentException;
 
@@ -17,7 +19,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-class ElementsValidatedUrl {
+public class ValidatedUrl {
     private static final List<String> allowedInsecureSchemes = Collections.singletonList("http");
     private static final List<String> allowedSecureSchemes = Collections.singletonList("https");
 
@@ -27,11 +29,11 @@ class ElementsValidatedUrl {
     private final boolean isMismatched;
     private boolean useRewritten = false;
 
-    ElementsValidatedUrl(String url) throws URISyntaxException {
+    public ValidatedUrl(String url) throws URISyntaxException {
         this(url, null);
     }
 
-    ElementsValidatedUrl(String url, String comparisonUrl) throws URISyntaxException {
+    public ValidatedUrl(String url, String comparisonUrl) throws URISyntaxException {
         if (url == null) throw new NullArgumentException("url");
 
         URI comparisonUri = null;

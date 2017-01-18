@@ -53,8 +53,4 @@ public class TranslationServiceConfig {
         this.useFullUTF8 = useFullUTF8;
     }
 
-//    void addXslParameter(String key, Document value){
-//        xslParameters.put(key, value);
-//    }
-
 }

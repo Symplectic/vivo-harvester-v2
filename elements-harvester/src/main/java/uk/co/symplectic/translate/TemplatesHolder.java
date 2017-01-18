@@ -27,7 +27,6 @@ public class TemplatesHolder {
                 throw new IllegalStateException("XSL Translation file not found: " + xslFilename);
             }
         }
-
         return myTemplates.get();
     }
 }

@@ -11,8 +11,10 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import uk.co.symplectic.xml.StAXUtils;
-import uk.co.symplectic.xml.XMLEventProcessor;
+import uk.co.symplectic.utils.http.HttpClient;
+import uk.co.symplectic.utils.http.ValidatedUrl;
+import uk.co.symplectic.utils.xml.StAXUtils;
+import uk.co.symplectic.utils.xml.XMLEventProcessor;
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLInputFactory;
@@ -30,6 +32,59 @@ import java.util.List;
  * Main Elements API Client class
  */
 public class ElementsAPI {
+
+    public static class ProcessingOptions{
+        private final boolean processAllPages;
+        private final int perPage;
+        //private final Integer page;
+
+        public ProcessingOptions(boolean processAllPages, int perPage) {
+            this.processAllPages = processAllPages;
+            this.perPage = perPage;
+        }
+
+        /**
+         * Number of records per page in the feed
+         * @return An integer, 0 or below uses the feed default
+         */
+        public int getPerPage() {
+            return perPage;
+        }
+
+        /**
+         * For a query that goes over multiple pages, should all the pages be processed
+         * @return true to process all pages, false to only process the first
+         */
+        public boolean getProcessAllPages() {
+            return processAllPages;
+        }
+    }
+
+    public static class ProcessingDefaults{
+
+        public static ProcessingDefaults DEFAULTS = new ProcessingDefaults(true, 25, 100);
+
+        private final ProcessingOptions fullDetailOptions;
+        private final ProcessingOptions refDetailOptions;
+
+        /**
+         * @param processAllPages to indicate whether all the pages be processed
+         * @param perPageFull An integer > 0, the amount to fetch per-page for full detail queries
+         * @param perPageRef An integer > 0, the amount to fetch per-page for ref detail queries
+         */
+        public ProcessingDefaults(boolean processAllPages, int perPageFull, int perPageRef) {
+            this.fullDetailOptions = new ProcessingOptions(processAllPages, perPageFull);
+            this.refDetailOptions = new ProcessingOptions(processAllPages, perPageRef);
+        }
+
+        public ProcessingOptions getProcessingOptions(ElementsFeedQuery query, ProcessingOptions overrideOptions){
+            if(overrideOptions != null) return overrideOptions;
+            //otherwise
+            return query.getFullDetails() ? fullDetailOptions : refDetailOptions;
+        }
+    }
+
+
 
     //Useful API Namespaces -
     public static final String apiNS = "http://www.symplectic.co.uk/publications/api";
@@ -73,23 +128,26 @@ public class ElementsAPI {
     private final String url;
     private final String username;
     private final String password;
-    private final boolean rewriteMismatchedURLsInNextPage;
 
+    //TODO: move to processing defaults?
+    private final boolean rewriteMismatchedURLsInNextPage;
     private int maxRetries = 5;
     private int retryDelayMillis = 500;
 
+    private final ProcessingDefaults defaults;
+
     public ElementsAPI(ElementsAPIVersion version, String url){
-        this(version, url, null, null, false);
+        this(version, url, null, null, false, null);
     }
 
-    public ElementsAPI(ElementsAPIVersion version, String url, String username, String password, boolean rewriteMismatchedURLsInNextPage) {
+    public ElementsAPI(ElementsAPIVersion version, String url, String username, String password, boolean rewriteMismatchedURLsInNextPage, ProcessingDefaults defaults) {
         if(version == null){
             log.error("provided version must not be null on construction");
             throw new NullArgumentException("version");
         }
         this.version = version;
 
-        ElementsValidatedUrl validatedUrl = getValidatedUrl(url, new MessageFormat("Provided api base URL was invalid: {0}"));
+        ValidatedUrl validatedUrl = getValidatedUrl(url, new MessageFormat("Provided api base URL was invalid: {0}"));
         this.url = StringUtils.stripEnd(url, "/") + "/";
 
         if(validatedUrl.isSecure()) {
@@ -111,15 +169,16 @@ public class ElementsAPI {
         }
 
         this.rewriteMismatchedURLsInNextPage = rewriteMismatchedURLsInNextPage;
+        this.defaults = defaults == null ? ProcessingDefaults.DEFAULTS : defaults;
     }
 
-    private ElementsValidatedUrl getValidatedUrl(String urlString, MessageFormat failureMessageTemplate){
+    private ValidatedUrl getValidatedUrl(String urlString, MessageFormat failureMessageTemplate){
         return getValidatedUrl(urlString, null, failureMessageTemplate);
     }
 
-    private ElementsValidatedUrl getValidatedUrl(String urlString, String comparisonUrlString, MessageFormat failureMessageTemplate){
+    private ValidatedUrl getValidatedUrl(String urlString, String comparisonUrlString, MessageFormat failureMessageTemplate){
         try{
-            return new ElementsValidatedUrl(urlString, comparisonUrlString);
+            return new ValidatedUrl(urlString, comparisonUrlString);
         }
         catch(URISyntaxException e){
             String errorMsg = failureMessageTemplate.format(e.getMessage());
@@ -136,6 +195,10 @@ public class ElementsAPI {
     }
 
     public void executeQuery(ElementsFeedQuery feedQuery, APIResponseFilter... filters) {
+        executeQuery(feedQuery, null, filters);
+    }
+
+    public void executeQuery(ElementsFeedQuery feedQuery, ProcessingOptions overrideOptions, APIResponseFilter... filters) {
         List<XMLEventProcessor.EventFilter> eventFilters = new ArrayList<XMLEventProcessor.EventFilter>();
         for(APIResponseFilter filter : filters){
             if(!filter.supports(version)){
@@ -149,13 +212,14 @@ public class ElementsAPI {
         XMLEventProcessor.ItemCountingFilter itemCounter = getEntryCounter();
         eventFilters.add(itemCounter);
 
-        ElementsFeedQuery.QueryIterator iterator = feedQuery.getQueryIterator(url, version.getUrlBuilder());
+        ProcessingOptions processingOptions = defaults.getProcessingOptions(feedQuery, overrideOptions);
+        ElementsFeedQuery.QueryIterator iterator = feedQuery.getQueryIterator(url, version.getUrlBuilder(), processingOptions);
         ElementsFeedPagination pagination = null;
-        ElementsValidatedUrl previousQuery = null;
+        ValidatedUrl previousQuery = null;
         int queryCounter = 1;
         while(iterator.hasNext(pagination)){
             String previousUrl = previousQuery == null ? null : previousQuery.getUrl();
-            ElementsValidatedUrl currentQuery = getValidatedUrl(iterator.next(pagination), previousUrl, new MessageFormat("Invalid API query detected : {0}"));
+            ValidatedUrl currentQuery = getValidatedUrl(iterator.next(pagination), previousUrl, new MessageFormat("Invalid API query detected : {0}"));
             if(previousQuery != null) {
                 if (currentQuery.isMismatched()) {
                     if (queryCounter == 1) {
@@ -185,9 +249,9 @@ public class ElementsAPI {
 
     //TODO : rationalise with main query call to have common usage of the underlying client with nice retry behaviour etc.
     public boolean fetchResource(String resourceURL, OutputStream outputStream) {
-        ElementsAPIHttpClient.ApiResponse apiResponse = null;
+        HttpClient.ApiResponse apiResponse = null;
         try {
-            ElementsAPIHttpClient apiClient = new ElementsAPIHttpClient(resourceURL, username, password);
+            HttpClient apiClient = new HttpClient(resourceURL, username, password);
             apiResponse = apiClient.executeGetRequest();
             IOUtils.copy(apiResponse.getResponseStream(), outputStream);
         }
@@ -205,21 +269,21 @@ public class ElementsAPI {
         return true;
     }
 
-    private ElementsFeedPagination executeInternalQuery(ElementsValidatedUrl url, Collection<XMLEventProcessor.EventFilter> eventFilters) throws IllegalStateException {
+    private ElementsFeedPagination executeInternalQuery(ValidatedUrl url, Collection<XMLEventProcessor.EventFilter> eventFilters) throws IllegalStateException {
         int retryCount = 0;
         do {
-            ElementsAPIHttpClient.ApiResponse apiResponse = null;
+            HttpClient.ApiResponse apiResponse = null;
             try {
                 long startTime = System.currentTimeMillis();
-                ElementsAPIHttpClient apiClient = new ElementsAPIHttpClient(url, username, password);
+                HttpClient apiClient = new HttpClient(url, username, password);
                 apiResponse = apiClient.executeGetRequest();
                 long endTime = System.currentTimeMillis();
                 timeSpentInNetwork += (endTime - startTime);
                 return parseEventResponse(apiResponse.getResponseStream(), eventFilters);
             }
             catch (IOException e) {
-                if(e instanceof InvalidResponseException){
-                    int statusCode = ((InvalidResponseException) e).getResponseCode();
+                if(e instanceof HttpClient.InvalidResponseException){
+                    int statusCode = ((HttpClient.InvalidResponseException) e).getResponseCode();
                     //if forbidden then just jump out here..
                     if(statusCode == HttpStatus.SC_FORBIDDEN || statusCode == HttpStatus.SC_UNAUTHORIZED) {
                         throw new IllegalStateException(e.getMessage(), e);
@@ -270,15 +334,4 @@ public class ElementsAPI {
         timeSpentInProcessing += (endTime - startTime);
         return paginationFilter.getExtractedItem();
     }
-
-    public static class InvalidResponseException extends IOException{
-        final int responseCode;
-        public int getResponseCode(){ return responseCode; }
-
-        public InvalidResponseException(String message, int responseCode){
-            super(message);
-            this.responseCode = responseCode;
-        }
-    }
-
 }

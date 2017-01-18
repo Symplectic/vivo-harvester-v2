@@ -6,7 +6,8 @@
  *  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  *  *****************************************************************************
  */
-package uk.co.symplectic.xml;
+
+package uk.co.symplectic.utils.xml;
 
 import javax.xml.stream.XMLEventFactory;
 import javax.xml.stream.XMLInputFactory;

@@ -61,34 +61,59 @@ public enum ElementsItemType {
     }
 
     //static block to instantiate the generic subtypes encompasing all groups and all relationships
-    public static SubType AllGroups = new DummySubType(ElementsItemType.GROUP);
-    public static SubType AllRelationships = new DummySubType(ElementsItemType.RELATIONSHIP);
+    public static SubType AllObjects = new AggregateSubType(ElementsItemType.OBJECT, false);
+    public static SubType AllGroups = new AggregateSubType(ElementsItemType.GROUP, true);
+    public static SubType AllRelationships = new AggregateSubType(ElementsItemType.RELATIONSHIP, true);
 
     public static class SubType{
         private final ElementsItemType mainType;
         private final String singular;
         private final String plural;
+        private final boolean isConcrete;
 
         public ElementsItemType getMainType() { return mainType; }
         public String getSingular() { return singular; }
         public String getPlural() {
             return plural;
         }
+        public boolean isConcrete() {
+            return isConcrete;
+        }
 
         protected SubType(ElementsItemType mainType, String singular, String plural){
+            this(mainType, singular, plural, true);
+        }
+
+        protected SubType(ElementsItemType mainType, String singular, String plural, boolean registerAsConcrete){
             if (StringUtils.trimToNull(singular) == null) throw new NullArgumentException("singular");
             if (StringUtils.trimToNull(plural) == null) throw new NullArgumentException("plural");
             this.mainType = mainType;
             this.singular = singular;
             this.plural = plural;
+            this.isConcrete = registerAsConcrete;
             //add to parent dictionaries
-            addSubType(this);
+            if(registerAsConcrete) addSubType(this);
+        }
+
+        //Note matches is not equals..if a matches b or b matches a then it is a match.
+        //if either side believes that it matches the other then it is a match..
+        public boolean matches(SubType other){
+            return innerMatches(other) || other.innerMatches(this);
+        }
+
+        public boolean innerMatches(SubType other){
+            return this == other;
         }
     }
 
-    private static class DummySubType extends SubType{
-        DummySubType(ElementsItemType mainType){
-            super(mainType, mainType.getName(), mainType.getName() + 's');
+    private static class AggregateSubType extends SubType{
+        AggregateSubType(ElementsItemType mainType, boolean registerAsConcrete){
+            super(mainType, mainType.getName(), mainType.getName() + 's', registerAsConcrete);
+        }
+
+        @Override
+        public boolean innerMatches(SubType other){
+            return this.getMainType() == other.getMainType();
         }
     }
 

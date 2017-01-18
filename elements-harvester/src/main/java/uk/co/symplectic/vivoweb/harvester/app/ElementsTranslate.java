@@ -38,7 +38,6 @@ public class ElementsTranslate {//implements RecordStreamOrigin {
     private static final String RAW_RECORD_STORE = "data/raw-records";
     private static final String RDF_RECORD_STORE = "data/translated-records";
 
-
     /**
      * SLF4J Logger
      */
@@ -54,7 +53,7 @@ public class ElementsTranslate {//implements RecordStreamOrigin {
     private TemplatesHolder template = null;
 
     private void processDir(ElementsObjectCategory category, File dir) {
-        ElementsRdfStore rdfStore = new ElementsRdfStore(rdfRecordStoreDir);
+        ElementsRdfStore rdfStore = new ElementsRdfStore(new File(rdfRecordStoreDir));
 
         for (File file : dir.listFiles()) {
             File outFile;

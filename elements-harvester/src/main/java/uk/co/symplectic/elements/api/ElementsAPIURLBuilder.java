@@ -14,9 +14,11 @@ import java.util.Collection;
 import java.util.Set;
 
 public interface ElementsAPIURLBuilder {
-    String buildObjectFeedQuery(String endpointUrl, ElementsAPIFeedObjectQuery feedQuery);
+    String buildObjectFeedQuery(String endpointUrl, ElementsAPIFeedObjectQuery feedQuery, int perPage);
 
     String buildRelationshipFeedQuery(String endpointUrl, ElementsAPIFeedRelationshipQuery feedQuery, Set<Integer> relationshipIds);
+
+    String buildRelationshipFeedQuery(String endpointUrl, ElementsAPIFeedRelationshipQuery feedQuery, int perPage);
 
     String buildGroupQuery(String endpointUrl, ElementsAPIFeedGroupQuery feedQuery);
 

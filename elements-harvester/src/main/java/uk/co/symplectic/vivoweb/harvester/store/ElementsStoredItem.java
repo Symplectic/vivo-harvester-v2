@@ -11,8 +11,8 @@ package uk.co.symplectic.vivoweb.harvester.store;
 
 import org.apache.commons.lang.NullArgumentException;
 import uk.co.symplectic.vivoweb.harvester.model.*;
-import uk.co.symplectic.xml.StAXUtils;
-import uk.co.symplectic.xml.XMLEventProcessor;
+import uk.co.symplectic.utils.xml.StAXUtils;
+import uk.co.symplectic.utils.xml.XMLEventProcessor;
 
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
@@ -108,7 +108,7 @@ public class ElementsStoredItem {
         }
 
         public synchronized static ElementsStoredItem loadRawObject(File file, ElementsItemId.ObjectId idToCompareTo, boolean zipped) {
-            ElementsObjectInfo objectInfo = loadFromFile(file, new ElementsObjectInfo.Extractor(ElementsObjectInfo.Extractor.fileEntryLocation, 1), zipped);
+            ElementsObjectInfo objectInfo = loadFromFile(file, new ElementsObjectInfo.Extractor.FromFile(1), zipped);
 
             //TODO: decide if this is still sensible
             //take the extracted object info, put it in the cache and ensure that we use the cached one if it is present
@@ -133,7 +133,7 @@ public class ElementsStoredItem {
         }
 
         public synchronized static ElementsStoredItem loadRawRelationship(File file, ElementsItemId.RelationshipId idToCompareTo, boolean zipped) {
-            ElementsRelationshipInfo relationshipInfo = loadFromFile(file, new ElementsRelationshipInfo.Extractor(ElementsRelationshipInfo.Extractor.fileEntryLocation, 1), zipped);
+            ElementsRelationshipInfo relationshipInfo = loadFromFile(file, new ElementsRelationshipInfo.Extractor.FromFile(1), zipped);
 
             if (idToCompareTo != null && !idToCompareTo.equals(relationshipInfo.getItemId())) {
                 String message = MessageFormat.format("Elements relationship loaded from file \"{0}\" ({1}) does not match supplied check values ({2})",
