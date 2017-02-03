@@ -15,37 +15,34 @@
     <fileSets>
         <fileSet>
             <directory>bin</directory>
-            <outputDirectory>bin</outputDirectory>
+            <outputDirectory>.</outputDirectory>
             <fileMode>755</fileMode>
+        </fileSet>
+        <fileSet>
+            <directory>src/main/resources</directory>
+            <outputDirectory>.</outputDirectory>
+            <excludes>
+                <exclude>*logback.xml</exclude>
+            </excludes>
+        </fileSet>
+        <fileSet>
+            <directory>src/main/resources</directory>
+            <outputDirectory>lib</outputDirectory>
+            <excludes>
+                <exclude>*.properties</exclude>
+            </excludes>
         </fileSet>
         <fileSet>
             <directory>example-scripts</directory>
             <outputDirectory>example-scripts</outputDirectory>
-            <excludes>
-                <exclude>example-elements/data*/**</exclude>
-            </excludes>
         </fileSet>
     </fileSets>
     <dependencySets>
         <dependencySet>
-            <outputDirectory>/bin</outputDirectory>
+            <outputDirectory>lib</outputDirectory>
             <useProjectArtifact>true</useProjectArtifact>
             <outputFileNameMapping>${artifact.artifactId}.${artifact.extension}</outputFileNameMapping>
             <scope>runtime</scope>
-            <!--
-                Each dependency that needs to be in the final package needs to be explicitly stated here
-
-                This includes the project artifact, which must always be present.
-
-                DO NOT INCLUDE org.vivoweb:harvester - this will be in the main VIVO harvester distribution
-            -->
-            <includes>
-                <include>uk.co.symplectic:elements-vivo-harvester</include>
-                <include>net.sf.saxon:Saxon-HE</include>
-                <include>org.apache.httpcomponents:httpcore</include>
-                <include>org.apache.httpcomponents:httpclient</include>
-                <include>org.vivoweb:harvester</include>
-            </includes>
         </dependencySet>
     </dependencySets>
 </assembly>

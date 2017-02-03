@@ -14,7 +14,6 @@ import com.hp.hpl.jena.rdf.model.RDFWriter;
 import org.apache.commons.lang.NullArgumentException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.vivoweb.harvester.util.repo.JenaConnect;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -81,9 +80,9 @@ public abstract class ModelOutput {
     }
 
     public static class TripleStoreOutput extends ModelOutput {
-        private final JenaConnect outputStore;
+        private final TDBConnect outputStore;
 
-        public TripleStoreOutput(JenaConnect outputStore) {
+        public TripleStoreOutput(TDBConnect outputStore) {
             if (outputStore == null) throw new NullArgumentException("outputStore");
             this.outputStore = outputStore;
         }
@@ -91,7 +90,7 @@ public abstract class ModelOutput {
         @Override
         public void output(Model modelToOutput) {
             this.outputStore.getJenaModel().add(modelToOutput);
-            this.outputStore.sync();
+            //this.outputStore.sync(); //sync in TDBJenaConnect does nowt..
         }
     }
 }

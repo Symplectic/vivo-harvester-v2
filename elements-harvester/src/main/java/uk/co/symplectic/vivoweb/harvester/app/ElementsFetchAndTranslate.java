@@ -16,12 +16,9 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.vivoweb.harvester.util.repo.JenaConnect;
-import org.vivoweb.harvester.util.repo.TDBJenaConnect;
-import uk.co.symplectic.utils.triplestore.DiffUtility;
-import uk.co.symplectic.utils.triplestore.FileSplitter;
-import uk.co.symplectic.utils.triplestore.ModelOutput;
-import uk.co.symplectic.utils.triplestore.TDBLoadUtility;
+import uk.co.symplectic.utils.LoggingUtils;
+import uk.co.symplectic.utils.configuration.ConfigParser;
+import uk.co.symplectic.utils.triplestore.*;
 import uk.co.symplectic.elements.api.ElementsAPI;
 import uk.co.symplectic.utils.http.HttpClient;
 import uk.co.symplectic.elements.api.ElementsAPIVersion;
@@ -84,7 +81,13 @@ public class ElementsFetchAndTranslate {
         Throwable caught = null;
         try {
             try {
-                boolean performFullPull = true; //todo: make configurable (command line switch)?
+
+                LoggingUtils.initialise("eft_logback.xml");
+                log.info(MessageFormat.format("running {0}", "ElementsFetchAndTranslate"));
+                Configuration.parse("elements.config.properties");
+                log.info(Configuration.getConfiguredValues());
+
+                boolean forceFullPull = args.length != 0 && args[0] == "--full";
                 boolean updateLocalTDB = true;
 
                 //when did we start this run (i.e how "up to date" can we claim to be at the end).
@@ -120,14 +123,14 @@ public class ElementsFetchAndTranslate {
                         }
 
                     } catch (IOException e) {
-                        log.debug("Could not successfully load information from state.txt file");
-                        throw e; //todo: decide on correct behaviour
+                        log.debug("Could not successfully load information from state.txt file.");
+                        throw new IllegalStateException("state.txt is corrupt", e);
                     } catch (NumberFormatException e) {
                         log.debug("Could not successfully load run count from state.txt file. ");
-                        throw e; //todo: decide on correct behaviour
+                        throw new IllegalStateException("state.txt is corrupt", e);
                     } catch (ParseException e) {
                         log.debug("Could not successfully load last run date from state.txt file. ");
-                        throw e; //todo: decide on correct behaviour
+                        throw new IllegalStateException("state.txt is corrupt", e);
                     } finally {
                         if (reader != null) reader.close();
                     }
@@ -137,7 +140,15 @@ public class ElementsFetchAndTranslate {
                 StateType runType = (runCount%2 == 0) ? StateType.EVEN : StateType.ODD;
 
                 //if we are pulling all data then we want to force the run to be a full reload of the on disk cache.
-                if(performFullPull) lastRunDate = null;
+                if(forceFullPull) lastRunDate = null;
+
+                if(lastRunDate == null){
+                    if(forceFullPull) {
+                        log.info("Performing forced full pull of data (-full).");
+                    } else {
+                        log.info("Performing initial full pull of data.");
+                    }
+                }
 
                 //hacks for testing
                 //from next line read the date time
@@ -150,7 +161,6 @@ public class ElementsFetchAndTranslate {
                 //runType = StateType.ODD;
                 //end of hacks for testing.
 
-                Configuration.parse("ElementsFetchAndTranslate", args);
                 //TODO: worry about how manage TDB directory output (i.e. how we marshall it to previous-harvest?)
                 //TODO: ensure that configured directories are valid (either already exist or can be created?)
                 File interimTdbDirectory = Configuration.getTdbOutputDir();
@@ -226,6 +236,7 @@ public class ElementsFetchAndTranslate {
                     //Wire up the group translation observer...(needs group cache to work out members Ids and included users to get the user info of those members)
                     objectStore.addItemObserver(new ElementsGroupTranslateObserver(rdfStore, xslFilename, groupCache, includedUsers));
                     //fetch the groups and translate them
+                    log.debug("Clearing down old group cache");
                     objectStore.cleardown(StorableResourceType.RAW_GROUP);
                     elementsFetcher.execute(new ElementsFetch.GroupConfig(), objectStore);
 
@@ -283,18 +294,18 @@ public class ElementsFetchAndTranslate {
 
                     //clear the current store ahead of re-loading
                     FileUtils.deleteDirectory(currentTdbStore);
-                    //TODO: ensure that comparison store is nulled out too if we are starting with no state....
+                    //TODO: ensure that comparison store is nulled out too if we are starting with no state....?
 
                     log.debug(MessageFormat.format("ElementsFetchAndTranslate: Transferring output data to triplestore \"{0}\"", currentTdbStore.getAbsolutePath()));
-                    JenaConnect currentJC = new TDBJenaConnect(currentTdbStore.getAbsolutePath());
+                    TDBConnect currentJC = new TDBConnect(currentTdbStore);
                     //JenaConnect jc = new TDBJenaConnect(currentStore.getAbsolutePath(), "http://vitro.mannlib.cornell.edu/default/vitro-kb-2");
                     TDBLoadUtility.load(currentJC, filesToProcess.iterator());
                     log.debug("ElementsFetchAndTranslate: Finished transferring data to triplestore");
                 }
 
                 log.debug("ElementsFetchAndTranslate: Calculating additions based on comparison to previous run");
-                JenaConnect currentJC = new TDBJenaConnect(currentTdbStore.getAbsolutePath());
-                JenaConnect previousJC = new TDBJenaConnect(previousTdbStore.getAbsolutePath());
+                TDBConnect currentJC = new TDBConnect(currentTdbStore);
+                TDBConnect previousJC = new TDBConnect(previousTdbStore);
                 File additionsFile = new File(interimTdbDirectory, "additions.n3");
                 ModelOutput additionsOutput = new ModelOutput.FileOutput(additionsFile);
                 DiffUtility.diff(currentJC, previousJC, additionsOutput);
@@ -342,7 +353,7 @@ public class ElementsFetchAndTranslate {
                 e.printStackTrace(System.err);
                 caught = e;
             }
-        } catch (Configuration.UsageException e) {
+        } catch (ConfigParser.UsageException e) {
             caught = e;
             if (!Configuration.isConfigured()) {
                 System.out.println(Configuration.getUsage());
@@ -350,12 +361,20 @@ public class ElementsFetchAndTranslate {
                 System.err.println("Caught UsageException initialising ElementsFetchAndTranslate");
                 e.printStackTrace(System.err);
             }
-        } catch(Exception e) {
+        }
+        catch(LoggingUtils.LoggingInitialisationException e) {
+            caught = e;
+            System.out.println("Logging Error detected");
+            caught.printStackTrace(System.out);
+        }
+        catch(Exception e) {
             log.error("Unhandled Exception occurred during processing - terminating application", e);
             caught = e;
         }
         finally {
-            log.debug("ElementsFetch: End");
+            if (caught == null || !(caught instanceof LoggingUtils.LoggingInitialisationException)) {
+                log.debug("ElementsFetch: End");
+            }
             if (caught != null) {
                 System.exit(1);
             }
@@ -370,14 +389,14 @@ public class ElementsFetchAndTranslate {
         if(!categories.contains(ElementsObjectCategory.USER)) categories.add(0, ElementsObjectCategory.USER);
 
         if(modifiedSince == null) {
-            //TODO: make this at least log what is happening ..check is doing deletes of additional resources correctly.
+            //TODO: ..check is doing deletes of additional resources correctly.
+            log.debug("Clearing down object cache (Full pull) - this may take some time..");
             objectStore.cleardown(StorableResourceType.RAW_OBJECT);
             ElementsFetch.ObjectConfig objConfig = new ElementsFetch.ObjectConfig(true, null, categories);
             elementsFetcher.execute(objConfig, objectStore);
         }
         else{
             ElementsFetch.ObjectConfig objConfig = new ElementsFetch.ObjectConfig(true, modifiedSince, categories);
-            //todo : move higher value per page to config somehow
             ElementsFetch.ObjectConfig delObjConfig = new ElementsFetch.DeletedObjectConfig(true, modifiedSince, categories);
             elementsFetcher.execute(objConfig, objectStore);
             elementsFetcher.execute(delObjConfig, objectStore);
@@ -387,7 +406,7 @@ public class ElementsFetchAndTranslate {
     private static void processRelationships(ElementsItemFileStore objectStore, ElementsFetch elementsFetcher, Date modifiedSince,
                                              boolean repullAllRelationshipsForModifiedObjects, Set<String> relationshipTypesToReprocess) throws IOException{
         if(modifiedSince == null) {
-            //TODO: make this at least log what is happening
+            log.debug("Clearing down relationship cache (Full pull) - this may take some time..");
             objectStore.cleardown(StorableResourceType.RAW_RELATIONSHIP);
             //fetch relationships.
             ElementsFetch.RelationshipConfig relConfig = new ElementsFetch.RelationshipConfig(null);
@@ -500,7 +519,7 @@ public class ElementsFetchAndTranslate {
 
     private static ElementsItemKeyedCollection.ItemInfo CalculateIncludedUsers(ElementsItemKeyedCollection.ItemInfo userInfoCache, ElementsGroupCollection groupCache){
         //TODO : move academicsOnly into a config item.
-        boolean academicsOnly = false; //Configuration.getAcademicsOnly();
+        boolean academicsOnly = Configuration.getAcademicsOnly();
         boolean currentStaffOnly = Configuration.getCurrentStaffOnly();
 
         //find the users who are defnitely not to be included based on their raw metadata
@@ -516,7 +535,7 @@ public class ElementsFetchAndTranslate {
 
         ElementsItemKeyedCollection.ItemRestrictor restrictToUsersOnly = new ElementsItemKeyedCollection.RestrictToSubTypes(ElementsObjectCategory.USER);
         ElementsItemKeyedCollection.ItemInfo includedUsers = new ElementsItemKeyedCollection.ItemInfo(restrictToUsersOnly);
-        if(Configuration.getGroupsToHarvest().isEmpty()) {
+        if(Configuration.getGroupsOfUsersToHarvest().isEmpty()) {
             //we need to copy the users over as we do more filtering below
             for(ElementsItemInfo userInfo : userInfoCache.values()) {
                 if(!invalidUsers.contains(userInfo.getItemId()))
@@ -524,7 +543,7 @@ public class ElementsFetchAndTranslate {
             }
         }
         else {
-            for (ElementsItemId.GroupId groupId : Configuration.getGroupsToHarvest()) {
+            for (ElementsItemId.GroupId groupId : Configuration.getGroupsOfUsersToHarvest()) {
                 ElementsGroupInfo.GroupHierarchyWrapper group = groupCache.get(groupId);
                 for(ElementsItemId userId : group.getImplicitUsers()){
                     if(!invalidUsers.contains(userId))
@@ -533,7 +552,7 @@ public class ElementsFetchAndTranslate {
             }
         }
 
-        for(ElementsItemId.GroupId groupId : Configuration.getGroupsToExclude()){
+        for(ElementsItemId.GroupId groupId : Configuration.getGroupsOfUsersToExclude()){
             ElementsGroupInfo.GroupHierarchyWrapper group = groupCache.get(groupId);
             includedUsers.removeAll(group.getImplicitUsers());
         }
@@ -562,11 +581,11 @@ public class ElementsFetchAndTranslate {
             HttpClient.setRequestDelay(requestDelay);
         }
 
-        int fullDetailPerPage = Configuration.getApiObjectsPerPage();
-        int refDetailPerPage = Configuration.getApiRelationshipsPerPage();
+        int fullDetailPerPage = Configuration.getFullDetailPerPage();
+        int refDetailPerPage = Configuration.getRefDetailPerPage();
+        boolean rewriteMismatchedUrls = Configuration.getRewriteMismatchedUrls();
         ElementsAPI.ProcessingDefaults defaults = new ElementsAPI.ProcessingDefaults(true, fullDetailPerPage, refDetailPerPage);
-        //TODO: move "true" for reqrite mismatched urls to config, set up ProcessingDefaults properly..
-        return new ElementsAPI(apiVersion, apiEndpoint, apiUsername, apiPassword, true, defaults);
+        return new ElementsAPI(apiVersion, apiEndpoint, apiUsername, apiPassword, rewriteMismatchedUrls, defaults);
 
     }
 

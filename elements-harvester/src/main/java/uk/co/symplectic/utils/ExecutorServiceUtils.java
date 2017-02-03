@@ -130,23 +130,28 @@ public final class ExecutorServiceUtils {
 
         }
 
-        public synchronized Future<T> submit(Callable<T> task) {
+        public synchronized Future<T> submit(Callable<T> task){
+            return submit(task, true);
+        }
+
+
+        public synchronized Future<T> submit(Callable<T> task, boolean checkForExceptions) {
             try {
                 //when adding a new task check if any of the previously submitted tasks are now finished
-                //we do this to ensure that any errors are marshallewd back onto our main thread in a reasonably timely manner.
-                Iterator<Future<T>> iter= uncompletedTasks.iterator();
-                while(iter.hasNext()){
-                    Future<T> submittedTask = iter.next();
-                    try {
-                        if (submittedTask.isDone()) submittedTask.get();
-                        //remove completed task from our tracking list
-                        iter.remove();
-                    }
-                    catch(ExecutionException e){
-                        throw new IllegalStateException(MessageFormat.format("ExecutorService {0} has thrown an exception processing a task", poolName), e);
-                    }
-                    catch(InterruptedException e){
-                        throw new IllegalStateException(MessageFormat.format("ExecutorService {0} was interrupted whilst processing a task", poolName), e);
+                if(checkForExceptions) {
+                    //we do this to ensure that any errors are marshallewd back onto our main thread in a reasonably timely manner.
+                    Iterator<Future<T>> iter = uncompletedTasks.iterator();
+                    while (iter.hasNext()) {
+                        Future<T> submittedTask = iter.next();
+                        try {
+                            if (submittedTask.isDone()) submittedTask.get();
+                            //remove completed task from our tracking list
+                            iter.remove();
+                        } catch (ExecutionException e) {
+                            throw new IllegalStateException(MessageFormat.format("ExecutorService {0} has thrown an exception processing a task", poolName), e);
+                        } catch (InterruptedException e) {
+                            throw new IllegalStateException(MessageFormat.format("ExecutorService {0} was interrupted whilst processing a task", poolName), e);
+                        }
                     }
                 }
                 //submit the new task;

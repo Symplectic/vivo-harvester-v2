@@ -12,12 +12,15 @@ package uk.co.symplectic.utils.http;
 import org.apache.commons.lang.NullArgumentException;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
+import org.apache.http.NameValuePair;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
@@ -31,22 +34,22 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.ssl.SSLContextBuilder;
-
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.text.MessageFormat;
 import java.util.Date;
+import java.util.List;
 
 public class HttpClient {
     final private String username;
     final private String password;
     final private String url;
 
-    protected String getUsername(){return username;}
-    protected String getPassword(){return password;}
-    protected String getUrl(){return url;}
+    private String getUsername(){return username;}
+    private String getPassword(){return password;}
+    private String getUrl(){return url;}
 
     private static final int defaultSoTimeout = 5 * 60 * 1000; // 5 minutes, in milliseconds
     private static final int defaultConnectionTimeout = 30000; // 30 seconds
@@ -92,14 +95,14 @@ public class HttpClient {
         }
     }
 
-    protected static synchronized PoolingHttpClientConnectionManager getConnectionManager(){return connectionManager;}
-    protected static synchronized RequestConfig getDefaultRequestConfig(){return defaultRequestConfig;}
+    private static synchronized PoolingHttpClientConnectionManager getConnectionManager(){return connectionManager;}
+    private static synchronized RequestConfig getDefaultRequestConfig(){return defaultRequestConfig;}
 
     /**
      * Delay method - ensure that requests are not sent too frequently to the Elements API,
      * by calling this method prior to executing the HttpClient request.
      */
-    protected static synchronized void regulateRequestFrequency() {
+    private static synchronized void regulateRequestFrequency() {
         try {
             if (lastRequest != null) {
                 Date current = new Date();
@@ -136,15 +139,22 @@ public class HttpClient {
         }
     }
 
-    public ApiResponse executeGetRequest() throws IOException {
+    private CloseableHttpClient getNewApacheClient(){
         // Prepare the HttpClient
         CredentialsProvider credsProvider = new BasicCredentialsProvider();
         if (getUsername() != null){
             credsProvider.setCredentials(new AuthScope(AuthScope.ANY_HOST, AuthScope.ANY_PORT), new UsernamePasswordCredentials(getUsername(), getPassword()));
         }
 
-        CloseableHttpClient httpclient = HttpClients.custom().setDefaultCredentialsProvider(credsProvider)
+        return HttpClients.custom().setDefaultCredentialsProvider(credsProvider)
                 .setConnectionManager(getConnectionManager()).setDefaultRequestConfig(getDefaultRequestConfig()).build();
+    }
+
+
+    public ApiResponse executeGetRequest() throws IOException {
+
+        //note we deliberately don't close these to keep the connection manager alive - this is a bit hacky...
+        CloseableHttpClient httpclient  = getNewApacheClient();
 
         // Ensure we do not send request too frequently
         regulateRequestFrequency();
@@ -153,14 +163,15 @@ public class HttpClient {
         HttpGet getMethod = new HttpGet(getUrl());
         CloseableHttpResponse response = httpclient.execute(getMethod);
 
+        ApiResponse responseToReturn = new ApiResponse(response);
+
         ///convert non 200 responses into exceptions.
-        InvalidResponseException exception;
         int responseCode = response.getStatusLine().getStatusCode();
         if(responseCode != HttpStatus.SC_OK){
             String codeDescription = EnglishReasonPhraseCatalog.INSTANCE.getReason(responseCode, null);
             String message = MessageFormat.format("Invalid Http response code received: {0} ({1})", responseCode, codeDescription);
-            exception = new InvalidResponseException(message, responseCode);
-            throw exception;
+            responseToReturn.dispose();
+            throw new InvalidResponseException(message, responseCode);
         }
         return new ApiResponse(response);
     }
@@ -171,7 +182,7 @@ public class HttpClient {
      * @return InputStream corresponding to the request body
      * @throws IOException Failure reading the request stream
      */
-    ApiResponse executeGetRequest(int maxRetries) throws IOException {
+    public ApiResponse executeGetRequest(int maxRetries) throws IOException {
         if (maxRetries == 0) {
             return executeGetRequest();
         }
@@ -189,6 +200,31 @@ public class HttpClient {
         throw lastError;
     }
 
+    public ApiResponse executePost(List<NameValuePair> nameValuePairs) throws IOException {
+        //note we deliberately don't close these to keep the connection manager alive - this is a bit hacky...
+        CloseableHttpClient httpclient  = getNewApacheClient();
+
+        // Ensure we do not send request too frequently
+        regulateRequestFrequency();
+
+        // Issue post request
+        HttpPost post = new HttpPost(getUrl());
+        post.setEntity(new UrlEncodedFormEntity(nameValuePairs, "UTF-8"));
+
+        CloseableHttpResponse response = httpclient.execute(post);
+
+        ApiResponse responseToReturn = new ApiResponse(response);
+        ///convert non 200 responses into exceptions.
+        int responseCode = response.getStatusLine().getStatusCode();
+        if(responseCode != HttpStatus.SC_OK){
+            String codeDescription = EnglishReasonPhraseCatalog.INSTANCE.getReason(responseCode, null);
+            String message = MessageFormat.format("Invalid Http response code received: {0} ({1})", responseCode, codeDescription);
+            responseToReturn.dispose();
+            throw new HttpClient.InvalidResponseException(message, responseCode);
+        }
+        return responseToReturn;
+    }
+
     /*
     Inner class to represent the response from an API and offer a "dispose" method to close http connections when finished with the stream.
      */
@@ -197,7 +233,7 @@ public class HttpClient {
         final private HttpEntity entity;
         private boolean disposed = false;
 
-        public ApiResponse(CloseableHttpResponse response){
+        private ApiResponse(CloseableHttpResponse response){
             if(response == null) throw new NullArgumentException("response");
             this.response = response;
             entity = this.response.getEntity();
@@ -230,7 +266,7 @@ public class HttpClient {
         final int responseCode;
         public int getResponseCode(){ return responseCode; }
 
-        public InvalidResponseException(String message, int responseCode){
+        private InvalidResponseException(String message, int responseCode){
             super(message);
             this.responseCode = responseCode;
         }

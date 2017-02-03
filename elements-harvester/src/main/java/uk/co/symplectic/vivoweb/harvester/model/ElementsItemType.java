@@ -33,7 +33,7 @@ public enum ElementsItemType {
     private static final Map<ElementsItemType, Map<String, SubType>> singularMap = new HashMap<ElementsItemType, Map<String, SubType>>();
     private static final Map<ElementsItemType, Map<String, SubType>> pluralMap = new HashMap<ElementsItemType, Map<String, SubType>>();
 
-    private static void addSubType(SubType subType){
+    private static synchronized void addSubType(SubType subType){
         ElementsItemType mainType = subType.getMainType();
         if(!singularMap.containsKey(mainType)) singularMap.put(mainType, new HashMap<String, SubType>());
         if(!pluralMap.containsKey(mainType)) pluralMap.put(mainType, new HashMap<String, SubType>());

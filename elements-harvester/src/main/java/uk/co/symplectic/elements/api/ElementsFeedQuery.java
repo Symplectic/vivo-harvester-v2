@@ -39,9 +39,9 @@ abstract public class ElementsFeedQuery {
      * Will normally just return a single url, but in the general case could be a set.
      * @param apiBaseUrl the base url of the api you want to query
      * @param builder an api version specific builder that knows how to construct different types of query URL.
-     * @return
+     * @return : a QueryIterator that will loop through all the queries that are need to be made to the API to process this FeedQuery
      */
-    public QueryIterator getQueryIterator(String apiBaseUrl, ElementsAPIURLBuilder builder, ElementsAPI.ProcessingOptions options) {
+    QueryIterator getQueryIterator(String apiBaseUrl, ElementsAPIURLBuilder builder, ElementsAPI.ProcessingOptions options) {
         Set<String> urls = getUrlStrings(apiBaseUrl, builder, options.getPerPage());
         return new QueryIterator(options, urls);
     }
@@ -52,14 +52,15 @@ abstract public class ElementsFeedQuery {
      * uses the passed in builder to account for version differences.
      * @param apiBaseUrl the base url of the api you want to query
      * @param builder an api version specific builder that knows how to construct different types of query URL.
-     * @param perpage the number of items to retrieve per page (not always used by the builder).
-     * @return
+     * @param perPage the number of items to retrieve per page (not always used by the builder).
+     * @return a set of strings that describe the distinct queries that need to be made to complete this feedquery
+     *         note that each query in the set may have multiple pages that need to be fetched (this is covered by the query iterator)
      */
     protected abstract Set<String> getUrlStrings(String apiBaseUrl, ElementsAPIURLBuilder builder, int perPage);
 
 
 
-    public abstract static class DeltaCapable extends ElementsFeedQuery{
+    protected abstract static class DeltaCapable extends ElementsFeedQuery{
         private final Date modifiedSince;
 
         public Date getModifiedSince(){return modifiedSince;}
@@ -70,14 +71,14 @@ abstract public class ElementsFeedQuery {
         }
     }
 
-    public class QueryIterator{
+    class QueryIterator{
 
         private final Iterator<String> queryIterator;
         private final ElementsAPI.ProcessingOptions processingOptions;
 
         //public QueryIterator(String... queries){ this(new HashSet<String>(Arrays.asList(queries))); }
 
-        public QueryIterator(ElementsAPI.ProcessingOptions processingOptions, Set<String> queries){
+        private QueryIterator(ElementsAPI.ProcessingOptions processingOptions, Set<String> queries){
             if(processingOptions == null) throw new NullArgumentException("processingOptions");
             if(queries == null || queries.isEmpty()) throw new IllegalArgumentException("queries must not be null or empty");
             this.queryIterator = queries.iterator();
@@ -88,11 +89,11 @@ abstract public class ElementsFeedQuery {
             return processingOptions.getProcessAllPages() && pagination != null && pagination.getNextURL() != null;
         }
 
-        public boolean hasNext(ElementsFeedPagination pagination) {
+        boolean hasNext(ElementsFeedPagination pagination) {
             return hasNextPage(pagination) || queryIterator.hasNext();
         }
 
-        public String next(ElementsFeedPagination pagination){
+        String next(ElementsFeedPagination pagination){
             if(hasNextPage(pagination))
                 return pagination.getNextURL();
             else if(queryIterator.hasNext())

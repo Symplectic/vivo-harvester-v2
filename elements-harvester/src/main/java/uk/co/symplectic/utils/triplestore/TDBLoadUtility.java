@@ -21,7 +21,6 @@ import org.openjena.riot.RiotException;
 import org.openjena.riot.RiotReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.vivoweb.harvester.util.repo.JenaConnect;
 import uk.co.symplectic.vivoweb.harvester.store.StoredData;
 
 import java.io.IOException;
@@ -32,7 +31,7 @@ public class TDBLoadUtility {
 
     private static final Logger log = LoggerFactory.getLogger(TDBLoadUtility.class);
 
-    public static void load(JenaConnect jc, Iterator<StoredData.InFile> iterator){
+    public static void load(TDBConnect jc, Iterator<StoredData.InFile> iterator){
         //GraphTDB graph = (GraphTDB) new ModTDBDataset().getDataset().getDefaultModel().getGraph();
         GraphTDB graph = (GraphTDB) jc.getJenaModel().getGraph();
 

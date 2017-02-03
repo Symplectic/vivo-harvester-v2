@@ -216,7 +216,7 @@ public class ElementsAPI {
         ElementsFeedQuery.QueryIterator iterator = feedQuery.getQueryIterator(url, version.getUrlBuilder(), processingOptions);
         ElementsFeedPagination pagination = null;
         ValidatedUrl previousQuery = null;
-        int queryCounter = 1;
+        int queryCounter = 0;
         while(iterator.hasNext(pagination)){
             String previousUrl = previousQuery == null ? null : previousQuery.getUrl();
             ValidatedUrl currentQuery = getValidatedUrl(iterator.next(pagination), previousUrl, new MessageFormat("Invalid API query detected : {0}"));

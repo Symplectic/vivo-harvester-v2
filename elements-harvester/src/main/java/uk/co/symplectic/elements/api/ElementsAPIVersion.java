@@ -75,17 +75,18 @@ public class ElementsAPIVersion {
      */
     private final PaginationExtractingFilterFactory paginationExtractorFactory;
 
-    public String getVersionName() { return versionName; }
-    public ElementsAPIURLBuilder getUrlBuilder() { return urlBuilder; }
-    public PaginationExtractingFilter getPaginationExtractor() { return paginationExtractorFactory.createPaginationExtractor(); }
+    String getVersionName() { return versionName; }
+    ElementsAPIURLBuilder getUrlBuilder() { return urlBuilder; }
+    PaginationExtractingFilter getPaginationExtractor() { return paginationExtractorFactory.createPaginationExtractor(); }
 
 
     /**
      * Private constructor to create a version, and place it in the map of known versions keyed by name (for easy retrieval)
      * All params are required and must not be null.
-     * @param versionName
-     * @param urlBuilder
-     * @param paginationExtractorFactory
+     * @param versionName : the name of the APIVersion (e.g. "4.6". "4.9", etc)
+     * @param urlBuilder : a url builder suitable for formulating valid HTTP queries for this version of the API from ElementsFeedQuery objects.
+     * @param paginationExtractorFactory : a paginationExtractor factory that will generate paginationExtractor objects suitable for pulling
+     *                                   out pagination from this version of the API
      */
     private ElementsAPIVersion(String versionName, ElementsAPIURLBuilder urlBuilder, PaginationExtractingFilterFactory paginationExtractorFactory){
         if(StringUtils.isBlank(versionName)) throw new IllegalArgumentException("versionName must not be null or empty");
@@ -102,8 +103,8 @@ public class ElementsAPIVersion {
     /**
      * Method to return an ElementsAPIVersion from the known list based on the passed in string
      * Throws an IllegalStateException if the string does not correspond to a known version.
-     * @param value
-     * @return
+     * @param value : a string describing the APIVersion (e,g "version4.9" or "v4.9" or "4.9")
+     * @return : an ElementsAPIVersion matching the passed in descriptor (IllegalStateException thrown if can't be resolved)
      */
     public static ElementsAPIVersion parse(String value) {
         if(value != null) {

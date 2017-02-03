@@ -8,6 +8,7 @@
  */
 
 package uk.co.symplectic.vivoweb.harvester.app;
+
 import org.apache.commons.lang.NullArgumentException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpStatus;
@@ -15,39 +16,133 @@ import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import uk.co.symplectic.utils.ExecutorServiceUtils;
 import uk.co.symplectic.utils.LoggingUtils;
 import uk.co.symplectic.utils.configuration.ConfigParser;
-import uk.co.symplectic.utils.triplestore.FileSplitter;
 import uk.co.symplectic.utils.http.HttpClient;
+import uk.co.symplectic.utils.triplestore.FileSplitter;
 import uk.co.symplectic.vivoweb.harvester.config.FLConfiguration;
-
 import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 
 //TODO: move to proper logging framework, and make log retries vs actual errors better.
-public class FragmentLoader {
+public class MT_FragmentLoader2 {
 
-    private static final Logger log = LoggerFactory.getLogger(FragmentLoader.class);
+    private static final Logger log = LoggerFactory.getLogger(MT_FragmentLoader2.class);
 
     private static int retryDelayMillis = 500;
     private static int maxRetries = 5;
+    private static int noOfThreads = 10;
+
+    public static final ExecutorServiceUtils.ExecutorServiceWrapper<Boolean> serviceWrapper = ExecutorServiceUtils.newFixedThreadPool("MT_FragmentLoader_service", noOfThreads);
+
+    public static class UploadFileTask implements Callable<Boolean> {
+
+        private final SparqlUpdateHttpClient client;
+        private final File file;
+        private final FileSplitter.Type type;
+
+        UploadFileTask(File file, FileSplitter.Type type, SparqlUpdateHttpClient client){
+            if(file == null || !file.exists()) throw new IllegalArgumentException("file must not be null and must exist.");
+            if(client == null) throw new NullArgumentException("client");
+            this.file = file;
+            this.type = type;
+            this.client = client;
+        }
+
+        @Override
+        public Boolean call() throws Exception {
+            //if (count > 10) break;
+            //get the content we are sending from the fragment file
+            BufferedReader fileInput = null;
+            String sparqlContent = null;
+            try {
+                fileInput = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
+                String line;
+                StringBuilder builder = new StringBuilder();
+                while ((line = fileInput.readLine()) != null) {
+                    builder.append(line).append("\n");
+                }
+                sparqlContent = StringUtils.trimToNull(builder.toString());
+            } finally {
+                if (fileInput != null) fileInput.close();
+            }
+
+            //work out what type of content this is (add or subtract)
+            boolean shouldDeleteContent;
+            switch (type) {
+                case Additions:
+                    shouldDeleteContent = false;
+                    break;
+                case Subtractions:
+                    shouldDeleteContent = true;
+                    break;
+                default:
+                    throw new IllegalStateException("Invalid File Type detected");
+            }
+
+            //if there is content to send to vivo then send it
+            if (sparqlContent != null) {
+                trySendFragment(client, sparqlContent, shouldDeleteContent);
+            }
+            System.out.print('.');
+            return Boolean.TRUE;
+        }
+    }
+
+    private static class ResultPair{
+        private final Future<Boolean> result;
+        private final File file;
+        private boolean completed = false;
+
+        ResultPair(Future<Boolean> result, File file){
+            if(result == null) throw new NullArgumentException("result");
+            if(file == null) throw new NullArgumentException("file");
+
+            this.result = result;
+            this.file = file;
+        }
+
+        boolean isCompleted(){ return completed; }
+
+        void testResult() throws ExecutionException, InterruptedException{
+            if(!completed) {
+                if (result.isDone()){
+                    result.get();
+                    completed = true;
+                }
+            }
+        }
+
+        void awaitResult() throws ExecutionException, InterruptedException{
+            result.get();
+            completed = true;
+        }
+
+        void deleteFile(){
+            if (!file.delete()) {
+                throw new IllegalStateException(MessageFormat.format("failed to delete file {0}", file.getName()));
+            }
+        }
+
+
+    }
 
     public static void main(String[] args) {
         //initLogger();
         //if(args.length != 1) throw new IllegalArgumentException("Args must contain 1 parameter, containing the path of the directory to monitor");
         Throwable caught = null;
-        //the amount of data that was loaded during the current period of activity
-        int count = 0;
-        //is the loader currently active or not..
-        boolean isIdle = false;
         try {
             LoggingUtils.initialise("fl_logback.xml");
-            log.info(MessageFormat.format("running {0}", "FragmentLoader"));
+            log.info(MessageFormat.format("running {0}", "MT_FragmentLoader"));
             FLConfiguration.parse("fragmentloader.properties");
             log.info(FLConfiguration.getConfiguredValues());
             //String storeDirPath = args[0];
@@ -65,7 +160,6 @@ public class FragmentLoader {
 
 
             log.info(MessageFormat.format("Monitoring directory {0} for fragments", storeDir.getPath()));
-            //FileSplitter splitter = new FileSplitter(storeDir);
             FileSplitter splitter = new FileSplitter.NTriplesSplitter(storeDir);
 
             //loop until stopped.
@@ -79,82 +173,74 @@ public class FragmentLoader {
                     List<File> filesToSort = splitter.getFragmentFilesInOrder();
 
                     if (filesToSort.size() > 0) {
-                        if(isIdle) log.info("New work detected - waking up");
-                        isIdle = false;
-
                         log.info(MessageFormat.format("{0} new fragments detected - sending to vivo at :{1}", filesToSort.size(), vivoUrl));
+
+                        URI validGraphURI = new URI(graphUri);
+                        int count = 0;
+                        HttpClient.setSocketTimeout(15 * 60 * 1000); //15 min in milliseconds
+
+                        int batchCounter = 0;
+                        int batchSize = noOfThreads;
+                        int maxIndex;
+
+                        SparqlUpdateHttpClient client = null;
                         try {
-                            URI validGraphURI = new URI(graphUri);
-                            HttpClient.setSocketTimeout(15 * 60 * 1000); //15 min in milliseconds
-                            for (File file : filesToSort) {
-                                //if (count > 10) break;
-                                //get the content we are sending from the fragment file
-                                BufferedReader fileInput = null;
-                                String sparqlContent = null;
-                                try {
-                                    fileInput = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
-                                    String line;
-                                    StringBuilder builder = new StringBuilder();
-                                    while ((line = fileInput.readLine()) != null) {
-                                        builder.append(line).append("\n");
-                                    }
-                                    sparqlContent = StringUtils.trimToNull(builder.toString());
-                                } finally {
-                                    if (fileInput != null) fileInput.close();
-                                }
-
-                                //work out what type of content this is (add or subtract)
-                                boolean shouldDeleteContent;
-                                switch (splitter.getFileType(file)) {
-                                    case Additions:
-                                        shouldDeleteContent = false;
-                                        break;
-                                    case Subtractions:
-                                        shouldDeleteContent = true;
-                                        break;
-                                    default:
-                                        throw new IllegalStateException("Invalid File Type detected");
-                                }
+                            client = new SparqlUpdateHttpClient(vivoUrl + "/api/sparqlUpdate", username, password, validGraphURI);
+                        } catch (URISyntaxException e) {
+                            throw new IllegalStateException("Either the Sparql API Endpoint or Graph URI is invalid", e);
+                            //todo: do something sensible
+                        }
 
 
-                                //if there is content to send to vivo then send it
-                                if (sparqlContent != null) {
-                                    SparqlUpdateHttpClient client = new SparqlUpdateHttpClient(vivoUrl + "/api/sparqlUpdate", username, password, validGraphURI);
-                                    trySendFragment(client, sparqlContent, shouldDeleteContent);
-                                }
-
-                                //if we have not errored out delete the file in question.
-                                if (!file.delete())
-                                    throw new IllegalStateException(MessageFormat.format("failed to delete file {0}", file.getName()));
-
+                        List<ResultPair> results = new ArrayList<ResultPair>();
+                        while(count < filesToSort.size()) {
+                            if(serviceWrapper.getQueueSize() < noOfThreads){
+                                File file = filesToSort.get(count);
+                                UploadFileTask task = new UploadFileTask(file, splitter.getFileType(file), client);
+                                results.add(new ResultPair(serviceWrapper.submit(task, false), file));
                                 count++;
 
-                                System.out.print('.');
                                 if (count % logEveryN == 0) {
                                     log.info(MessageFormat.format(" {0} fragments processed", count));
                                     System.out.println();
                                 }
                             }
-                        } catch (URISyntaxException e) {
-                            throw new IllegalStateException("Either the Sparql API Endpoint or Graph URI is invalid", e);
-                            //todo: do something sensible
-                        } catch (IOException e) {
-                            throw new IllegalStateException(e);
-                            //todo: do something sensible
+                            else{
+                                try {
+                                    Thread.sleep(1000);
+                                } catch (InterruptedException e) {
+                                    throw new IllegalStateException("Interrupted whilst sleeping between directory checks", e);
+                                }
+                            }
+
+                            //spin through the results and see whether any are done.
+                            for(ResultPair result : results) {
+                                //Note that this will marshall any errors onto this thread
+                                result.testResult();
+                            }
+
+                            //if there is a result in the result list that is completed
+                            //prune front of results for completed things..(completed means tested as fonr and any errors marshalled onto this thread)
+                            ResultPair earliestSubmittedResult = results.get(0);
+                            while(earliestSubmittedResult.isCompleted()){
+                                earliestSubmittedResult.deleteFile();
+                                results.remove(earliestSubmittedResult);
+                                earliestSubmittedResult = results.get(0);
+                            }
+                        }
+
+                        //once we are out of the main loop (every item has been submitted)
+                        for(ResultPair result : results) {
+                            if(!result.isCompleted()) {
+                                result.awaitResult();
+                            }
+                            result.deleteFile();
                         }
                     }
-                    else {
-                        if(!isIdle) {
-                            log.info(MessageFormat.format("Completed all currently available work: {0} fragments processed in total", count));
-                            count = 0;
-                            log.info("Going to sleep");
-                        }
-                        isIdle = true;
-                        try {
-                            Thread.sleep(5000);
-                        } catch (InterruptedException e) {
-                            throw new IllegalStateException("Interrupted whilst sleeping between directory checks", e);
-                        }
+                    try {
+                        Thread.sleep(5000);
+                    } catch (InterruptedException e) {
+                        throw new IllegalStateException("Interrupted whilst sleeping between directory checks", e);
                     }
                 }
             }
@@ -163,7 +249,7 @@ public class FragmentLoader {
             if (!FLConfiguration.isConfigured()) {
                 System.out.println(FLConfiguration.getUsage());
             } else {
-                System.err.println("Caught UsageException initialising FragmentLoader");
+                System.err.println("Caught UsageException initialising MT_FragmentLoader");
                 e.printStackTrace(System.err);
             }
         } catch(LoggingUtils.LoggingInitialisationException e) {
@@ -174,16 +260,12 @@ public class FragmentLoader {
             log.error("Unhandled Exception occurred during processing - terminating application", e);
             caught = e;
         } finally {
-            if(!isIdle) {
-                log.info(MessageFormat.format("Existing whilst still active : {0} fragments processed in total", count));
-            }
             if (caught == null || !(caught instanceof LoggingUtils.LoggingInitialisationException)) {
-                log.debug("FragmentLoader: End");
+                log.debug("MT_FragmentLoader: End");
             }
             if (caught != null) {
                 System.exit(1);
             }
-
         }
     }
 

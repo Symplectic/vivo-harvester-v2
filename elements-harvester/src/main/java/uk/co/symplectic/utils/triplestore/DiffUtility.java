@@ -11,11 +11,10 @@ package uk.co.symplectic.utils.triplestore;
 
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
-import org.vivoweb.harvester.util.repo.JenaConnect;
 
 
 public class DiffUtility {
-        static public void diff(JenaConnect input1, JenaConnect input2, ModelOutput... outputs) {
+        static public void diff(TDBConnect input1, TDBConnect input2, ModelOutput... outputs) {
         if(outputs.length == 0) throw new IllegalArgumentException("outputs must not be empty when performing a triple store diff");
         Model diffModel = ModelFactory.createDefaultModel();
         Model minuendModel = input1.getJenaModel();

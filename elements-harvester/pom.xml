@@ -55,6 +55,25 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.0.2</version>
+                <configuration>
+                    <!-- exclude logback.xml -->
+                    <excludes>
+                        <exclude>**/logback.xml</exclude>
+                        <exclude>**/logback-test.xml</exclude>
+                        <exclude>**/fl_logback.xml</exclude>
+                        <exclude>**/elements.config.properties</exclude>
+                    </excludes>
+                    <!--<archive>-->
+                        <!--<manifest>-->
+                            <!--<mainClass>com.mkyong.core.crawler.App</mainClass>-->
+                        <!--</manifest>-->
+                    <!--</archive>-->
+                </configuration>
+            </plugin>
         </plugins>
 	</build>
 
@@ -65,9 +84,6 @@
         For this project, we want to include any dependencies that are specific to this project in the final
         distribution output.
 
-        We do NOT want to include the org.vivoweb / harvester dependency, nor any of it's transitive dependencies
-        (we are creating an overlay to the standard VIVO harvester distribution)
-
         IMPORTANT If you add any dependencies here, then you will need to add an include line to the assembly.xml
         file, to have them included in the final output.
 
@@ -75,34 +91,84 @@
         and debug within the IDE
     -->
     <dependencies>
-		<dependency>
-			<groupId>org.vivoweb</groupId>
-			<artifactId>harvester</artifactId>
-			<version>1.5</version>
-            <!-- Exclude the Saxon processor to use a newer version -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.6.1</version>
+            <type>jar</type>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>0.9.27</version>
+            <type>jar</type>
+            <scope>compile</scope>
             <exclusions>
                 <exclusion>
-                    <groupId>net.sf.saxon</groupId>
-                    <artifactId>saxon</artifactId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                    <groupId>org.slf4j</groupId>
                 </exclusion>
                 <exclusion>
-                    <groupId>net.sf.saxon</groupId>
-                    <artifactId>saxon-dom</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>commons-httpclient</groupId>
-                    <artifactId>commons-httpclient</artifactId>
+                    <artifactId>slf4j-api</artifactId>
+                    <groupId>org.slf4j</groupId>
                 </exclusion>
             </exclusions>
-		</dependency>
-
-        <!-- Newer versions of Saxon - use the exclude above to enable -->
+        </dependency>
+        <dependency>
+            <groupId>com.hp.hpl.jena</groupId>
+            <artifactId>tdb</artifactId>
+            <version>0.8.9</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>slf4j-api</artifactId>
+                    <groupId>org.slf4j</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>log4j</artifactId>
+                    <groupId>log4j</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.hp.hpl.jena</groupId>
+            <artifactId>jena</artifactId>
+            <version>2.6.4</version>
+            <type>jar</type>
+            <scope>compile</scope>
+            <exclusions>
+                <exclusion>
+                    <artifactId>log4j</artifactId>
+                    <groupId>log4j</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>slf4j-log4j12</artifactId>
+                    <groupId>org.slf4j</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>slf4j-api</artifactId>
+                    <groupId>org.slf4j</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.5</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-lang</groupId>
+            <artifactId>commons-lang</artifactId>
+            <version>2.6</version>
+            <type>jar</type>
+            <scope>compile</scope>
+        </dependency>
+        <!-- pre-existing dependencies -->
         <dependency>
             <groupId>net.sf.saxon</groupId>
             <artifactId>Saxon-HE</artifactId>
             <version>9.4.0.7</version>
         </dependency>
-
         <!-- https://mvnrepository.com/artifact/org.apache.httpcomponents/httpcore -->
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
@@ -124,6 +190,5 @@
             <version>4.10</version>
             <scope>test</scope>
         </dependency>
-
 	</dependencies>
 </project>
