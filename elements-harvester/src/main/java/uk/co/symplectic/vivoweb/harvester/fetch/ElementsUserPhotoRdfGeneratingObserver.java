@@ -8,6 +8,8 @@ package uk.co.symplectic.vivoweb.harvester.fetch;
 
 import org.apache.commons.lang.NullArgumentException;
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import uk.co.symplectic.utils.ImageUtils;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
@@ -23,13 +25,17 @@ import java.io.Writer;
 import java.text.MessageFormat;
 
 public class ElementsUserPhotoRdfGeneratingObserver extends ElementsStoreOutputItemObserver {
+
+    private static final Logger log = LoggerFactory.getLogger(ElementsUserPhotoRdfGeneratingObserver.class);
+
+    private static int VIVO_THUMBNAIL_WIDTH = 200;
+    private static int VIVO_THUMBNAIL_HEIGHT = 200;
+
+
     private File vivoImageDir;
     private String imageUrlBase = "/harvestedImages/";
 
     private final String baseUrl;
-
-    private static int VIVO_THUMBNAIL_WIDTH = 200;
-    private static int VIVO_THUMBNAIL_HEIGHT = 200;
 
     public ElementsUserPhotoRdfGeneratingObserver(ElementsRdfStore rdfStore, File vivoImageDir, String vivoBaseURI, String imageUrlBase) {
         //todo move tolerate individual io errors somewhere sensible..
@@ -58,7 +64,9 @@ public class ElementsUserPhotoRdfGeneratingObserver extends ElementsStoreOutputI
                 //readFile will close the stream for us..
                 image = ImageUtils.readFile(item.getInputStream());
             }
-            catch (IOException ioe){}
+            catch (IOException ioe){
+                log.warn(MessageFormat.format("Could not process image file for {0} ({1})", userInfo.getItemId(), userInfo.getUsername()));
+            }
             if (image != null) {
                 // Write out full size image
                 File fullImageDir = new File(new File(vivoImageDir, "harvestedImages"), "fullImages");
@@ -119,9 +127,7 @@ public class ElementsUserPhotoRdfGeneratingObserver extends ElementsStoreOutputI
                     getStore().storeItem(userInfo, getOutputType(), photoXml.toString().getBytes("utf-8"));
                 } catch (IOException e) {
 
-                } finally {
                 }
-
             }
         }
     }

@@ -60,7 +60,7 @@ abstract public class ElementsFeedQuery {
 
 
 
-    protected abstract static class DeltaCapable extends ElementsFeedQuery{
+    public abstract static class DeltaCapable extends ElementsFeedQuery{
         private final Date modifiedSince;
 
         public Date getModifiedSince(){return modifiedSince;}

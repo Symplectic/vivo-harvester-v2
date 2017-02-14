@@ -84,10 +84,10 @@ public class ElementsFetchAndTranslate {
 
                 LoggingUtils.initialise("eft_logback.xml");
                 log.info(MessageFormat.format("running {0}", "ElementsFetchAndTranslate"));
-                Configuration.parse("elements.config.properties");
+                Configuration.parse("elementsfetch.properties");
                 log.info(Configuration.getConfiguredValues());
 
-                boolean forceFullPull = args.length != 0 && args[0] == "--full";
+                boolean forceFullPull = args.length != 0 && args[0].equals("--full");
                 boolean updateLocalTDB = true;
 
                 //when did we start this run (i.e how "up to date" can we claim to be at the end).
@@ -148,6 +148,8 @@ public class ElementsFetchAndTranslate {
                     } else {
                         log.info("Performing initial full pull of data.");
                     }
+                } else {
+                    log.info(MessageFormat.format("Performing differential pull (processing changes since {0}).", lastRunDateFormat.format(lastRunDate)));
                 }
 
                 //hacks for testing

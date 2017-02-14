@@ -103,7 +103,7 @@ public class FLConfiguration {
             finally{
                 if(stream != null) stream.close();
             }
-            //props.load(new FileInputStream("elements.config.properties"));
+            //props.load(new FileInputStream("elementsfetch.properties"));
         }
         catch(Exception e){
             configErrors.add(MessageFormat.format("Could not load properties file: \"{0}\"", propertiesFileName));
