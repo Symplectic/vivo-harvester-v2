@@ -41,6 +41,9 @@
                 <xsl:when test="$orgAddress//api:line[@type='name'][1]">
                     <xsl:value-of select="$orgAddress//api:line[@type='name'][1]" />
                 </xsl:when>
+                <xsl:when test="$orgAddress//api:line[@type='organisation'][1]">
+                    <xsl:value-of select="$orgAddress//api:line[@type='organisation'][1]" />
+                </xsl:when>
                 <xsl:when test="$orgAddress//api:line[@type='suborganisation'][1]">
                     <xsl:value-of select="$orgAddress//api:line[@type='suborganisation'][1]" />
                 </xsl:when>

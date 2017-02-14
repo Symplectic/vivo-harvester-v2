@@ -24,7 +24,7 @@
                 xmlns:svfn="http://www.symplectic.co.uk/vivo/namespaces/functions"
                 xmlns:config="http://www.symplectic.co.uk/vivo/namespaces/config"
                 exclude-result-prefixes="rdf rdfs fn bibo obo vivo vcard foaf score ufVivo vitro api symp svfn config xs"
-        >
+>
 
     <!--
         XSLT for generating VIVO representation of a publication object (journal article, conference preceding, etc.)
@@ -139,9 +139,9 @@
                     <xsl:when test="$publicationStatus/api:text='Submitted'"><bibo:status rdf:resource="http://vivoweb.org/ontology/core#submitted" /></xsl:when>
                     <xsl:when test="$publicationStatus/api:text='Unpublished'"><bibo:status rdf:resource="http://purl.org/ontology/bibo/unpublished" /></xsl:when>
                 </xsl:choose>
-                <xsl:copy-of select="svfn:renderControlledSubjectLinks($allLabels, 'mesh', $meshDefinedBy)" />
-                <xsl:copy-of select="svfn:renderControlledSubjectLinks($allLabels, 'science-metrix', $scimetDefinedBy)" />
-                <xsl:copy-of select="svfn:renderControlledSubjectLinks($allLabels, 'for', $forDefinedBy)" />
+                <xsl:copy-of select="svfn:renderControlledSubjectLinks($allLabels, 'mesh', $meshDefinedBy, '')" />
+                <xsl:copy-of select="svfn:renderControlledSubjectLinks($allLabels, 'science-metrix', $scimetDefinedBy, '')" />
+                <xsl:copy-of select="svfn:renderControlledSubjectLinks($allLabels, 'for', $forDefinedBy, '')" />
             </xsl:with-param>
         </xsl:call-template>
 
@@ -316,8 +316,8 @@
                     <vivo:publicationVenueFor rdf:resource="{$publicationURI}" />
                     <xsl:copy-of select="svfn:renderPropertyFromField($object,'bibo:issn','issn')" />
                     <xsl:copy-of select="svfn:renderPropertyFromField($object,'bibo:eissn','eissn')" />
-                    <xsl:copy-of select="svfn:renderControlledSubjectLinks($allLabels, 'science-metrix', $scimetDefinedBy)" />
-                    <xsl:copy-of select="svfn:renderControlledSubjectLinks($allLabels, 'for', $forDefinedBy)" />
+                    <xsl:copy-of select="svfn:renderControlledSubjectLinks($allLabels, 'science-metrix', $scimetDefinedBy, 'issn-inferred')" />
+                    <xsl:copy-of select="svfn:renderControlledSubjectLinks($allLabels, 'for', $forDefinedBy, 'issn-inferred')" />
                 </xsl:with-param>
             </xsl:call-template>
         </xsl:if>

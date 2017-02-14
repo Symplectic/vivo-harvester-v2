@@ -703,9 +703,10 @@
         <xsl:param name="allLabels" />
         <xsl:param name="scheme" as="xs:string" />
         <xsl:param name="schemeDefinedBy" as="xs:string" />
+        <xsl:param name="origin" as="xs:string" />
 
         <xsl:if test="not($schemeDefinedBy='')">
-            <xsl:for-each select="fn:distinct-values($allLabels/api:keywords/api:keyword[@scheme=$scheme])">
+            <xsl:for-each select="fn:distinct-values($allLabels/api:keywords/api:keyword[@scheme=$scheme and ($origin = '' or @origin = $origin)])">
                 <vivo:hasSubjectArea rdf:resource="{svfn:makeURI(concat('vocab-',$scheme,'-'),.)}" />
             </xsl:for-each>
         </xsl:if>
@@ -731,7 +732,9 @@
                         <xsl:if test="not($publicationUri='')">
                             <vivo:subjectAreaOf rdf:resource="{$publicationUri}" />
                         </xsl:if>
-                        <xsl:if test="not($publicationVenueUri='')">
+                        <xsl:variable name="testValue" select="." />
+                        <!-- if we have a "venue" i.e. a journal and there exists a matching label that is inferred from the issn then add that this concept is a subject area of that venue -->
+                        <xsl:if test="not($publicationVenueUri='') and $allLabels/api:keywords/api:keyword[@scheme=$scheme and @origin='issn-inferred' and text() = $testValue]">
                             <vivo:subjectAreaOf rdf:resource="{$publicationVenueUri}" />
                         </xsl:if>
                     </xsl:with-param>

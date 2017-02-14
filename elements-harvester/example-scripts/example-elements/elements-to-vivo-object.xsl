@@ -27,7 +27,7 @@
         Main import for Object processing (publication, user, etc.)
     -->
 
-    <!-- Default template - do not output relationship, unless overridden -->
+    <!-- Default template - do not output object, unless overridden by includes below-->
     <xsl:template match="api:object" />
 
     <!--
