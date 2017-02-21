@@ -1,0 +1,15 @@
+# Systemd unit file for fragment loader
+#
+
+[Unit]
+Description= Symplectic Vivo Harvester Fragment Loader
+After=syslog.target network.target
+
+[Service]
+Type=simple
+ExecStart=%HARVESTER_INSTALL_DIR%/fragmentloader.sh
+WorkingDirectory=%HARVESTER_INSTALL_DIR%
+#SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target

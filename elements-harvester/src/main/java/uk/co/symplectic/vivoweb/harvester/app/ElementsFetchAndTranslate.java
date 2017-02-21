@@ -163,9 +163,9 @@ public class ElementsFetchAndTranslate {
                 //runType = StateType.ODD;
                 //end of hacks for testing.
 
-                //TODO: worry about how manage TDB directory output (i.e. how we marshall it to previous-harvest?)
                 //TODO: ensure that configured directories are valid (either already exist or can be created?)
                 File interimTdbDirectory = Configuration.getTdbOutputDir();
+                interimTdbDirectory.mkdirs();
                 File currentTdbStore = new File(interimTdbDirectory, runType == StateType.EVEN ? "0" : "1");
                 File previousTdbStore = new File(interimTdbDirectory, runType == StateType.ODD ? "0" : "1");
 
@@ -271,8 +271,8 @@ public class ElementsFetchAndTranslate {
                     List<StoredData.InFile> filesToProcess = new ArrayList<StoredData.InFile>();
                     BufferedWriter writer = null;
                     try {
-                        //TODO: check this all works as expected and move file location to config remove prune stuff
-                        writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("fileList.txt"), "utf-8"));
+                        File transferListFile = new File(interimTdbDirectory, "fileList.txt");
+                        writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(transferListFile), "utf-8"));
 
                         //TODO: make ElementsItemCollections order things better - particularly within the objects type
                         for (ElementsItemType type : ElementsItemType.values()) {
@@ -325,7 +325,7 @@ public class ElementsFetchAndTranslate {
                 splitter.split(subtractionsFile, runStartedAt, FileSplitter.Type.Subtractions);
 
                 //if completed successfully manage state file..
-                //TODO: worry about how to handle failures tha mean state file is not updated after the diff phase.
+                //TODO: worry about how to handle failures that mean the state file is not updated after the diff phase.
                 boolean stateFileManagementErrorDetected = false;
                 //manage state file
                 BufferedWriter stateWriter = null;
@@ -391,7 +391,6 @@ public class ElementsFetchAndTranslate {
         if(!categories.contains(ElementsObjectCategory.USER)) categories.add(0, ElementsObjectCategory.USER);
 
         if(modifiedSince == null) {
-            //TODO: ..check is doing deletes of additional resources correctly.
             log.debug("Clearing down object cache (Full pull) - this may take some time..");
             objectStore.cleardown(StorableResourceType.RAW_OBJECT);
             ElementsFetch.ObjectConfig objConfig = new ElementsFetch.ObjectConfig(true, null, categories);

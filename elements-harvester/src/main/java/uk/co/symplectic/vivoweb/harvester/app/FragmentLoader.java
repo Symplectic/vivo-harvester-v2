@@ -15,6 +15,7 @@ import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import uk.co.symplectic.utils.ExecutorServiceUtils;
 import uk.co.symplectic.utils.LoggingUtils;
 import uk.co.symplectic.utils.configuration.ConfigParser;
 import uk.co.symplectic.utils.triplestore.FileSplitter;
@@ -37,6 +38,13 @@ public class FragmentLoader {
     private static int retryDelayMillis = 500;
     private static int maxRetries = 5;
 
+    private static class ShutdownHook extends Thread {
+        @Override
+        public void run() {
+            log.info("FragmentLoader: End");
+        }
+    }
+
     public static void main(String[] args) {
         //initLogger();
         //if(args.length != 1) throw new IllegalArgumentException("Args must contain 1 parameter, containing the path of the directory to monitor");
@@ -45,6 +53,9 @@ public class FragmentLoader {
         int count = 0;
         //is the loader currently active or not..
         boolean isIdle = false;
+
+        Runtime.getRuntime().addShutdownHook(new ShutdownHook());
+
         try {
             LoggingUtils.initialise("fl_logback.xml");
             log.info(MessageFormat.format("running {0}", "FragmentLoader"));
@@ -177,9 +188,9 @@ public class FragmentLoader {
             if(!isIdle) {
                 log.info(MessageFormat.format("Existing whilst still active : {0} fragments processed in total", count));
             }
-            if (caught == null || !(caught instanceof LoggingUtils.LoggingInitialisationException)) {
-                log.debug("FragmentLoader: End");
-            }
+//            if (caught == null || !(caught instanceof LoggingUtils.LoggingInitialisationException)) {
+//                log.debug("FragmentLoader: End");
+//            }
             if (caught != null) {
                 System.exit(1);
             }

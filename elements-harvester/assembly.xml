@@ -36,6 +36,10 @@
             <directory>example-scripts</directory>
             <outputDirectory>example-scripts</outputDirectory>
         </fileSet>
+        <fileSet>
+            <directory>systemd</directory>
+            <outputDirectory>systemd</outputDirectory>
+        </fileSet>
     </fileSets>
     <dependencySets>
         <dependencySet>

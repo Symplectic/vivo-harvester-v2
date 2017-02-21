@@ -30,5 +30,8 @@ ECHO %HOME_PATH%
 SET CP=%HOME_PATH%;%HOME_PATH%lib;%HOME_PATH%lib\*
 ::ECHO %CP%
 
+::change to working directory
+cd %HOME_PATH%
+
 ::pass incoming params to java program
 java -cp "%CP%" %OPTS% uk.co.symplectic.vivoweb.harvester.app.ElementsFetchAndTranslate %*

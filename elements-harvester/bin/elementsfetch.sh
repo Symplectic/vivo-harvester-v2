@@ -28,5 +28,8 @@ OPTS="-Xms$MIN_MEM -Xmx$MAX_MEM $HARVESTER_JAVA_OPTS"
 HOME_PATH=$(dirname "$0")
 CP="${HOME_PATH}:${HOME_PATH}/lib:${HOME_PATH}/lib/*"
 
+#change to working directory
+cd ${HOME_PATH}
+
 #pass incoming params to java program
 java -cp "${CP}" $OPTS uk.co.symplectic.vivoweb.harvester.app.ElementsFetchAndTranslate "$@"

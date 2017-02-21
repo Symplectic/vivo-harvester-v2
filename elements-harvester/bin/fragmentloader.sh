@@ -8,5 +8,8 @@
 HOME_PATH=$(dirname "$0")
 CP="${HOME_PATH}:${HOME_PATH}/lib:${HOME_PATH}/lib/*"
 
+#change to working directory
+cd ${HOME_PATH}
+
 #pass incoming params to java program
 java -cp "${CP}" $OPTS uk.co.symplectic.vivoweb.harvester.app.FragmentLoader "$@"

@@ -47,8 +47,8 @@ public class Configuration {
 
         private ConfigKey ARG_USE_FULL_UTF8 = new ConfigKey("useFullUTF8", "false"); //TODO: review this default
 
-        private ConfigKey ARG_VIVO_IMAGE_DIR = new ConfigKey("vivoImageDir", "/Library/Tomcat/webapps/vivo");
-        private ConfigKey ARG_VIVO_BASE_URI = new ConfigKey("vivoBaseURI", "http://localhost:8080/vivo/individual/");
+        private ConfigKey ARG_VIVO_IMAGE_DIR = new ConfigKey("vivoImageDir", "/data");
+        private ConfigKey ARG_VIVO_BASE_URI = new ConfigKey("vivoBaseURI", "http://vivo.mydomain.edu/individual/");
 
         private ConfigKey ARG_API_QUERY_CATEGORIES = new ConfigKey("queryObjects"); //TODO : rename this input param?
         private ConfigKey ARG_API_PARAMS_GROUPS = new ConfigKey("paramGroups");
