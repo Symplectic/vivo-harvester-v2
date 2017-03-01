@@ -30,16 +30,15 @@
     <!-- Match Elements objects of category 'grant' -->
     <xsl:template match="api:object[@category='grant']">
         <xsl:variable name="grantURI"><xsl:value-of select="svfn:objectURI(.)" /></xsl:variable>
-
-        <xsl:variable name="startDateURI" select="concat(svfn:objectURI(.),'-startDate')" />
-        <xsl:variable name="endDateURI" select="concat(svfn:objectURI(.),'-endDate')" />
-        <xsl:variable name="startDateObject" select="svfn:renderDateObject(.,$startDateURI,svfn:getRecordField(.,'start-date'))" />
-        <xsl:variable name="endDateObject" select="svfn:renderDateObject(.,$endDateURI,svfn:getRecordField(.,'end-date'))" />
-
-        <xsl:variable name="intervalURI" select="concat(svfn:objectURI(.),'-interval')" />
-
         <xsl:variable name="funderName" select="svfn:getRecordField(.,'funder-name')" />
         <xsl:variable name="funderURI"><xsl:if test="$funderName/api:text"><xsl:value-of select="svfn:makeURI('funder-',$funderName/api:text)" /></xsl:if></xsl:variable>
+
+        <!-- render datetime interval to intermediate variable, retrieve uri for reference purposes and then render variable contents-->
+        <xsl:variable name="startDate" select="svfn:getRecordField(.,'start-date')" />
+        <xsl:variable name="endDate" select="svfn:getRecordField(.,'end-date')" />
+        <xsl:variable name="dateInterval" select ="svfn:renderDateInterval($grantURI, $startDate, $endDate, '', false())" />
+        <xsl:variable name="dateIntervalURI" select="svfn:retrieveDateIntervalUri($dateInterval)" />
+        <xsl:copy-of select="$dateInterval" />
 
         <xsl:call-template name="render_rdf_object">
             <xsl:with-param name="objectURI" select="$grantURI" />
@@ -51,25 +50,14 @@
                 <xsl:copy-of select="svfn:renderPropertyFromField(.,'vivo:sponsorAwardId','funder-reference')" />
                 <xsl:copy-of select="svfn:renderPropertyFromField(.,'vivo:localAwardId','institution-reference')" />
                 <xsl:copy-of select="svfn:renderPropertyFromField(.,'vivo:totalAwardAmount','amount')" />
-                <xsl:if test="$startDateObject/* or $endDateObject/*"><vivo:dateTimeInterval rdf:resource="{$intervalURI}" /></xsl:if>
+                <xsl:if test="$dateInterval/*">
+                    <vivo:dateTimeInterval rdf:resource="{$dateIntervalURI}" />
+                </xsl:if>
                 <xsl:if test="$funderName/*">
                     <vivo:assignedBy rdf:resource="{$funderURI}" />
                 </xsl:if>
             </xsl:with-param>
         </xsl:call-template>
-
-        <xsl:if test="$startDateObject/* or $endDateObject/*">
-            <xsl:call-template name="render_rdf_object">
-                <xsl:with-param name="objectURI" select="$intervalURI" />
-                <xsl:with-param name="rdfNodes">
-                    <rdf:type rdf:resource="http://vivoweb.org/ontology/core#DateTimeInterval"/>
-                    <xsl:if test="$startDateObject/*"><vivo:start rdf:resource="{$startDateURI}" /></xsl:if>
-                    <xsl:if test="$endDateObject/*"><vivo:end rdf:resource="{$endDateURI}" /></xsl:if>
-                </xsl:with-param>
-            </xsl:call-template>
-        </xsl:if>
-        <xsl:copy-of select="$startDateObject" />
-        <xsl:copy-of select="$endDateObject" />
 
         <xsl:if test="$funderName/*">
             <xsl:call-template name="render_rdf_object">

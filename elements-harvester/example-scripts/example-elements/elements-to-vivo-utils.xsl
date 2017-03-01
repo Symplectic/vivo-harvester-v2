@@ -231,9 +231,9 @@
         Generate a VIVO date object for the supplied date object
     -->
     <xsl:function name="svfn:renderDateObject">
-        <xsl:param name="object" />
         <xsl:param name="dateObjectURI" as="xs:string" />
         <xsl:param name="date" />
+        <xsl:param name="precision" as="xs:string"/>
 
         <!-- only output if the date exists -->
         <xsl:if test="$date">
@@ -243,7 +243,9 @@
                 <xsl:with-param name="rdfNodes">
                     <xsl:call-template name="_concat_nodes_if">
                         <xsl:with-param name="nodesRequired">
-                            <xsl:apply-templates select="$date" />
+                            <xsl:apply-templates select="$date">
+                                <xsl:with-param name="precision" select="$precision" />
+                            </xsl:apply-templates>
                         </xsl:with-param>
                         <xsl:with-param name="nodesToAdd">
                             <rdf:type rdf:resource="http://vivoweb.org/ontology/core#DateTimeValue"/>
@@ -254,6 +256,69 @@
         </xsl:if>
     </xsl:function>
 
+    <!--  svfn:renderDateInterval
+        =====================
+        Generate a VIVO date interval along with the relevant VIVO date objects for the supplied date range -->
+    <xsl:function name="svfn:renderDateInterval">
+        <xsl:param name="context" as="xs:string" />
+        <xsl:param name="startDate" />
+        <xsl:param name="endDate" />
+        <xsl:param name="precision" as="xs:string"/>
+        <xsl:param name="forceEndDate" as="xs:boolean"/>
+
+        <xsl:variable name="startDateURI" select="concat($context,'-intervalStartDate')" />
+        <xsl:variable name="endDateURI" select="concat($context,'-intervalEndDate')" />
+        <xsl:variable name="dateIntervalURI" select="concat($context,'-dateInterval')" />
+        <!--<xsl:variable name="dateIntervalURI">-->
+            <!--<xsl:choose>-->
+                <!--<xsl:when test="$endDate">-->
+                    <!--<xsl:value-of select="concat($context,'-dateInterval-',svfn:dateYear($startDate),'-',svfn:dateYear($endDate))" />-->
+                <!--</xsl:when>-->
+                <!--<xsl:otherwise>-->
+                    <!--<xsl:value-of select="concat($context,'-dateInterval-',svfn:dateYear($startDate))" />-->
+                <!--</xsl:otherwise>-->
+            <!--</xsl:choose>-->
+        <!--</xsl:variable>-->
+
+        <xsl:if test="$startDate or $endDate">
+            <xsl:copy-of select="svfn:renderDateObject($startDateURI,$startDate, $precision)" />
+            <xsl:copy-of select="svfn:renderDateObject($endDateURI,$endDate, $precision)" />
+
+            <xsl:call-template name="render_rdf_object">
+                <xsl:with-param name="objectURI" select="$dateIntervalURI" />
+                <xsl:with-param name="rdfNodes">
+                    <rdf:type rdf:resource="http://vivoweb.org/ontology/core#DateTimeInterval" />
+                    <xsl:if test="$startDate">
+                        <vivo:start rdf:resource="{$startDateURI}" />
+                    </xsl:if>
+                    <xsl:choose>
+                        <xsl:when test="$endDate">
+                            <vivo:end rdf:resource="{$endDateURI}" />
+                        </xsl:when>
+                        <xsl:when test="$forceEndDate">
+                            <vivo:end rdf:resource="{$startDateURI}" />
+                        </xsl:when>
+                    </xsl:choose>
+                </xsl:with-param>
+            </xsl:call-template>
+        </xsl:if>
+    </xsl:function>
+
+    <xsl:function name="svfn:retrieveDateIntervalUri" as="xs:string">
+        <xsl:param name="vivoDateInterval" />
+        <xsl:if test="$vivoDateInterval">
+        <xsl:value-of select="$vivoDateInterval[rdf:type/@rdf:resource='http://vivoweb.org/ontology/core#DateTimeInterval'][1]/@rdf:about" />
+        </xsl:if>
+    </xsl:function>
+
+    <xsl:function name="svfn:retrieveUri" as="xs:string">
+        <xsl:param name="rdfFragment" />
+        <xsl:param name="rdfType" />
+        <xsl:if test="$rdfFragment">
+            <xsl:value-of select="$rdfFragment[rdf:type/@rdf:resource=$rdfType][1]/@rdf:about" />
+        </xsl:if>
+    </xsl:function>
+
     <!--
         svfn:datePrecision
         ==================
@@ -261,13 +326,26 @@
     -->
     <xsl:function name="svfn:datePrecision" as="xs:string">
         <xsl:param name="date" />
-
+        <xsl:param name="precision" as="xs:string"/>
         <xsl:choose>
-            <xsl:when test="string($date/api:day) and string($date/api:month) and string($date/api:year)">yearMonthDayPrecision</xsl:when>
-            <xsl:when test="string($date/api:month) and string($date/api:year)">yearMonthPrecision</xsl:when>
-            <xsl:when test="string($date/api:year)">yearPrecision</xsl:when>
-            <xsl:otherwise>none</xsl:otherwise>
+            <xsl:when test="$precision = ''">
+                <xsl:choose>
+                    <xsl:when test="string($date/api:day) and string($date/api:month) and string($date/api:year)">yearMonthDayPrecision</xsl:when>
+                    <xsl:when test="string($date/api:month) and string($date/api:year)">yearMonthPrecision</xsl:when>
+                    <xsl:when test="string($date/api:year)">yearPrecision</xsl:when>
+                    <xsl:otherwise>none</xsl:otherwise>
+                </xsl:choose>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:choose>
+                    <xsl:when test="($precision = 'yearMonthDayPrecision') or ($precision = 'yearMonthPrecision') or ($precision = 'yearPrecision')">
+                        <xsl:value-of select="$precision" />
+                    </xsl:when>
+                    <xsl:otherwise>none</xsl:otherwise>
+                </xsl:choose>
+            </xsl:otherwise>
         </xsl:choose>
+
     </xsl:function>
 
     <!--
@@ -563,184 +641,150 @@
             </xsl:choose>
         </xsl:variable>
 
-        <xsl:if test="not($linkType='') and (($people/api:people/api:person/api:links[api:link/@type='elements/user']/*) or $externalPersons='true')">
+        <xsl:if test="not($linkType='')">
             <xsl:for-each select="$people/api:people/api:person">
-                <xsl:choose>
-                    <xsl:when test="api:links/api:link/@type='elements/user'">
-                        <xsl:variable name="contextURI" select="svfn:objectToObjectURI($linkType,$linkedId,api:links/api:link[@type='elements/user']/@id)" />
-
-                        <!-- Add rank to context object -->
-                        <xsl:call-template name="render_rdf_object">
-                            <xsl:with-param name="objectURI" select="$contextURI" />
-                            <xsl:with-param name="rdfNodes">
-                                <vivo:rank rdf:datatype="http://www.w3.org/2001/XMLSchema#int"><xsl:value-of select="position()" /></vivo:rank>
-                            </xsl:with-param>
-                        </xsl:call-template>
-                    </xsl:when>
-                    <xsl:when test="$externalPersons='true'">
-                        <xsl:variable name="personId">
-                            <xsl:choose>
-                                <xsl:when test="api:initials and not(api:initials='')">
-                                    <xsl:value-of select="concat(fn:lower-case(fn:normalize-space(api:last-name)),'-',fn:lower-case(fn:normalize-space(api:initials)))" />
-                                </xsl:when>
-                                <xsl:when test="api:first-names and not(api:first-names='')">
-                                    <xsl:value-of select="concat(fn:lower-case(fn:normalize-space(api:last-name)),'-',fn:substring(fn:lower-case(fn:normalize-space(api:first-names)),1,1))" />
-                                </xsl:when>
-                                <xsl:otherwise>
-                                    <xsl:value-of select="fn:lower-case(fn:normalize-space(api:last-name))" />
-                                </xsl:otherwise>
-                            </xsl:choose>
-                        </xsl:variable>
-
-                        <xsl:variable name="linkedAuthorId">
-                            <xsl:choose>
-                                <xsl:when test="$externalPersonStyle = 'vcard'">
-                                    <xsl:value-of select="concat($linkedId,'-',$personId, '-', position())" />
-                                </xsl:when>
-                                <xsl:otherwise>
-                                    <xsl:value-of select="$personId" />
-                                </xsl:otherwise>
-                            </xsl:choose>
-                        </xsl:variable>
-
-                        <xsl:variable name="contextURI" select="svfn:objectToObjectURI($linkType,$linkedId,$linkedAuthorId)" />
-
-                        <xsl:variable name="linkedAuthorUri">
-                            <xsl:choose>
-                                <xsl:when test="$externalPersonStyle = 'vcard'">
-                                    <xsl:value-of select="svfn:makeURI('personvcard-', $linkedAuthorId)" />
-                                </xsl:when>
-                                <xsl:otherwise>
-                                    <xsl:value-of select="svfn:makeURI('person-',$linkedAuthorId)" />
-                                </xsl:otherwise>
-                            </xsl:choose>
-                        </xsl:variable>
-
-                        <!-- Create context object -->
-                        <xsl:call-template name="render_rdf_object">
-                            <xsl:with-param name="objectURI" select="$contextURI" />
-                            <xsl:with-param name="rdfNodes">
+                <xsl:variable name="contextUri">
+                    <xsl:choose>
+                        <xsl:when test="api:links/api:link/@type='elements/user'">
+                            <xsl:value-of select="svfn:objectToObjectURI($linkType,$linkedId,api:links/api:link[@type='elements/user']/@id)" />
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:variable name="personId">
                                 <xsl:choose>
-                                    <xsl:when test="$linkType='authorship'"><rdf:type rdf:resource="http://vivoweb.org/ontology/core#Authorship"/></xsl:when>
-                                    <xsl:when test="$linkType='editorship'"><rdf:type rdf:resource="http://vivoweb.org/ontology/core#Editorship"/></xsl:when>
-                                    <xsl:otherwise><rdf:type rdf:resource="http://vivoweb.org/ontology/core#Authorship"/></xsl:otherwise>
-                                </xsl:choose>
-                                <vivo:relates rdf:resource="{$linkedAuthorUri}"/>
-                                <vivo:relates rdf:resource="{$linkedUri}"/>
-                                <vivo:rank rdf:datatype="http://www.w3.org/2001/XMLSchema#int"><xsl:value-of select="position()" /></vivo:rank>
-                            </xsl:with-param>
-                        </xsl:call-template>
-
-                        <!-- Create person object -->
-                        <xsl:if test="$externalPersonStyle != 'vcard'">
-                            <xsl:call-template name="render_rdf_object">
-                                <xsl:with-param name="objectURI" select="svfn:makeURI('person-',$personId)" />
-                                <xsl:with-param name="rdfNodes">
-                                    <rdf:type rdf:resource="http://xmlns.com/foaf/0.1/Person"/>
-                                    <rdfs:label><xsl:value-of select="$externalPersonLabelPrefix" />
-                                        <xsl:choose>
-                                            <xsl:when test="api:last-name and api:first-names">
-                                                <xsl:value-of select="api:last-name" />, <xsl:value-of select="api:first-names" />
-                                            </xsl:when>
-                                            <xsl:when test="api:last-name and api:initials">
-                                                <xsl:value-of select="api:last-name" />, <xsl:value-of select="api:initials" />
-                                            </xsl:when>
-                                            <xsl:otherwise>
-                                                <xsl:value-of select="api:last-name" />
-                                            </xsl:otherwise>
-                                        </xsl:choose>
-                                        <xsl:value-of select="$externalPersonLabelSuffix" /></rdfs:label>
-                                    <obo:ARG_2000028 rdf:resource="{svfn:makeURI('personvcard-',$personId)}"/>
-                                    <vivo:relatedBy rdf:resource="{$contextURI}" />
-                                </xsl:with-param>
-                            </xsl:call-template>
-                        </xsl:if>
-
-                        <!-- Create person vcard object -->
-                        <xsl:call-template name="render_rdf_object">
-                            <xsl:with-param name="objectURI" select="svfn:makeURI('personvcard-',$linkedAuthorId)" />
-                            <xsl:with-param name="rdfNodes">
-                                <rdf:type rdf:resource="http://www.w3.org/2006/vcard/ns#Individual"/>
-                                <!-- Only link to the person if we are creating an actual person not just a vcard representation -->
-                                <xsl:if test="$externalPersonStyle != 'vcard'">
-                                    <obo:ARG_2000029 rdf:resource="{svfn:makeURI('person-',$personId)}"/>
-                                </xsl:if>
-                                <vcard:hasName rdf:resource="{svfn:makeURI('personvcardname-',$linkedAuthorId)}"/>
-                            </xsl:with-param>
-                        </xsl:call-template>
-
-                        <!-- Create person vcard name object -->
-                        <xsl:call-template name="render_rdf_object">
-                            <xsl:with-param name="objectURI" select="svfn:makeURI('personvcardname-',$linkedAuthorId)" />
-                            <xsl:with-param name="rdfNodes">
-                                <rdf:type rdf:resource="http://www.w3.org/2006/vcard/ns#Name"/>
-                                <xsl:choose>
-                                    <xsl:when test="api:first-names">
-                                        <vcard:givenName><xsl:value-of select="api:first-names" /></vcard:givenName>
+                                    <xsl:when test="api:initials and not(api:initials='')">
+                                        <xsl:value-of select="concat(fn:lower-case(fn:normalize-space(api:last-name)),'-',fn:lower-case(fn:normalize-space(api:initials)))" />
                                     </xsl:when>
-                                    <xsl:when test="api:initials">
-                                        <vcard:givenName><xsl:value-of select="api:initials" /></vcard:givenName>
+                                    <xsl:when test="api:first-names and not(api:first-names='')">
+                                        <xsl:value-of select="concat(fn:lower-case(fn:normalize-space(api:last-name)),'-',fn:substring(fn:lower-case(fn:normalize-space(api:first-names)),1,1))" />
                                     </xsl:when>
+                                    <xsl:otherwise>
+                                        <xsl:value-of select="fn:lower-case(fn:normalize-space(api:last-name))" />
+                                    </xsl:otherwise>
                                 </xsl:choose>
-                                <vcard:familyName><xsl:value-of select="api:last-name" /></vcard:familyName>
-                            </xsl:with-param>
-                        </xsl:call-template>
+                            </xsl:variable>
+                            <xsl:variable name="authorshipId" select="concat($personId, '-', position())" />
+                            <xsl:value-of select="svfn:objectToObjectURI($linkType, $linkedId, $authorshipId)" />
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
 
-                        <!-- Add publication relationship -->
-                        <xsl:call-template name="render_rdf_object">
-                            <xsl:with-param name="objectURI" select="$linkedUri" />
-                            <xsl:with-param name="rdfNodes">
-                                <vivo:relatedBy rdf:resource="{$contextURI}" />
-                            </xsl:with-param>
-                        </xsl:call-template>
-                    </xsl:when>
-                </xsl:choose>
-            </xsl:for-each>
-        </xsl:if>
-    </xsl:function>
-
-    <xsl:function name="svfn:renderControlledSubjectLinks">
-        <xsl:param name="allLabels" />
-        <xsl:param name="scheme" as="xs:string" />
-        <xsl:param name="schemeDefinedBy" as="xs:string" />
-        <xsl:param name="origin" as="xs:string" />
-
-        <xsl:if test="not($schemeDefinedBy='')">
-            <xsl:for-each select="fn:distinct-values($allLabels/api:keywords/api:keyword[@scheme=$scheme and ($origin = '' or @origin = $origin)])">
-                <vivo:hasSubjectArea rdf:resource="{svfn:makeURI(concat('vocab-',$scheme,'-'),.)}" />
-            </xsl:for-each>
-        </xsl:if>
-    </xsl:function>
-
-    <xsl:function name="svfn:renderControlledSubjectObjects">
-        <xsl:param name="allLabels" />
-        <xsl:param name="publicationUri" as="xs:string" />
-        <xsl:param name="publicationVenueUri" as="xs:string" />
-        <xsl:param name="scheme" as="xs:string" />
-        <xsl:param name="schemeDefinedBy" as="xs:string" />
-
-        <xsl:if test="not($schemeDefinedBy='')">
-            <xsl:for-each select="fn:distinct-values($allLabels/api:keywords/api:keyword[@scheme=$scheme])">
-                <xsl:variable name="definitionUri" select="svfn:makeURI(concat('vocab-',$scheme,'-'),.)" />
+                <xsl:variable name="vCardRdf" select="svfn:renderVcardFromApiPerson(., $contextUri)" />
+                <xsl:copy-of select="$vCardRdf" />
+                <xsl:variable name="vCardUri" select="svfn:retrieveUri($vCardRdf, 'http://www.w3.org/2006/vcard/ns#Individual')" />
 
                 <xsl:call-template name="render_rdf_object">
-                    <xsl:with-param name="objectURI" select="$definitionUri" />
+                    <xsl:with-param name="objectURI" select="$contextUri" />
                     <xsl:with-param name="rdfNodes">
-                        <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept" />
-                        <rdfs:label><xsl:value-of select="." /></rdfs:label>
-                        <rdfs:isDefinedBy rdf:resource="{$schemeDefinedBy}" />
-                        <xsl:if test="not($publicationUri='')">
-                            <vivo:subjectAreaOf rdf:resource="{$publicationUri}" />
-                        </xsl:if>
-                        <xsl:variable name="testValue" select="." />
-                        <!-- if we have a "venue" i.e. a journal and there exists a matching label that is inferred from the issn then add that this concept is a subject area of that venue -->
-                        <xsl:if test="not($publicationVenueUri='') and $allLabels/api:keywords/api:keyword[@scheme=$scheme and @origin='issn-inferred' and text() = $testValue]">
-                            <vivo:subjectAreaOf rdf:resource="{$publicationVenueUri}" />
-                        </xsl:if>
+                        <xsl:choose>
+                            <xsl:when test="$linkType='authorship'"><rdf:type rdf:resource="http://vivoweb.org/ontology/core#Authorship"/></xsl:when>
+                            <xsl:when test="$linkType='editorship'"><rdf:type rdf:resource="http://vivoweb.org/ontology/core#Editorship"/></xsl:when>
+                            <xsl:otherwise><rdf:type rdf:resource="http://vivoweb.org/ontology/core#Authorship"/></xsl:otherwise>
+                        </xsl:choose>
+                        <vivo:relates rdf:resource="{$vCardUri}"/>
+                        <vivo:relates rdf:resource="{$linkedUri}"/>
+                        <vivo:rank rdf:datatype="http://www.w3.org/2001/XMLSchema#int"><xsl:value-of select="position()" /></vivo:rank>
+                    </xsl:with-param>
+                </xsl:call-template>
+
+                <xsl:call-template name="render_rdf_object">
+                    <xsl:with-param name="objectURI" select="$linkedUri" />
+                    <xsl:with-param name="rdfNodes">
+                        <vivo:relatedBy rdf:resource="{$contextUri}" />
                     </xsl:with-param>
                 </xsl:call-template>
             </xsl:for-each>
         </xsl:if>
+    </xsl:function>
+
+    <xsl:function name="svfn:renderVcardFromApiPerson">
+        <xsl:param name="person" />
+        <xsl:param name="personUri" />
+
+        <xsl:if test="$person/* and $personUri">
+            <xsl:variable name="vcardUri" select="concat($personUri, '-vcard')" />
+            <xsl:variable name="vcardNameUri" select="concat($personUri,'-vcardname')" />
+            <!-- Create person vcard object -->
+            <xsl:call-template name="render_rdf_object">
+                <xsl:with-param name="objectURI" select="$vcardUri" />
+                <xsl:with-param name="rdfNodes">
+                    <rdf:type rdf:resource="http://www.w3.org/2006/vcard/ns#Individual"/>
+                    <vcard:hasName rdf:resource="{$vcardNameUri}"/>
+                </xsl:with-param>
+            </xsl:call-template>
+
+            <!-- Create person vcard name object -->
+            <xsl:call-template name="render_rdf_object">
+                <xsl:with-param name="objectURI" select="$vcardNameUri" />
+                <xsl:with-param name="rdfNodes">
+                    <rdf:type rdf:resource="http://www.w3.org/2006/vcard/ns#Name"/>
+                    <xsl:choose>
+                        <xsl:when test="$person/api:first-names">
+                            <vcard:givenName><xsl:value-of select="$person/api:first-names" /></vcard:givenName>
+                        </xsl:when>
+                        <xsl:when test="$person/api:initials">
+                            <vcard:givenName><xsl:value-of select="$person/api:initials" /></vcard:givenName>
+                        </xsl:when>
+                    </xsl:choose>
+                    <vcard:familyName><xsl:value-of select="$person/api:last-name" /></vcard:familyName>
+                </xsl:with-param>
+            </xsl:call-template>
+        </xsl:if>
+    </xsl:function>
+
+    <xsl:function name="svfn:renderControlledSubjectLinks">
+        <xsl:param name="object" />
+        <xsl:param name="origin" />
+        <!-- grab the labels off the object in question -->
+        <xsl:variable name="allLabels" select="$object/api:all-labels" />
+        <!-- if there are no mapped schemes then the for each will not trigger -->
+        <xsl:for-each select="$label-schemes[@for=$object/@category]/config:label-scheme">
+            <xsl:if test="not(./@defined-by='')">
+                <xsl:variable name="scheme-name" select="./@name" />
+                <xsl:for-each select="fn:distinct-values($allLabels/api:keywords/api:keyword[@scheme=$scheme-name and ($origin = '' or @origin = $origin)])">
+                    <vivo:hasSubjectArea rdf:resource="{svfn:makeURI(concat('vocab-',$scheme-name,'-'),.)}" />
+                </xsl:for-each>
+            </xsl:if>
+        </xsl:for-each>
+    </xsl:function>
+
+    <xsl:function name="svfn:renderControlledSubjectObjects">
+        <xsl:param name="object" />
+        <xsl:param name="objectUri" as="xs:string" />
+        <xsl:param name="publicationVenueUri" as="xs:string" />
+
+        <!-- grab the labels off the object in question -->
+        <xsl:variable name="allLabels" select="$object/api:all-labels" />
+        <!-- if there are no mapped schemes then the for each will not trigger -->
+        <xsl:for-each select="$label-schemes[@for=$object/@category]/config:label-scheme">
+
+            <xsl:variable name="schemeDefinedBy" select="./@defined-by" />
+            <xsl:if test="not($schemeDefinedBy='')">
+                <xsl:variable name="scheme-name" select="./@name" />
+                <xsl:if test="not(./@defined-by='')">
+                    <xsl:for-each select="fn:distinct-values($allLabels/api:keywords/api:keyword[@scheme=$scheme-name])">
+                        <xsl:variable name="definitionUri" select="svfn:makeURI(concat('vocab-',$scheme-name,'-'),.)" />
+
+                        <xsl:call-template name="render_rdf_object">
+                            <xsl:with-param name="objectURI" select="$definitionUri" />
+                            <xsl:with-param name="rdfNodes">
+                                <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept" />
+                                <rdfs:label><xsl:value-of select="." /></rdfs:label>
+                                <rdfs:isDefinedBy rdf:resource="{$schemeDefinedBy}" />
+                                <xsl:if test="not($objectUri='')">
+                                    <vivo:subjectAreaOf rdf:resource="{$objectUri}" />
+                                </xsl:if>
+                                <xsl:variable name="testValue" select="." />
+                                <!-- if we have a "venue" i.e. a journal and there exists a matching label that is inferred from the issn then add that this concept is a subject area of that venue -->
+                                <xsl:if test="not($publicationVenueUri='') and $allLabels/api:keywords/api:keyword[@scheme=$scheme-name and @origin='issn-inferred' and text() = $testValue]">
+                                    <vivo:subjectAreaOf rdf:resource="{$publicationVenueUri}" />
+                                </xsl:if>
+                            </xsl:with-param>
+                        </xsl:call-template>
+                    </xsl:for-each>
+                </xsl:if>
+
+            </xsl:if>
+        </xsl:for-each>
     </xsl:function>
 
     <!-- ======================================

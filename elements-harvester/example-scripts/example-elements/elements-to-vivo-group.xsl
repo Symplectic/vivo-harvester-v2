@@ -47,8 +47,7 @@
         <!--</xsl:element>-->
     </xsl:param>
 
-
-    <!-- Default template - do not output relationship, unless overridden -->
+    <!-- Default template - output group -->
     <xsl:template match="api:user-group" >
 
         <!-- create the URI that we will use for this group -->
@@ -69,6 +68,7 @@
             <xsl:with-param name="rdfNodes">
                 <!-- TODO Implement dictionary to determine department type -->
                 <rdf:type rdf:resource="{$groupType}"/>
+                <xsl:if test="$internalClass"><rdf:type rdf:resource="{$internalClass}" /></xsl:if>
                 <rdfs:label><xsl:value-of select="api:name"/></rdfs:label>
                 <xsl:if test="api:parents/api:parent[1]">
                     <!-- will currently create crud in the vivo db for any groups that are NOT included....sigh -->

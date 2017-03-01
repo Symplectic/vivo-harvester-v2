@@ -30,11 +30,7 @@
     <xsl:param name="harvestedBy" />
 
     <xsl:param name="useSympNS" />
-
-    <xsl:param name="externalPersons">true</xsl:param>
-    <xsl:param name="externalPersonStyle">vcard</xsl:param>
-    <xsl:param name="externalPersonLabelPrefix">[</xsl:param>
-    <xsl:param name="externalPersonLabelSuffix">]</xsl:param>
+    <xsl:param name="internalClass" />
 
     <xsl:param name="meshDefinedBy">http://www.nlm.nih.gov/mesh</xsl:param>
     <xsl:param name="scimetDefinedBy">http://www.science-metrix.com/</xsl:param>
@@ -55,6 +51,7 @@
     <!-- DO NOT TOUCH: Read the record and journal precedence configuration into variables for processing -->
     <xsl:variable name="record-precedences" select="document('')//config:record-precedences/config:record-precedences" />
     <xsl:variable name="journal-precedence" select="document('')//config:journal-precedences/config:journal-precedence" />
+    <xsl:variable name="label-schemes" select="document('')//config:label-schemes/config:label-schemes" />
 
     <!--
         Configure precedence for records
@@ -113,4 +110,19 @@
         <config:journal-precedence type="record" field="journal">manual</config:journal-precedence>
         <config:journal-precedence type="record" field="journal">arxiv</config:journal-precedence>
     </config:journal-precedences>
+
+
+    <config:label-schemes>
+        <config:label-schemes for="publication">
+            <config:label-scheme name="mesh" defined-by="http://www.nlm.nih.gov/mesh" >banana</config:label-scheme>
+            <config:label-scheme name="science-metrix" defined-by="http://www.science-metrix.com/" />
+            <config:label-scheme name="for" defined-by="http://www.arc.gov.au/era/for" />
+        </config:label-schemes>
+        <config:label-schemes for="user">
+            <config:label-scheme name="mesh" defined-by="http://www.nlm.nih.gov/mesh" >hooplea</config:label-scheme>
+            <config:label-scheme name="science-metrix" defined-by="http://www.science-metrix.com/"/>
+            <config:label-scheme name="for" defined-by="http://www.arc.gov.au/era/for"/>
+        </config:label-schemes>
+    </config:label-schemes>
+
 </xsl:stylesheet>
