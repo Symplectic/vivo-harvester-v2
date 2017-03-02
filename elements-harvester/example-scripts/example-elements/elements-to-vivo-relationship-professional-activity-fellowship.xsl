@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
- | Copyright (c) 2012 Symplectic Limited. All rights reserved.
- | This Source Code Form is subject to the terms of the Mozilla Public
- | License, v. 2.0. If a copy of the MPL was not distributed with this
- | file, You can obtain one at http://mozilla.org/MPL/2.0/.
- -->
+  ~ /*******************************************************************************
+  ~  * Copyright (c) 2012 Symplectic Ltd. All rights reserved.
+  ~  * This Source Code Form is subject to the terms of the Mozilla Public
+  ~  * License, v. 2.0. If a copy of the MPL was not distributed with this
+  ~  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+  ~  ******************************************************************************/
+  -->
 <xsl:stylesheet version="2.0"
                 xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
                 xmlns:xs="http://www.w3.org/2001/XMLSchema"
@@ -28,7 +30,7 @@
     <!-- Import XSLT files that are used -->
     <xsl:import href="elements-to-vivo-utils.xsl" />
 
-    <xsl:template match="api:relationship[@type='activity-user-association' and api:related/api:object[@category='activity' and @type='distinction']]">
+    <xsl:template match="api:relationship[@type='activity-user-association' and api:related/api:object[@category='activity' and @type='fellowship']]">
         <xsl:variable name="contextURI" select="svfn:relationshipURI(.,'relationship')" />
 
         <xsl:variable name="activityObj" select="svfn:fullObject(api:related/api:object[@category='activity'])" />
@@ -52,7 +54,7 @@
             </xsl:call-template>
 
             <!-- Awarding Agent -->
-            <xsl:variable name="awardedBy" select="svfn:getRecordField($activityObj,'institution')" />
+            <xsl:variable name="awardedBy" select="svfn:getRecordField($activityObj,'organisation')" />
             <xsl:for-each select="$awardedBy/api:addresses/api:address">
                 <xsl:variable name="orgObjects" select="svfn:organisationObjects(.)" />
                 <xsl:variable name="orgURI" select="svfn:organisationObjectsMainURI($orgObjects)" />

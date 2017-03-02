@@ -121,80 +121,49 @@
         <xsl:value-of select="svfn:makeURI($type,$relationship/@id)" />
     </xsl:function>
 
-    <!--
-        svfn:departmentName
-        ===================
-        Get the department from an api:address or api:institution object
-    -->
-    <xsl:function name="svfn:departmentName" as="xs:string">
-        <xsl:param name="address" />
 
-        <xsl:value-of select="$address/api:line[@type='suborganisation']" />
-    </xsl:function>
 
     <!--
-        svfn:departmentURI
-        ==================
-        Create a URI for a department from an api:address or api:institution object
-    -->
-    <xsl:function name="svfn:departmentURI" as="xs:string">
-        <xsl:param name="address" />
-
-        <xsl:variable name="orgName" select="svfn:institutionName($address)" />
-        <xsl:variable name="deptName" select="svfn:departmentName($address)" />
-        <xsl:choose>
-            <xsl:when test="not($deptName='') and not($orgName='')"><xsl:value-of select="svfn:makeURI('dept-',concat(fn:substring($deptName,1,100),'-',fn:substring($orgName,1,50)))" /></xsl:when>
-            <xsl:when test="not($deptName='')"><xsl:value-of select="svfn:makeURI('dept-',fn:substring($deptName,1,150))" /></xsl:when>
-            <xsl:otherwise><xsl:text /></xsl:otherwise>
-        </xsl:choose>
-    </xsl:function>
-
-    <!--
-        svfn:institutionName
-        ===================
-        Get the institution from an api:address or api:institution object
-    -->
-    <xsl:function name="svfn:institutionName" as="xs:string">
-        <xsl:param name="address" />
-
-        <xsl:value-of select="$address/api:line[@type='organisation']" />
-    </xsl:function>
-
-    <!--
-        svfn:institutionURI
+        svfn:organisationObjects
         ====================
-        Create a URI for an institution from an api:address or api:institution object
-    -->
-    <xsl:function name="svfn:institutionURI" as="xs:string">
-        <xsl:param name="address" />
-
-        <xsl:variable name="orgName" select="svfn:institutionName($address)" />
-        <xsl:choose>
-            <xsl:when test="not($orgName='')"><xsl:value-of select="svfn:makeURI('institution-',$orgName)" /></xsl:when>
-            <xsl:otherwise><xsl:text /></xsl:otherwise>
-        </xsl:choose>
-    </xsl:function>
-
-    <!--
-        svfn:institutionURI
-        ====================
-        Create a URI for an institution from an api:address or api:institution object
+        Create objects representing an an institution and any sub organisation if present from an api:address or api:institution object
     -->
     <xsl:function name="svfn:organisationObjects">
         <xsl:param name="address" />
 
-        <xsl:variable name="deptURI" select="svfn:departmentURI($address)"/>
-        <xsl:variable name="instURI" select="svfn:institutionURI($address)"/>
+        <xsl:variable name="deptName"><xsl:value-of select="$address/api:line[@type='suborganisation']" /></xsl:variable>
+        <xsl:variable name="instName">
+            <xsl:choose>
+                <xsl:when test="$address/api:line[@type='organisation']">
+                    <xsl:value-of select="$address/api:line[@type='organisation']" />
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:value-of select="$address/api:line[@type='name']" />
+                </xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
+
+        <xsl:variable name="deptURI">
+            <xsl:choose>
+                <xsl:when test="not($deptName='') and not($instName='')"><xsl:value-of select="svfn:makeURI('dept-',concat(fn:substring($deptName,1,100),'-',fn:substring($instName,1,50)))" /></xsl:when>
+                <xsl:when test="not($deptName='')"><xsl:value-of select="svfn:makeURI('dept-',fn:substring($deptName,1,150))" /></xsl:when>
+            </xsl:choose>
+        </xsl:variable>
+        <xsl:variable name="instURI" >
+            <xsl:choose>
+                <xsl:when test="not($instName='')"><xsl:value-of select="svfn:makeURI('institution-',$instName)" /></xsl:when>
+            </xsl:choose>
+        </xsl:variable>
 
         <xsl:if test="$includeDept='true'">
-            <xsl:if test="$address/api:line[@type='suborganisation']">
+            <xsl:if test="not($deptURI = '')">
                 <xsl:call-template name="render_rdf_object">
                     <xsl:with-param name="objectURI" select="$deptURI" />
                     <xsl:with-param name="rdfNodes">
                         <!-- TODO Implement dictionary to determine department type -->
                         <rdf:type rdf:resource="http://vivoweb.org/ontology/core#AcademicDepartment"/>
-                        <rdfs:label><xsl:value-of select="svfn:departmentName($address)" /></rdfs:label>
-                        <xsl:if test="$address/api:line[@type='organisation']">
+                        <rdfs:label><xsl:value-of select="$deptName" /></rdfs:label>
+                        <xsl:if test="not($instURI='')">
                             <obo:BFO_0000050 rdf:resource="{$instURI}" />
                         </xsl:if>
                     </xsl:with-param>
@@ -202,14 +171,13 @@
             </xsl:if>
         </xsl:if>
 
-        <xsl:if test="$address/api:line[@type='organisation']">
-            <xsl:variable name="insName" select="svfn:institutionName($address)" />
+        <xsl:if test="not($instURI='')">
             <xsl:call-template name="render_rdf_object">
                 <xsl:with-param name="objectURI" select="$instURI" />
                 <xsl:with-param name="rdfNodes">
-                    <rdf:type rdf:resource="{svfn:getOrganizationType($insName,'http://vivoweb.org/ontology/core#University')}" />
-                    <rdfs:label><xsl:value-of select="$insName" /></rdfs:label>
-                    <xsl:if test="$address/api:line[@type='suborganisation'] and $includeDept='true'">
+                    <rdf:type rdf:resource="{svfn:getOrganizationType($instName,'http://vivoweb.org/ontology/core#University')}" />
+                    <rdfs:label><xsl:value-of select="$instName" /></rdfs:label>
+                    <xsl:if test="not($deptURI='') and $includeDept='true'">
                         <obo:BFO_0000051 rdf:resource="{$deptURI}" />
                     </xsl:if>
                 </xsl:with-param>

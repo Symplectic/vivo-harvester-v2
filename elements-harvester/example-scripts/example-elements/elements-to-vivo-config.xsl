@@ -32,22 +32,6 @@
     <xsl:param name="useSympNS" />
     <xsl:param name="internalClass" />
 
-    <xsl:param name="meshDefinedBy">http://www.nlm.nih.gov/mesh</xsl:param>
-    <xsl:param name="scimetDefinedBy">http://www.science-metrix.com/</xsl:param>
-    <xsl:param name="forDefinedBy">http://www.arc.gov.au/era/for</xsl:param>
-
-    <!--
-        To use MeSH / Science Metrix / FoR, as well as having the URLs above defined, the following should be
-        added to vocabularySource.n3 in vivo/home/rdf/abox/filegraph
-
-<http://www.nlm.nih.gov/mesh> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Thing> .
-<http://www.nlm.nih.gov/mesh> <http://www.w3.org/2000/01/rdf-schema#label> "MeSH"^^<http://www.w3.org/2001/XMLSchema#string>  .
-<http://www.science-metrix.com/> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Thing> .
-<http://www.science-metrix.com/> <http://www.w3.org/2000/01/rdf-schema#label> "Science Metrix"^^<http://www.w3.org/2001/XMLSchema#string>  .
-<http://www.arc.gov.au/era/for> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Thing> .
-<http://www.arc.gov.au/era/for> <http://www.w3.org/2000/01/rdf-schema#label> "FoR"^^<http://www.w3.org/2001/XMLSchema#string>  .
-    -->
-
     <!-- DO NOT TOUCH: Read the record and journal precedence configuration into variables for processing -->
     <xsl:variable name="record-precedences" select="document('')//config:record-precedences/config:record-precedences" />
     <xsl:variable name="journal-precedence" select="document('')//config:journal-precedences/config:journal-precedence" />
@@ -112,16 +96,34 @@
     </config:journal-precedences>
 
 
+    <!--
+        To use Labels, as well as having the schemes defined below, you must add data to vocabularySource.n3 in vivo/home/rdf/abox/filegraph
+
+        For example for Mesh, ScienceMetrix and For label schemes you need to add this (note how the "defined-by" attribute from the label-schemes defs below is being used).
+
+        <http://www.nlm.nih.gov/mesh> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Thing> .
+        <http://www.nlm.nih.gov/mesh> <http://www.w3.org/2000/01/rdf-schema#label> "MeSH"^^<http://www.w3.org/2001/XMLSchema#string>  .
+
+        <http://www.science-metrix.com/> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Thing> .
+        <http://www.science-metrix.com/> <http://www.w3.org/2000/01/rdf-schema#label> "Science Metrix"^^<http://www.w3.org/2001/XMLSchema#string>  .
+
+        <http://www.arc.gov.au/era/for> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Thing> .
+        <http://www.arc.gov.au/era/for> <http://www.w3.org/2000/01/rdf-schema#label> "FoR"^^<http://www.w3.org/2001/XMLSchema#string>  .
+    -->
+
     <config:label-schemes>
         <config:label-schemes for="publication">
             <config:label-scheme name="mesh" defined-by="http://www.nlm.nih.gov/mesh" >banana</config:label-scheme>
             <config:label-scheme name="science-metrix" defined-by="http://www.science-metrix.com/" />
             <config:label-scheme name="for" defined-by="http://www.arc.gov.au/era/for" />
+            <!--<config:label-scheme name="c-seo-post-2008" defined-by="{baseURI}c-seo-post-2008"/>-->
         </config:label-schemes>
         <config:label-schemes for="user">
             <config:label-scheme name="mesh" defined-by="http://www.nlm.nih.gov/mesh" >hooplea</config:label-scheme>
             <config:label-scheme name="science-metrix" defined-by="http://www.science-metrix.com/"/>
             <config:label-scheme name="for" defined-by="http://www.arc.gov.au/era/for"/>
+            <!--<config:label-scheme name="c-availability" defined-by="{baseURI}c-availability"/>-->
+            <!--<config:label-scheme name="c-seo-post-2008" defined-by="{baseURI}c-seo-post-2008"/>-->
         </config:label-schemes>
     </config:label-schemes>
 
