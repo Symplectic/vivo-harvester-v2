@@ -20,7 +20,7 @@
         </fileSet>
         <fileSet>
             <directory>src/main/resources</directory>
-            <outputDirectory>.</outputDirectory>
+            <outputDirectory>example-config</outputDirectory>
             <excludes>
                 <exclude>*logback.xml</exclude>
             </excludes>
@@ -28,9 +28,9 @@
         <fileSet>
             <directory>src/main/resources</directory>
             <outputDirectory>lib</outputDirectory>
-            <excludes>
-                <exclude>*.properties</exclude>
-            </excludes>
+            <includes>
+                <include>*logback.xml</include>
+            </includes>
         </fileSet>
         <fileSet>
             <directory>example-scripts</directory>

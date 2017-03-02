@@ -144,7 +144,7 @@ public class ElementsFetchAndTranslate {
 
                 if(lastRunDate == null){
                     if(forceFullPull) {
-                        log.info("Performing forced full pull of data (-full).");
+                        log.info("Performing forced full pull of data (--full).");
                     } else {
                         log.info("Performing initial full pull of data.");
                     }

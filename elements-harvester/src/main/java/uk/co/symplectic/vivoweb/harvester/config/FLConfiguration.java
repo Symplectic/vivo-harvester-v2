@@ -66,14 +66,14 @@ public class FLConfiguration {
     }
 
     public static String getConfiguredValues(){
-        return values.reportConfiguredValues();
+        return values == null ? null : values.reportConfiguredValues();
     }
 
     public static String getUsage() {
         StrBuilder builder = new StrBuilder();
 
         String configuredValueString = getConfiguredValues();
-        if(configuredValueString != null) {
+        if (configuredValueString != null) {
             builder.appendln(configuredValueString);
             builder.appendln("");
         }

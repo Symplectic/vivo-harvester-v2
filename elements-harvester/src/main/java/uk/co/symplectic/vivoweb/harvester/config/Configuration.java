@@ -186,7 +186,10 @@ public class Configuration {
 
             values.useFullUTF8 = getBoolean(ARG_USE_FULL_UTF8);
 
-            values.baseURI = getString(ARG_VIVO_BASE_URI, false);
+            String baseUriString = getString(ARG_VIVO_BASE_URI, false);
+            //ensure the uri ends with a / - required by mappings.
+            if(!baseUriString.endsWith("/")) baseUriString = baseUriString + "/";
+            values.baseURI = baseUriString;
             values.vivoImageDir = getString(ARG_VIVO_IMAGE_DIR, false);
             values.xslTemplate = getString(ARG_XSL_TEMPLATE, false);
 
@@ -281,9 +284,7 @@ public class Configuration {
         return values.vivoImageDir;
     }
 
-    public static String getBaseURI() {
-        return values.baseURI;
-    }
+    public static String getBaseURI() { return values.baseURI; }
 
     public static String getXslTemplate() {
         return values.xslTemplate;
@@ -314,13 +315,13 @@ public class Configuration {
         return configErrors.size() == 0;
     }
 
-    public static String getConfiguredValues(){ return values.reportConfiguredValues();}
+    public static String getConfiguredValues(){ return values == null ? null : values.reportConfiguredValues();}
 
     public static String getUsage() {
         StrBuilder builder = new StrBuilder();
 
-        String configuredValueString = values.reportConfiguredValues();
-        if(configuredValueString != null) {
+        String configuredValueString = getConfiguredValues();
+        if (configuredValueString != null) {
             builder.appendln(configuredValueString);
             builder.appendln("");
         }

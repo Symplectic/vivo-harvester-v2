@@ -52,7 +52,7 @@ public class FragmentLoader {
         //the amount of data that was loaded during the current period of activity
         int count = 0;
         //is the loader currently active or not..
-        boolean isIdle = false;
+        boolean isIdle = true;
 
         Runtime.getRuntime().addShutdownHook(new ShutdownHook());
 
@@ -186,7 +186,7 @@ public class FragmentLoader {
             caught = e;
         } finally {
             if(!isIdle) {
-                log.info(MessageFormat.format("Existing whilst still active : {0} fragments processed in total", count));
+                log.info(MessageFormat.format("Exiting whilst still active : {0} fragments processed in total", count));
             }
 //            if (caught == null || !(caught instanceof LoggingUtils.LoggingInitialisationException)) {
 //                log.debug("FragmentLoader: End");
