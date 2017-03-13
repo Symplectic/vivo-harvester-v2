@@ -31,7 +31,7 @@ public abstract class FileSplitter {
     final private static String fileNameRegExPattern = "^(add|subtract)_(\\d+)_(\\d{4}_\\d{2}_\\d{2}T\\d{2}_\\d{2}_\\d{2}(?:\\+|-)\\d{4})\\.";
 
     //600 to leave room for the extra data to come later (username, password, sparql update boilerplate and url encoding) and remain below 2MB (TOMCAT default limit) in posts
-    final private static int maxOutputFileSize = 1024*600*2;
+    final private int maxOutputFileSize;
 
     final private File fragmentDirectory;
     //the file extension to be used by this splitter
@@ -40,6 +40,11 @@ public abstract class FileSplitter {
     final private Pattern fileNameRegEx;
 
     protected FileSplitter(File fragmentDirectory, String extension){
+        //default size to about 1.2 meg
+        this(fragmentDirectory, extension, 1024*600*2);
+    }
+
+    protected FileSplitter(File fragmentDirectory, String extension, int maxOutputFileSize){
         if (StringUtils.trimToNull(extension) == null) throw new IllegalArgumentException("extension must not be null or empty");
         if (fragmentDirectory == null) throw new NullArgumentException("fragmentDirectory");
         if (fragmentDirectory.exists()){
@@ -51,6 +56,9 @@ public abstract class FileSplitter {
         this.fragmentDirectory = fragmentDirectory;
         this.extension = extension;
         this.fileNameRegEx = Pattern.compile(fileNameRegExPattern + extension);
+        //insist on a hard minimum of 64kb for fragment size
+        int hardMinimum = 64*1024;
+        this.maxOutputFileSize = maxOutputFileSize > hardMinimum ? maxOutputFileSize : hardMinimum;
     }
 
     private String getPattern(Type aType){
@@ -248,7 +256,9 @@ public abstract class FileSplitter {
     }
 
     public static class N3Splitter extends FileSplitter{
+        //default of 122880
         public N3Splitter(File fragmentDirectory){super(fragmentDirectory, "n3");}
+        public N3Splitter(File fragmentDirectory, int maxOutputFileSize){super(fragmentDirectory, "n3", maxOutputFileSize);}
         @Override
         public boolean isPotentialSplitPoint(String lineContent) {
             //only empty lines are potential split points for N3 content.
@@ -258,6 +268,7 @@ public abstract class FileSplitter {
 
     public static class NTriplesSplitter extends FileSplitter{
         public NTriplesSplitter(File fragmentDirectory){super(fragmentDirectory, "nt");}
+        public NTriplesSplitter(File fragmentDirectory, int maxOutputFileSize){super(fragmentDirectory, "nt", maxOutputFileSize);}
         @Override
         public boolean isPotentialSplitPoint(String lineContent) {
             //every line in the file is a potential split point for NTriples.

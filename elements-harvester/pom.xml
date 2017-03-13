@@ -62,28 +62,14 @@
                 <configuration>
                     <!-- exclude logback.xml -->
                     <excludes>
-                        <exclude>**/logback.xml</exclude>
-                        <exclude>**/logback-test.xml</exclude>
+                        <exclude>**/eft_logback.xml</exclude>
                         <exclude>**/fl_logback.xml</exclude>
-                        <exclude>**/elements.config.properties</exclude>
+                        <exclude>**/fragmentloader.properties</exclude>
+                        <exclude>**/elementsfetch.properties</exclude>
                     </excludes>
-                    <!--<archive>-->
-                        <!--<manifest>-->
-                            <!--<mainClass>com.mkyong.core.crawler.App</mainClass>-->
-                        <!--</manifest>-->
-                    <!--</archive>-->
                 </configuration>
             </plugin>
         </plugins>
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-                <excludes>
-                    <exclude>*</exclude>
-                </excludes>
-                <filtering>false</filtering>
-            </resource>
-        </resources>
 	</build>
 
     <!--

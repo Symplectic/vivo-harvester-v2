@@ -320,7 +320,7 @@ public class ElementsFetchAndTranslate {
                 //TODO: ? make this action configurable?
                 File fragmentStore = new File(interimTdbDirectory, "fragments");
                 //FileSplitter splitter = new FileSplitter(fragmentStore);
-                FileSplitter splitter = new FileSplitter.NTriplesSplitter(fragmentStore);
+                FileSplitter splitter = new FileSplitter.NTriplesSplitter(fragmentStore, Configuration.getMaxFragmentFileSize());
                 splitter.split(additionsFile, runStartedAt, FileSplitter.Type.Additions);
                 splitter.split(subtractionsFile, runStartedAt, FileSplitter.Type.Subtractions);
 

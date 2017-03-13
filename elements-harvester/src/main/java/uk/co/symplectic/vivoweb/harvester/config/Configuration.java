@@ -66,11 +66,15 @@ public class Configuration {
         private ConfigKey ARG_MAX_XSL_THREADS = new ConfigKey("maxXslThreads", "0"); //TODO: review this default
         private ConfigKey ARG_MAX_RESOURCE_THREADS = new ConfigKey("maxResourceThreads", "0"); //TODO: review this default
 
+        private ConfigKey ARG_MAX_FRAGMENT_FILE_SIZE = new ConfigKey("maxFragmentFileSize", "1228800"); //TODO: review this default
+
         private ConfigKey ARG_ZIP_FILES = new ConfigKey("zipFiles", "false"); //TODO: review this default
 
         //storage
         private int maxThreadsResource = -1;
         private int maxThreadsXsl = -1;
+
+        private int maxFragmentFileSize = -1;
 
         private String apiEndpoint;
         private ElementsAPIVersion apiVersion;
@@ -200,6 +204,7 @@ public class Configuration {
             values.ignoreSSLErrors = getBoolean(ARG_IGNORE_SSL_ERRORS);
             values.rewriteMismatchedUrls = getBoolean(ARG_REWRITE_MISMATCHED_URLS);
             values.zipFiles = getBoolean(ARG_ZIP_FILES);
+            values.maxFragmentFileSize = getInt(ARG_MAX_FRAGMENT_FILE_SIZE);
         }
     }
 
@@ -242,6 +247,10 @@ public class Configuration {
 
     public static int getRefDetailPerPage() {
         return values.refDetailPerPage;
+    }
+
+    public static int getMaxFragmentFileSize() {
+        return values.maxFragmentFileSize;
     }
 
     public static List<ElementsItemId.GroupId> getGroupsToExclude() {
