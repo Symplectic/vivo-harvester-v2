@@ -113,13 +113,13 @@
 
     <config:label-schemes>
         <config:label-schemes for="publication">
-            <config:label-scheme name="mesh" defined-by="http://www.nlm.nih.gov/mesh" >banana</config:label-scheme>
+            <config:label-scheme name="mesh" defined-by="http://www.nlm.nih.gov/mesh" />
             <config:label-scheme name="science-metrix" defined-by="http://www.science-metrix.com/" />
             <config:label-scheme name="for" defined-by="http://www.arc.gov.au/era/for" />
             <!--<config:label-scheme name="c-seo-post-2008" defined-by="{baseURI}c-seo-post-2008"/>-->
         </config:label-schemes>
         <config:label-schemes for="user">
-            <config:label-scheme name="mesh" defined-by="http://www.nlm.nih.gov/mesh" >hooplea</config:label-scheme>
+            <config:label-scheme name="mesh" defined-by="http://www.nlm.nih.gov/mesh" />
             <config:label-scheme name="science-metrix" defined-by="http://www.science-metrix.com/"/>
             <config:label-scheme name="for" defined-by="http://www.arc.gov.au/era/for"/>
             <!--<config:label-scheme name="c-availability" defined-by="{baseURI}c-availability"/>-->

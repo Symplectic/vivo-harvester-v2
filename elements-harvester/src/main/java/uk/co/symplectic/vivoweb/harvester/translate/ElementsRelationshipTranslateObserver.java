@@ -88,7 +88,7 @@ public class ElementsRelationshipTranslateObserver extends ElementsTranslateObse
                     }
                 }
                 else{
-                    log.warn(MessageFormat.format("File for extra object {0} not found when processing {2}", id, info.getItemId()));
+                    log.warn(MessageFormat.format("Extra object {0} not found in raw-record cache when processing {1}", id, info.getItemId()));
                 }
             }
             return doc;

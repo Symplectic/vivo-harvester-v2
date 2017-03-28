@@ -35,6 +35,9 @@
         <fileSet>
             <directory>example-scripts</directory>
             <outputDirectory>example-scripts</outputDirectory>
+            <excludes>
+                <exclude>**/data/**</exclude>
+            </excludes>
         </fileSet>
         <fileSet>
             <directory>systemd</directory>
