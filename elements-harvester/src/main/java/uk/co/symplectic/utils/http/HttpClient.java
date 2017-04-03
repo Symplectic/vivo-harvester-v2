@@ -57,7 +57,7 @@ public class HttpClient {
     private static RequestConfig defaultRequestConfig;
     private static PoolingHttpClientConnectionManager connectionManager;
 
-    public static void setRequestDelay(int millis) {
+    public static synchronized void setRequestDelay(int millis) {
         intervalInMSecs = millis;
     }
 

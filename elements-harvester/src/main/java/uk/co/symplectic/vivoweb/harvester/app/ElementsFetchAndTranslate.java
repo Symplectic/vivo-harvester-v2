@@ -4,12 +4,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  ******************************************************************************/
-/*******************************************************************************
- * Copyright (c) 2012 Symplectic Ltd. All rights reserved.
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- ******************************************************************************/
 package uk.co.symplectic.vivoweb.harvester.app;
 
 import org.apache.commons.io.FileUtils;
@@ -425,19 +419,29 @@ public class ElementsFetchAndTranslate {
             //Note these sections below are kept separate to facilitate easy removal of repull All when API supports better behaviour
             //if we are going to repull everything (to avoid issues with visibility not showing up correctly).
             if (repullAllRelationshipsForModifiedObjects) {
-                log.debug("ElementsFetchAndTranslate: Processing relationship cache to establish which to repull based on objects modified this run");
+                log.debug(MessageFormat.format("ElementsFetchAndTranslate: Processing relationship cache to establish which to re-pull based on the {0} objects modified this run", modifiedObjects.size()));
                 Set<ElementsItemId> relationshipsToRepull = new HashSet<ElementsItemId>();
                 //loop over the current state of our raw object cache (which is up to date on this thread) to establish which relationships are related to the recently modified objects
                 int counter = 0;
                 for (StoredData.InFile relData : objectStore.getAllExistingFilesOfType(StorableResourceType.RAW_RELATIONSHIP)) {
                     ElementsStoredItem relItem = ElementsStoredItem.InFile.loadRawRelationship(relData.getFile(), relData.isZipped());
                     //check if the object on either side is one that has been modified, if so then flag this relationship as needing re-pulling
+                    //TODO: could not do this for user objects? - or is that unsafe?
                     for (ElementsItemId.ObjectId objectId : relItem.getItemInfo().asRelationshipInfo().getObjectIds()) {
                         if (modifiedObjects.contains(objectId)) {
-                            relationshipsToRepull.add(relItem.getItemInfo().getItemId());
-                            break;
+                            //if we are dealing with a relationship type that we want to always reprocess then we want to redo it whenever either item has been altered
+                            if (relationshipTypesToReprocess.contains("all") || relationshipTypesToReprocess.contains(relItem.getItemInfo().asRelationshipInfo().getType())) {
+                                relationshipsToRepull.add(relItem.getItemInfo().getItemId());
+                                break;
+                            }
+                            //otherwise we only want to reprocess rels linked to modified non users as a hack to ensure we pick up any visibility changes...
+                            else if(objectId.getItemSubType() != ElementsObjectCategory.USER){
+                                relationshipsToRepull.add(relItem.getItemInfo().getItemId());
+                                break;
+                            }
                         }
                     }
+
                     counter++;
                     if(counter % 10000 == 0) log.debug(MessageFormat.format("ElementsFetchAndTranslate: {0} relationships processed from cache", counter));
                 }
@@ -496,22 +500,32 @@ public class ElementsFetchAndTranslate {
         else {
             for (ElementsItemId.GroupId groupId : Configuration.getGroupsToHarvest()) {
                 ElementsGroupInfo.GroupHierarchyWrapper currentGroup = groupCache.get(groupId);
-                ElementsGroupInfo info = currentGroup.getGroupInfo();
-                includedGroups.put(info.getItemId(), info);
-                for(ElementsGroupInfo.GroupHierarchyWrapper childGroupWrapper : currentGroup.getAllChildren()){
-                    ElementsGroupInfo childInfo = childGroupWrapper.getGroupInfo();
-                    includedGroups.put(childInfo.getItemId(), childInfo);
+                if(currentGroup != null) {
+                    ElementsGroupInfo info = currentGroup.getGroupInfo();
+                    includedGroups.put(info.getItemId(), info);
+                    for (ElementsGroupInfo.GroupHierarchyWrapper childGroupWrapper : currentGroup.getAllChildren()) {
+                        ElementsGroupInfo childInfo = childGroupWrapper.getGroupInfo();
+                        includedGroups.put(childInfo.getItemId(), childInfo);
+                    }
+                }
+                else {
+                    log.warn(MessageFormat.format("Configured group to include ({0}) does not exist in targeted Elements system.", groupId));
                 }
             }
         }
 
         for(ElementsItemId.GroupId groupId : Configuration.getGroupsToExclude()){
             ElementsGroupInfo.GroupHierarchyWrapper currentGroup = groupCache.get(groupId);
-            ElementsGroupInfo info = currentGroup.getGroupInfo();
-            includedGroups.remove(info.getItemId());
-            for(ElementsGroupInfo.GroupHierarchyWrapper childGroupWrapper : currentGroup.getAllChildren()){
-                ElementsGroupInfo childInfo = childGroupWrapper.getGroupInfo();
-                includedGroups.remove(childInfo.getItemId());
+            if(currentGroup != null) {
+                ElementsGroupInfo info = currentGroup.getGroupInfo();
+                includedGroups.remove(info.getItemId());
+                for (ElementsGroupInfo.GroupHierarchyWrapper childGroupWrapper : currentGroup.getAllChildren()) {
+                    ElementsGroupInfo childInfo = childGroupWrapper.getGroupInfo();
+                    includedGroups.remove(childInfo.getItemId());
+                }
+            }
+            else {
+                log.warn(MessageFormat.format("Configured group to exclude ({0}) does not exist in targeted Elements system.", groupId));
             }
         }
 
@@ -546,16 +560,26 @@ public class ElementsFetchAndTranslate {
         else {
             for (ElementsItemId.GroupId groupId : Configuration.getGroupsOfUsersToHarvest()) {
                 ElementsGroupInfo.GroupHierarchyWrapper group = groupCache.get(groupId);
-                for(ElementsItemId userId : group.getImplicitUsers()){
-                    if(!invalidUsers.contains(userId))
-                        includedUsers.put(userId, userInfoCache.get(userId));
+                if(group != null) {
+                    for (ElementsItemId userId : group.getImplicitUsers()) {
+                        if (!invalidUsers.contains(userId))
+                            includedUsers.put(userId, userInfoCache.get(userId));
+                    }
+                }
+                else {
+                    log.warn(MessageFormat.format("Configured group of users to include ({0}) does not exist in targeted Elements system.", groupId));
                 }
             }
         }
 
         for(ElementsItemId.GroupId groupId : Configuration.getGroupsOfUsersToExclude()){
             ElementsGroupInfo.GroupHierarchyWrapper group = groupCache.get(groupId);
-            includedUsers.removeAll(group.getImplicitUsers());
+            if(group != null) {
+                includedUsers.removeAll(group.getImplicitUsers());
+            }
+            else{
+                log.warn(MessageFormat.format("Configured user group of users to exclude ({0}) does not exist in targeted Elements system.", groupId));
+            }
         }
 
         return includedUsers;

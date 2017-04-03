@@ -313,8 +313,9 @@ public class ElementsFetch {
         @Override
         protected Collection<DescribedQuery> getQueries(boolean fullDetails){
             List<DescribedQuery> queries = new ArrayList<DescribedQuery>();
+            String description = MessageFormat.format("Re-pulling {0} relationships for modified objects", relationshipsToProcess.size());
             DescribedQuery query = new DescribedQuery(
-                    new ElementsAPIFeedRelationshipQuery.IdList(new HashSet<ElementsItemId.RelationshipId>(relationshipsToProcess)), "Re-pulling relationships for modified objects"){
+                    new ElementsAPIFeedRelationshipQuery.IdList(new HashSet<ElementsItemId.RelationshipId>(relationshipsToProcess)), description){
                 @Override
                 public ElementsAPI.APIResponseFilter getExtractor(ElementsItemStore objectStore) {
                     return wrapFilterAsApiResponse(new FileStoringRelationshipFilter(objectStore));

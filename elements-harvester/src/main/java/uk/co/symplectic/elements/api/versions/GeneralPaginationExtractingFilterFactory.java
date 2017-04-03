@@ -51,7 +51,13 @@ public class GeneralPaginationExtractingFilterFactory extends PaginationExtracti
                         String hrefValue = hrefAtt.getValue();
                         if ("first".equals(posValue)) workspace.setFirstURL(hrefValue);
                         else if ("previous".equals(posValue)) workspace.setPreviousURL(hrefValue);
-                        else if ("next".equals(posValue)) workspace.setNextURL(hrefValue);
+                        else if ("next".equals(posValue)){
+                            //pre 5.4 hack..
+                            if(hrefValue.contains("/relationships/pending/deleted")) {
+                                hrefValue = hrefValue.replaceFirst("/relationships/pending/deleted", "/relationships/deleted");
+                            }
+                            workspace.setNextURL(hrefValue);
+                        }
                         else if ("last".equals(posValue)) workspace.setLastURL(hrefValue);
                     }
                 }

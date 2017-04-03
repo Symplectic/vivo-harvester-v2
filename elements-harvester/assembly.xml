@@ -1,5 +1,5 @@
 <!--
- | Copyright (c) 2012 Symplectic Limited. All rights reserved.
+ | Copyright (c) 2012 Symplectic Ltd. All rights reserved.
  | This Source Code Form is subject to the terms of the Mozilla Public
  | License, v. 2.0. If a copy of the MPL was not distributed with this
  | file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -36,8 +36,16 @@
             <directory>example-scripts</directory>
             <outputDirectory>example-scripts</outputDirectory>
             <excludes>
+                <exclude>example-elements/*overrides.xsl</exclude>
                 <exclude>**/data/**</exclude>
             </excludes>
+        </fileSet>
+        <fileSet>
+            <directory>example-scripts/example-elements</directory>
+            <outputDirectory>example-scripts/example-elements/example-overrides</outputDirectory>
+            <includes>
+                <include>*overrides.xsl</include>
+            </includes>
         </fileSet>
         <fileSet>
             <directory>systemd</directory>
