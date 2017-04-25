@@ -19,6 +19,11 @@
             <fileMode>755</fileMode>
         </fileSet>
         <fileSet>
+            <directory>init</directory>
+            <outputDirectory>init</outputDirectory>
+            <fileMode>755</fileMode>
+        </fileSet>
+        <fileSet>
             <directory>src/main/resources</directory>
             <outputDirectory>example-config</outputDirectory>
             <excludes>
@@ -36,17 +41,17 @@
             <directory>example-scripts</directory>
             <outputDirectory>example-scripts</outputDirectory>
             <excludes>
-                <exclude>example-elements/*overrides.xsl</exclude>
+                <!--<exclude>example-elements/*overrides.xsl</exclude>-->
                 <exclude>**/data/**</exclude>
             </excludes>
         </fileSet>
-        <fileSet>
-            <directory>example-scripts/example-elements</directory>
-            <outputDirectory>example-scripts/example-elements/example-overrides</outputDirectory>
-            <includes>
-                <include>*overrides.xsl</include>
-            </includes>
-        </fileSet>
+        <!--<fileSet>-->
+            <!--<directory>example-scripts/example-elements</directory>-->
+            <!--<outputDirectory>example-scripts/example-elements/example-overrides</outputDirectory>-->
+            <!--<includes>-->
+                <!--<include>*overrides.xsl</include>-->
+            <!--</includes>-->
+        <!--</fileSet>-->
         <fileSet>
             <directory>systemd</directory>
             <outputDirectory>systemd</outputDirectory>

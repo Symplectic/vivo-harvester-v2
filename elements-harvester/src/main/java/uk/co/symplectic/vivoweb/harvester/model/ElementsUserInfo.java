@@ -6,6 +6,8 @@
  ******************************************************************************/
 package uk.co.symplectic.vivoweb.harvester.model;
 
+import org.apache.commons.lang.StringUtils;
+
 public class ElementsUserInfo extends ElementsObjectInfo {
 
     private UserExtraData additionalInfo;
@@ -44,12 +46,17 @@ public class ElementsUserInfo extends ElementsObjectInfo {
         return additionalInfo.username;
     }
 
+    public String getProprietaryID() {
+        if(!isFullyPopulated()) throw new IllegalAccessError("Cannot access proprietaryID if ElementsUserInfo is not fully populated");
+        return additionalInfo.proprietaryID;
+    }
+
     public static class UserExtraData{
         private boolean isCurrentStaff = true;
         private boolean isAcademic = true;
         private String photoUrl = null;
         private String username = null;
-
+        private String proprietaryID = null;
 
         public UserExtraData setIsCurrentStaff(boolean isCurrentStaff) {
             this.isCurrentStaff = isCurrentStaff;
@@ -61,15 +68,19 @@ public class ElementsUserInfo extends ElementsObjectInfo {
         }
 
         public UserExtraData setPhotoUrl(String photoUrl) {
-            this.photoUrl = photoUrl;
+            this.photoUrl = StringUtils.trimToNull(photoUrl);
             return this;
         }
 
         public UserExtraData setUsername(String username) {
-            this.username = username;
+            this.username = StringUtils.trimToNull(username);
             return this;
         }
 
+        public UserExtraData setProprietaryID(String proprietaryID) {
+            this.proprietaryID = StringUtils.trimToNull(proprietaryID);
+            return this;
+        }
 
     }
 

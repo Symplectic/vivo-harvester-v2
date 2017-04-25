@@ -215,9 +215,6 @@
          XSLT Function Library
          ==================================================== -->
 
-    <!-- Read the publication types XML configuration file -->
-    <xsl:variable name="publication-types" select="document('elements-to-vivo-config-publication-types.xml')//config:publication-types" />
-
     <!-- Get publication type statements from the XML configuration (for the type supplied as a parameter) -->
     <xsl:function name="svfn:getTypesForPublication">
         <xsl:param name="type" as="xs:string" />

@@ -12,7 +12,6 @@ package uk.co.symplectic.utils.triplestore;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
 
-
 public class DiffUtility {
         static public void diff(TDBConnect input1, TDBConnect input2, ModelOutput... outputs) {
         if(outputs.length == 0) throw new IllegalArgumentException("outputs must not be empty when performing a triple store diff");

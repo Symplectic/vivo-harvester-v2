@@ -18,6 +18,7 @@
                 xmlns:vitro="http://vitro.mannlib.cornell.edu/ns/vitro/0.7#"
                 xmlns:api="http://www.symplectic.co.uk/publications/api"
                 xmlns:symp="http://www.symplectic.co.uk/ontology/elements/"
+                xmlns:config="http://www.symplectic.co.uk/vivo/namespaces/config"
                 exclude-result-prefixes="rdf rdfs bibo vivo foaf score ufVivo vitro api symp xs"
         >
 

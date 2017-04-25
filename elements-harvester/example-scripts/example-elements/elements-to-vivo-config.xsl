@@ -23,16 +23,30 @@
                 exclude-result-prefixes="rdf rdfs bibo vivo config foaf score ufVivo vitro api svfn symp xs"
         >
 
-    <!-- The base URI you are using for VIVO identifiers -->
+    <!-- The base URI you are using for VIVO identifiers : passed in from java framework -->
     <xsl:param name="baseURI">http://localhost:8080/vivo/individual/</xsl:param>
 
     <!-- Harvested by statement for the URI (set to blank if not required) -->
     <xsl:param name="harvestedBy" />
 
-    <xsl:param name="useSympNS" />
+    <!-- the internal class that internal users and groups should be flagged as -->
     <xsl:param name="internalClass" />
 
-    <!-- DO NOT TOUCH: Read the record and journal precedence configuration into variables for processing -->
+    <!-- whether to create an organisation object at the "department level" when creating objects to represent addresses -->
+    <xsl:param name="includeDept">true</xsl:param>
+
+    <!-- whether to use the Symplectic namespace extensions - deprecated -->
+    <xsl:param name="useSympNS" />
+
+    <!-- DO NOT TOUCH! extra object params : i.e. how relationship templates that need the raw data about the objects in the link access that data -->
+    <xsl:param name="useRawDataFiles">false</xsl:param> <!-- whether to use raw files from disk to build the "extraObjects" or not -->
+    <xsl:param name="recordDir">data/raw-records/</xsl:param> <!-- where the raw data should be retrieved from if useRawDataFiles is true-->
+    <xsl:param name="extraObjects"></xsl:param> <!-- where the framework should pass in the extra data if useRawDataFiles is set to false -->
+
+    <!-- DO NOT TOUCH: Read the organization types, record and journal precedence configurations and label scheme config into variables for processing -->
+    <!-- Read the publication types XML configuration file -->
+    <xsl:variable name="publication-types" select="document('elements-to-vivo-config-publication-types.xml')//config:publication-types" />
+    <xsl:variable name="organization-types" select="document('elements-to-vivo-config-organization-types.xml')//config:organization-types" />
     <xsl:variable name="record-precedences" select="document('')//config:record-precedences/config:record-precedences" />
     <xsl:variable name="journal-precedence" select="document('')//config:journal-precedences/config:journal-precedence" />
     <xsl:variable name="label-schemes" select="document('')//config:label-schemes/config:label-schemes" />
@@ -93,6 +107,20 @@
         <config:journal-precedence type="record" field="journal">pubmed</config:journal-precedence>
         <config:journal-precedence type="record" field="journal">manual</config:journal-precedence>
         <config:journal-precedence type="record" field="journal">arxiv</config:journal-precedence>
+        <!--
+        <config:journal-precedence type="authority">era2012</config:journal-precedence>
+        <config:journal-precedence type="authority">snip</config:journal-precedence>
+        <config:journal-precedence type="authority">era2010</config:journal-precedence>
+        <config:journal-precedence type="authority">science-metrix</config:journal-precedence>
+        <config:journal-precedence type="authority">sjr</config:journal-precedence>
+        <config:journal-precedence type="authority">jcr</config:journal-precedence>
+        <config:journal-precedence type="authority">institutional-source</config:journal-precedence>
+        <config:journal-precedence type="authority">sherpa-romeo</config:journal-precedence>
+        <config:journal-precedence type="authority">doaj</config:journal-precedence>
+        <config:journal-precedence type="record" field="journal">pubmed</config:journal-precedence>
+        <config:journal-precedence type="record" field="journal">manual</config:journal-precedence>
+        <config:journal-precedence type="record" field="journal">arxiv</config:journal-precedence>
+        -->
     </config:journal-precedences>
 
 

@@ -28,15 +28,6 @@
 
     <xsl:import href="elements-to-vivo-datatypes.xsl" />
 
-    <xsl:param name="recordDir">data/raw-records/</xsl:param>
-
-    <xsl:param name="includeDept">true</xsl:param>
-
-    <xsl:param name="extraObjects"></xsl:param>
-    <xsl:param name="useRawDataFiles">false</xsl:param>
-
-    <xsl:variable name="organization-types" select="document('elements-to-vivo-config-organization-types.xml')//config:organization-types" />
-
     <!-- ======================================
          Function Library
          ======================================- -->
@@ -90,6 +81,9 @@
         svfn:userURI
         ============
         Create a URI for a user based on the passed Elements object
+        Note: if you use anything other then id, username or proprietary_id to create the user's uri
+        you will have issues with group membership as the extra user group membership xml passed as a param there
+        only contains those three attributes.
     -->
     <xsl:function name="svfn:userURI" as="xs:string">
         <xsl:param name="object" />

@@ -6,10 +6,12 @@
  ******************************************************************************/
 package uk.co.symplectic.vivoweb.harvester.model;
 
+import org.apache.commons.lang.StringUtils;
 import uk.co.symplectic.utils.xml.XMLEventProcessor;
 
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.events.Attribute;
 import javax.xml.stream.events.EndElement;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
@@ -61,6 +63,10 @@ public class ElementsObjectInfo extends ElementsItemInfo{
             additionalUserData = null;
             if(workspace.getItemId().getItemSubType() == ElementsObjectCategory.USER ) {
                 getAdditionalUserData().setUsername(initialElement.getAttributeByName(new QName("username")).getValue());
+                Attribute pidAtt = initialElement.getAttributeByName(new QName("proprietary-id"));
+                if(pidAtt != null){
+                    getAdditionalUserData().setProprietaryID(pidAtt.getValue());
+                }
             }
         }
 

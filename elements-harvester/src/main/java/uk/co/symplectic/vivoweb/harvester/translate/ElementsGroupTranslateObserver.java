@@ -64,6 +64,7 @@ public class ElementsGroupTranslateObserver extends ElementsTranslateObserver {
                     //create id  and username attributes on our user Element
                     userElement.setAttribute("id", Integer.toString(userInfo.getObjectId().getId()));
                     userElement.setAttribute("username", userInfo.getUsername());
+                    if(userInfo.getProprietaryID() != null) userElement.setAttribute("proprietary-id", userInfo.getProprietaryID());
 
                     //add our  user Element to the root of the doc;
                     rootElement.appendChild(userElement);

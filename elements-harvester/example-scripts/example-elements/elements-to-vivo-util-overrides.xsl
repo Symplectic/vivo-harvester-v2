@@ -34,7 +34,7 @@
     svfn:objectURI
     ==============
     Create a URI for the RDF objects based on the passed Elements object
--->
+    -->
 
     <!--<xsl:function name="svfn:objectURI" as="xs:string">-->
         <!--<xsl:param name="object" />-->
@@ -48,14 +48,24 @@
         <!--</xsl:choose>-->
     <!--</xsl:function>-->
 
-    <!--&lt;!&ndash;-->
-        <!--svfn:userURI-->
-        <!--============-->
-        <!--Create a URI for a user based on the passed Elements object-->
-    <!--&ndash;&gt;-->
+    <!--
+        svfn:userURI
+        ============
+        Create a URI for a user based on the passed Elements object
+    -->
     <!--<xsl:function name="svfn:userURI" as="xs:string">-->
         <!--<xsl:param name="object" />-->
-        <!--<xsl:value-of select="svfn:makeURI('person', translate($object/@proprietary-id, 'Aa', ''))" />-->
+        <!--<xsl:variable name="selected-user-id">-->
+            <!--<xsl:choose>-->
+                <!--<xsl:when test="not(fn:normalize-space($object/@proprietary-id) = '')">-->
+                    <!--<xsl:value-of select="fn:normalize-space($object/@proprietary-id)" />-->
+                <!--</xsl:when>-->
+                <!--<xsl:otherwise>-->
+                    <!--<xsl:value-of select="concat($object/@id, 'E')" />-->
+                <!--</xsl:otherwise>-->
+            <!--</xsl:choose>-->
+        <!--</xsl:variable>-->
+        <!--<xsl:value-of select="svfn:makeURI('person', translate($selected-user-id, 'Aa', ''))" />-->
     <!--</xsl:function>-->
 
 </xsl:stylesheet>
