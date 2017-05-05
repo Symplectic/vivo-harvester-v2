@@ -22,10 +22,7 @@ import uk.co.symplectic.vivoweb.harvester.config.Configuration;
 import uk.co.symplectic.vivoweb.harvester.fetch.*;
 import uk.co.symplectic.vivoweb.harvester.model.*;
 import uk.co.symplectic.vivoweb.harvester.store.*;
-import uk.co.symplectic.vivoweb.harvester.translate.ElementsGroupTranslateObserver;
-import uk.co.symplectic.vivoweb.harvester.translate.ElementsObjectTranslateObserver;
-import uk.co.symplectic.vivoweb.harvester.translate.ElementsRelationshipTranslateObserver;
-import uk.co.symplectic.vivoweb.harvester.translate.ElementsVivoIncludeMonitor;
+import uk.co.symplectic.vivoweb.harvester.translate.*;
 
 import java.io.*;
 import java.text.MessageFormat;
@@ -220,7 +217,7 @@ public class ElementsFetchAndTranslate {
 
                 //Get some config needed for wiring up the translation observers
                 String xslFilename = Configuration.getXslTemplate();
-                File vivoImageDir = ElementsFetchAndTranslate.getDirectoryFromPath(Configuration.getVivoImageDir());
+                File processedImageDir = ElementsFetchAndTranslate.getDirectoryFromPath(Configuration.getVivoImageDir());
                 String vivoBaseURI = Configuration.getBaseURI();
 
                 //Hook item observers to the object store so that translations happen for any objects and relationships that arrive in that store
@@ -230,9 +227,11 @@ public class ElementsFetchAndTranslate {
 
                 //TODO: work out how to marshall user photos into a web accessible area in a sensible manner based on included user set...
                 //Hook a photo retrieval observer onto the rdf store so that photos will be fetched and dropped in the object store for any translated users.
-                objectStore.addItemObserver(new ElementsUserPhotoRetrievalObserver(elementsAPI, objectStore));
+                objectStore.addItemObserver(new ElementsUserPhotoRetrievalObserver(elementsAPI, Configuration.getImageType(), objectStore));
                 //Hook a photo RDF generating observer onto the object store so that any fetched photos have corresponding "rdf" created in the translated output.
-                objectStore.addItemObserver(new ElementsUserPhotoRdfGeneratingObserver(rdfStore, vivoImageDir, vivoBaseURI, null));
+                //TODO: makethis use a configurable image path base.
+                objectStore.addItemObserver(new ElementsUserPhotoRdfGeneratingObserver2(rdfStore, xslFilename, processedImageDir, "/harvestedImages/"));
+
 
                 //we are about to start doing things that affect out caches..
                 begunProcessing = true;

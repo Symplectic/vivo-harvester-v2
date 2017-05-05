@@ -14,8 +14,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 
+import java.io.File;
 import java.io.IOException;
 import java.text.MessageFormat;
+import java.util.List;
 
 public abstract class ElementsStoreOutputItemObserver extends IElementsStoredItemObserver.ElementsStoredResourceObserverAdapter {
 
@@ -38,9 +40,16 @@ public abstract class ElementsStoreOutputItemObserver extends IElementsStoredIte
         this.tolerateIndividualIoFailures = tolerateIndividualIoFailures;
     }
 
-    protected void safelyDeleteItem(ElementsItemId itemId, String failureMessage){
+    protected void safelyDeleteItem(ElementsItemId itemId, String failureMessage){safelyDeleteItem(itemId, null, failureMessage);}
+
+    protected void safelyDeleteItem(ElementsItemId itemId, File[] additionalFilesToDelete, String failureMessage){
         try {
             store.deleteItem(itemId, outputType);
+            if(additionalFilesToDelete != null){
+                for(File file : additionalFilesToDelete){
+                    file.delete();
+                }
+            }
         }
         catch (IOException e){
             log.error(MessageFormat.format("{0} : {1}", failureMessage, e.getMessage()));

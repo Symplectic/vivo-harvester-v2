@@ -12,6 +12,7 @@ import uk.co.symplectic.vivoweb.harvester.store.ElementsItemStore;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItem;
 import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
 
+import javax.xml.transform.Source;
 import javax.xml.transform.Templates;
 import javax.xml.transform.stream.StreamSource;
 import java.io.File;
@@ -37,11 +38,19 @@ public final class TranslationService {
     }
 
     public void translate(ElementsStoredItem input, ElementsItemStore output, StorableResourceType outputType, TemplatesHolder translationTemplates) {
-        translate(input, output, outputType, translationTemplates, null);
+        translate(input, null, output, outputType, translationTemplates, null);
+    }
+
+    public void translate(ElementsStoredItem input, Source inputSource, ElementsItemStore output, StorableResourceType outputType, TemplatesHolder translationTemplates) {
+        translate(input, inputSource, output, outputType, translationTemplates, null);
     }
 
     public void translate(ElementsStoredItem input, ElementsItemStore output, StorableResourceType outputType, TemplatesHolder translationTemplates, Map<String, Object> extraParams) {
-        TranslationServiceImpl.translate(config, input, output, outputType, translationTemplates, extraParams);
+        translate(input, null, output, outputType, translationTemplates, extraParams);
+    }
+
+    public void translate(ElementsStoredItem input, Source inputSource, ElementsItemStore output, StorableResourceType outputType, TemplatesHolder translationTemplates, Map<String, Object> extraParams) {
+        TranslationServiceImpl.translate(config, input, inputSource, output, outputType, translationTemplates, extraParams);
     }
 
     public static void awaitShutdown() {

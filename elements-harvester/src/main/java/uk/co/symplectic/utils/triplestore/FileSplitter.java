@@ -159,7 +159,7 @@ public abstract class FileSplitter {
         throw new IllegalStateException("invalid file passed to getFileType");
     }
 
-    public List<File> getFragmentFilesInOrder(){
+    public List<File> getFragmentFilesInOrder(boolean subtractFirst){
         if (fragmentDirectory == null) throw new NullArgumentException("fragmentDirectory");
         if (!fragmentDirectory.exists() || !fragmentDirectory.isDirectory())
             throw new IllegalArgumentException("outputDirectory must be a valid accessible directory");
@@ -173,6 +173,8 @@ public abstract class FileSplitter {
             }
         });
         if(files == null) files = new File[0];
+
+        final boolean listSubtractFilesFirst = subtractFirst;
 
         List<File> filesToSort = Arrays.asList(files);
         Collections.sort(filesToSort, new Comparator<File>() {
@@ -209,8 +211,8 @@ public abstract class FileSplitter {
                 else if (date1.after(date2)) return 1;
                 // if date alone is not enough to sort, move onto type
                 else {
-                    if (type1.getValue() < type2.getValue()) return -1;
-                    if (type1.getValue() > type2.getValue()) return 1;
+                    if (type1.getValue() < type2.getValue()) return listSubtractFilesFirst ? 1 : -1;
+                    if (type1.getValue() > type2.getValue()) return listSubtractFilesFirst ? -1 : 1;
                     else {
                         if(index1 < index2) return -1;
                         if(index1 > index2) return 1;

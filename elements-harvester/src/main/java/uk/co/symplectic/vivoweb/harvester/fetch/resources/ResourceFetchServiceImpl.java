@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.co.symplectic.elements.api.ElementsAPI;
 import uk.co.symplectic.utils.ExecutorServiceUtils;
+import uk.co.symplectic.utils.ImageUtils;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsUserInfo;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsItemFileStore;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItem;
@@ -24,14 +25,15 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 
 public final class ResourceFetchServiceImpl {
+
     private static final Logger log = LoggerFactory.getLogger(ResourceFetchServiceImpl.class);
 
     private static final ExecutorServiceUtils.ExecutorServiceWrapper<Boolean> wrapper = ExecutorServiceUtils.newFixedThreadPool("ResourceFetchService");
 
     private ResourceFetchServiceImpl() {}
 
-    static void fetchUserPhoto(ElementsAPI api, ElementsUserInfo userInfo, ElementsItemFileStore objectStore) throws MalformedURLException {
-        wrapper.submit(new UserPhotoFetchTask(api, userInfo, objectStore));
+    static void fetchUserPhoto(ElementsAPI api, ImageUtils.PhotoType photoType, ElementsUserInfo userInfo, ElementsItemFileStore objectStore) throws MalformedURLException {
+        wrapper.submit(new UserPhotoFetchTask(api, photoType, userInfo, objectStore));
     }
 
 //    static void fetchExternal(String url, File outputFile) throws MalformedURLException {
@@ -43,11 +45,12 @@ public final class ResourceFetchServiceImpl {
     }
 
     private static class UserPhotoFetchTask implements Callable<Boolean> {
-        private ElementsAPI api;
-        ElementsUserInfo userInfo;
-        private ElementsItemFileStore objectStore;
+        private final ElementsAPI api;
+        private final ElementsUserInfo userInfo;
+        private final ElementsItemFileStore objectStore;
+        private final ImageUtils.PhotoType type;
 
-        UserPhotoFetchTask(ElementsAPI api, ElementsUserInfo userInfo, ElementsItemFileStore objectStore) {
+        UserPhotoFetchTask(ElementsAPI api, ImageUtils.PhotoType photoType, ElementsUserInfo userInfo, ElementsItemFileStore objectStore) {
             if(api == null) throw new NullArgumentException("api");
             if(userInfo == null) throw new NullArgumentException("userInfo");
             if(objectStore == null) throw new NullArgumentException("objectStore");
@@ -55,12 +58,13 @@ public final class ResourceFetchServiceImpl {
             this.api = api;
             this.userInfo = userInfo;
             this.objectStore = objectStore;
+            this.type = photoType;
         }
 
         @Override
         public Boolean call() throws Exception {
             ByteArrayOutputStream os = new ByteArrayOutputStream();
-            Boolean retCode = api.fetchResource(userInfo.getPhotoUrl(), os);
+            Boolean retCode = api.fetchResource(userInfo.getPhotoUrl(type), os);
             objectStore.storeItem(userInfo, StorableResourceType.RAW_USER_PHOTO, os.toByteArray());
             //TODO: better error handling here?
             return retCode;

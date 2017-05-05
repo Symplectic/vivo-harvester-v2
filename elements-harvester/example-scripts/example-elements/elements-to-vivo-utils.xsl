@@ -18,6 +18,7 @@
                 xmlns:vcard="http://www.w3.org/2006/vcard/ns#"
                 xmlns:ufVivo="http://vivo.ufl.edu/ontology/vivo-ufl/"
                 xmlns:vitro="http://vitro.mannlib.cornell.edu/ns/vitro/0.7#"
+                xmlns:vitro-public="http://vitro.mannlib.cornell.edu/ns/vitro/public#"
                 xmlns:api="http://www.symplectic.co.uk/publications/api"
                 xmlns:config="http://www.symplectic.co.uk/vivo/namespaces/config"
                 xmlns:symp="http://www.symplectic.co.uk/ontology/elements/"
@@ -443,20 +444,17 @@
         <xsl:param name="object" />
         <xsl:param name="fieldName" as="xs:string" />
 
-        <xsl:choose>
-            <xsl:when test="$record-precedences[@for=$object/@category]">
-                <xsl:variable name="record-precedence" select="$record-precedences[@for=$object/@category]/config:record-precedence" />
-                <xsl:variable name="record-precedence-select-by" select="$record-precedences[@for=$object/@category]/@select-by" />
+        <xsl:variable name="precedence-to-use">
+            <xsl:choose>
+                <xsl:when test="$record-precedences[@for=$object/@category]"><xsl:value-of select="$object/@category" /></xsl:when>
+                <xsl:otherwise><xsl:value-of select="'default'" /></xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
+        <xsl:variable name="record-precedence" select="$record-precedences[@for=$precedence-to-use]/config:record-precedence" />
+        <xsl:variable name="record-precedence-select-by" select="$record-precedences[@for=$precedence-to-use]/@select-by" />
+        <xsl:variable name="record-precedence-use-unlisted" select="$record-precedences[@for=$precedence-to-use]/@use-unlisted-sources != 'false'" />
 
-                <xsl:copy-of select="svfn:_getRecordField($object, $fieldName, $record-precedence, $record-precedence-select-by, 1, true())" />
-            </xsl:when>
-            <xsl:otherwise>
-                <xsl:variable name="record-precedence" select="$record-precedences[@for='default']/config:record-precedence" />
-                <xsl:variable name="record-precedence-select-by" select="$record-precedences[@for='default']/@select-by" />
-
-                <xsl:copy-of select="svfn:_getRecordField($object, $fieldName, $record-precedence, $record-precedence-select-by, 1, true())" />
-            </xsl:otherwise>
-        </xsl:choose>
+        <xsl:copy-of select="svfn:_getRecordField($object, $fieldName, $record-precedence, $record-precedence-select-by, 1, $record-precedence-use-unlisted, true())" />
     </xsl:function>
 
     <!--
@@ -468,20 +466,17 @@
         <xsl:param name="object" />
         <xsl:param name="fieldName" as="xs:string" />
 
-        <xsl:choose>
-            <xsl:when test="$record-precedences[@for=$object/@category]">
-                <xsl:variable name="record-precedence" select="$record-precedences[@for=$object/@category]/config:record-precedence" />
-                <xsl:variable name="record-precedence-select-by" select="$record-precedences[@for=$object/@category]/@select-by" />
+        <xsl:variable name="precedence-to-use">
+            <xsl:choose>
+                <xsl:when test="$record-precedences[@for=$object/@category]"><xsl:value-of select="$object/@category" /></xsl:when>
+                <xsl:otherwise><xsl:value-of select="'default'" /></xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
+        <xsl:variable name="record-precedence" select="$record-precedences[@for=$precedence-to-use]/config:record-precedence" />
+        <xsl:variable name="record-precedence-select-by" select="$record-precedences[@for=$precedence-to-use]/@select-by" />
+        <xsl:variable name="record-precedence-use-unlisted" select="$record-precedences[@for=$precedence-to-use]/@use-unlisted-sources != 'false'" />
 
-                <xsl:copy-of select="svfn:_getRecordField($object, $fieldName, $record-precedence, $record-precedence-select-by, 1, false())" />
-            </xsl:when>
-            <xsl:otherwise>
-                <xsl:variable name="record-precedence" select="$record-precedences[@for='default']/config:record-precedence" />
-                <xsl:variable name="record-precedence-select-by" select="$record-precedences[@for='default']/@select-by" />
-
-                <xsl:copy-of select="svfn:_getRecordField($object, $fieldName, $record-precedence, $record-precedence-select-by, 1, false())" />
-            </xsl:otherwise>
-        </xsl:choose>
+        <xsl:copy-of select="svfn:_getRecordField($object, $fieldName, $record-precedence, $record-precedence-select-by, 1, $record-precedence-use-unlisted, false())" />
     </xsl:function>
 
     <!--
@@ -495,18 +490,16 @@
         <xsl:param name="fieldName" as="xs:string" />
         <xsl:param name="records" as="xs:string" />
 
-        <xsl:choose>
-            <xsl:when test="$record-precedences[@for=$object/@category]">
-                <xsl:variable name="record-precedence-select-by" select="$record-precedences[@for=$object/@category]/@select-by" />
+        <xsl:variable name="precedence-to-use">
+            <xsl:choose>
+                <xsl:when test="$record-precedences[@for=$object/@category]"><xsl:value-of select="$object/@category" /></xsl:when>
+                <xsl:otherwise><xsl:value-of select="'default'" /></xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
+        <xsl:variable name="record-precedence-select-by" select="$record-precedences[@for=$precedence-to-use]/@select-by" />
+        <xsl:variable name="record-precedence-use-unlisted" select="$record-precedences[@for=$precedence-to-use]/@use-unlisted-sources != 'false'" />
 
-                <xsl:copy-of select="svfn:_getRecordField($object, $fieldName, fn:tokenize($records,','), $record-precedence-select-by, 1, false())" />
-            </xsl:when>
-            <xsl:otherwise>
-                <xsl:variable name="record-precedence-select-by" select="$record-precedences[@for='default']/@select-by" />
-
-                <xsl:copy-of select="svfn:_getRecordField($object, $fieldName, fn:tokenize($records,','), $record-precedence-select-by, 1, false())" />
-            </xsl:otherwise>
-        </xsl:choose>
+        <xsl:copy-of select="svfn:_getRecordField($object, $fieldName, fn:tokenize($records,','), $record-precedence-select-by, 1, $record-precedence-use-unlisted, false())" />
     </xsl:function>
 
     <!--
@@ -522,7 +515,15 @@
         <xsl:param name="records" as="xs:string" />
         <xsl:param name="select-by" as="xs:string" />
 
-        <xsl:copy-of select="svfn:_getRecordField($object, $fieldName, fn:tokenize($records,','), $select-by, 1, false())" />
+        <xsl:variable name="precedence-to-use">
+            <xsl:choose>
+                <xsl:when test="$record-precedences[@for=$object/@category]"><xsl:value-of select="$object/@category" /></xsl:when>
+                <xsl:otherwise><xsl:value-of select="'default'" /></xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
+        <xsl:variable name="record-precedence-use-unlisted" select="$record-precedences[@for=$precedence-to-use]/@use-unlisted-sources != 'false'" />
+
+        <xsl:copy-of select="svfn:_getRecordField($object, $fieldName, fn:tokenize($records,','), $select-by, 1, $record-precedence-use-unlisted, false())" />
     </xsl:function>
 
     <!--
@@ -547,43 +548,107 @@
         <xsl:param name="records" />
         <xsl:param name="select-by" />
         <xsl:param name="position" as="xs:integer" />
-        <xsl:param name="useDefault" as="xs:boolean" />
+        <xsl:param name="useUnlistedSources" as="xs:boolean" />
+        <xsl:param name="useExcludedData" as="xs:boolean" />
+
+        <xsl:variable name="exclusions-to-use">
+            <xsl:choose>
+                <xsl:when test="$data-exclusions[@for=$object/@category]"><xsl:value-of select="$object/@category" /></xsl:when>
+                <xsl:otherwise><xsl:value-of select="'default'" /></xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
+
+        <xsl:variable name="exclusions" select="$data-exclusions[@for=$exclusions-to-use]" />
 
         <xsl:choose>
+            <!-- Whilst looping through the list of record precedences, try to grab a value from the current source being processed -->
             <xsl:when test="$records[$position]">
                 <xsl:choose>
+                    <!-- Don't use records that are restricted -->
+                    <xsl:when test="$exclusions/config:record-exclusion[text()=$records[$position]]">
+                        <xsl:copy-of select="svfn:_getRecordField($object,$fieldName,$records,$select-by,$position+1,$useUnlistedSources,$useExcludedData)" />
+                    </xsl:when>
+                    <!-- don't use fields that are restricted -->
+                    <xsl:when test="$exclusions/config:field-exclusions[@for-source=$records[$position]]/config:excluded-field[text()=$fieldName]">
+                        <xsl:copy-of select="svfn:_getRecordField($object,$fieldName,$records,$select-by,$position+1,$useUnlistedSources,$useExcludedData)" />
+                    </xsl:when>
                     <xsl:when test="$select-by='field'">
                         <xsl:choose>
-                            <!-- Don't use fields from Scopus that are restricted -->
-                            <xsl:when test="$records[$position]='scopus' and ($fieldName='abstract')">
-                                <xsl:copy-of select="svfn:_getRecordField($object,$fieldName,$records,$select-by,$position+1,$useDefault)" />
-                            </xsl:when>
                             <xsl:when test="$object/api:records/api:record[@source-name=$records[$position]]/api:native/api:field[@name=$fieldName]">
                                 <xsl:copy-of select="$object/api:records/api:record[@source-name=$records[$position]][1]/api:native/api:field[@name=$fieldName]" />
                             </xsl:when>
                             <xsl:otherwise>
-                                <xsl:copy-of select="svfn:_getRecordField($object,$fieldName,$records,$select-by,$position+1,$useDefault)" />
+                                <xsl:copy-of select="svfn:_getRecordField($object,$fieldName,$records,$select-by,$position+1,$useUnlistedSources,$useExcludedData)" />
                             </xsl:otherwise>
                         </xsl:choose>
                     </xsl:when>
                     <xsl:otherwise>
                         <xsl:choose>
-                            <!-- Don't use fields from Scopus that are restricted -->
-                            <xsl:when test="$records[$position]='scopus' and ($fieldName='abstract')">
-                                <xsl:copy-of select="svfn:_getRecordField($object,$fieldName,$records,$select-by,$position+1,$useDefault)" />
-                            </xsl:when>
                             <xsl:when test="$object/api:records/api:record[@source-name=$records[$position]]/api:native">
                                 <xsl:copy-of select="$object/api:records/api:record[@source-name=$records[$position]][1]/api:native/api:field[@name=$fieldName]" />
                             </xsl:when>
                             <xsl:otherwise>
-                                <xsl:copy-of select="svfn:_getRecordField($object,$fieldName,$records,$select-by,$position+1,$useDefault)" />
+                                <xsl:copy-of select="svfn:_getRecordField($object,$fieldName,$records,$select-by,$position+1,$useUnlistedSources,$useExcludedData)" />
                             </xsl:otherwise>
                         </xsl:choose>
                     </xsl:otherwise>
                 </xsl:choose>
             </xsl:when>
-            <xsl:when test="$useDefault">
-                <xsl:copy-of select="$object/api:records/api:record[1]/api:native/api:field[@name=$fieldName]" />
+            <xsl:otherwise>
+                <!-- if we are past the end of our list of precedences, just grab something unless we would be selecting forbidden data..-->
+                <xsl:choose>
+                    <!-- if we are allowed to use excluded data (useFieldOrFirst) then just get first value-->
+                    <xsl:when test="$useExcludedData">
+                        <!--<xsl:copy-of select="svfn:_getFirstNonExcludedRecord($object, $fieldName, $select-by, 1, true())" />-->
+                        <xsl:variable name="result-not-using-excluded-data">
+                            <xsl:copy-of select="svfn:_getFirstNonExcludedRecord($object, $fieldName, $select-by, $exclusions, 1)" />
+                        </xsl:variable>
+                        <xsl:choose>
+                            <xsl:when test="$result-not-using-excluded-data/*">
+                                <xsl:copy-of select="$result-not-using-excluded-data" />
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <xsl:variable name="no-exclusions" select="/.." />
+                                <xsl:copy-of select="svfn:_getFirstNonExcludedRecord($object, $fieldName, $select-by, $no-exclusions, 1)" />
+                            </xsl:otherwise>
+                        </xsl:choose>
+                    </xsl:when>
+                    <xsl:when test="$useUnlistedSources">
+                        <xsl:copy-of select="svfn:_getFirstNonExcludedRecord($object, $fieldName, $select-by, $exclusions, 1)" />
+                    </xsl:when>
+                </xsl:choose>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:function>
+
+    <xsl:function name="svfn:_getFirstNonExcludedRecord">
+        <xsl:param name="object" />
+        <xsl:param name="fieldName" as="xs:string" />
+        <xsl:param name="select-by" />
+        <xsl:param name="exclusions" />
+        <xsl:param name="position" as="xs:integer" />
+
+        <xsl:choose>
+            <!-- we are looping through the set of records in the object, until we find somethign we like, or run out of records to consider-->
+            <xsl:when test="$object/api:records/api:record[$position]">
+                <xsl:variable name="current-record" select="$object/api:records/api:record[$position]" />
+                <xsl:choose>
+                    <!-- Don't use records that are restricted unless otherwise instructed -->
+                    <xsl:when test="$exclusions/config:record-exclusion[text()=$current-record/@source-name]">
+                        <xsl:copy-of select="svfn:_getFirstNonExcludedRecord($object,$fieldName, $select-by, $exclusions,$position+1)" />
+                    </xsl:when>
+                    <!-- don't use fields that are restricted, unless otherwise instructed-->
+                    <xsl:when test="$exclusions/config:field-exclusions[@for-source=$current-record/@source-name]/config:excluded-field[text()=$fieldName]">
+                        <xsl:copy-of select="svfn:_getFirstNonExcludedRecord($object,$fieldName, $select-by, $exclusions,$position+1)" />
+                    </xsl:when>
+                    <!-- or we are selecting by field and there is no field value in this record -->
+                    <xsl:when test="$select-by='field' and not($current-record/api:native/api:field[@name=$fieldName])">
+                        <xsl:copy-of select="svfn:_getFirstNonExcludedRecord($object,$fieldName, $select-by,$exclusions,$position+1)" />
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:copy-of select="$current-record/api:native/api:field[@name=$fieldName]" />
+                    </xsl:otherwise>
+                </xsl:choose>
             </xsl:when>
         </xsl:choose>
     </xsl:function>
@@ -749,6 +814,42 @@
         </xsl:for-each>
     </xsl:function>
 
+
+    <xsl:function name="svfn:userPhotoDescription">
+        <xsl:param name="userURI" />
+        <xsl:param name="fullImageFilename" />
+        <xsl:param name="fullImagePathUrl" />
+        <xsl:param name="thumbnailImageFilename" />
+        <xsl:param name="thumbnailImagePathUrl" />
+
+        <rdf:Description rdf:about="{$userURI}">
+            <vitro-public:mainImage rdf:resource="{$userURI}-image"/>
+        </rdf:Description>
+        <rdf:Description rdf:about="{$userURI}-image">
+            <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+            <rdf:type rdf:resource="http://vitro.mannlib.cornell.edu/ns/vitro/public#File" />
+            <vitro-public:downloadLocation rdf:resource="{$userURI}-imageDownload"/>
+            <vitro-public:thumbnailImage rdf:resource="{$userURI}-imageThumbnail"/>
+            <vitro-public:filename><xsl:value-of select="$fullImageFilename" /></vitro-public:filename>
+            <vitro-public:mimeType>image/jpeg</vitro-public:mimeType>
+        </rdf:Description>
+        <rdf:Description rdf:about="{$userURI}-imageDownload">
+            <rdf:type rdf:resource="http://vitro.mannlib.cornell.edu/ns/vitro/public#FileByteStream" />
+            <vitro-public:directDownloadUrl><xsl:value-of select="$fullImagePathUrl" /></vitro-public:directDownloadUrl>
+        </rdf:Description>
+        <rdf:Description rdf:about="{$userURI}-imageThumbnail">
+            <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+            <rdf:type rdf:resource="http://vitro.mannlib.cornell.edu/ns/vitro/public#File"/>
+            <vitro-public:downloadLocation rdf:resource="{$userURI}-imageThumbnailDownload"/>
+            <vitro-public:filename><xsl:value-of select="$thumbnailImageFilename" /></vitro-public:filename>
+            <vitro-public:mimeType>image/jpeg</vitro-public:mimeType>
+        </rdf:Description>
+        <rdf:Description rdf:about="{$userURI}-imageThumbnailDownload">
+            <rdf:type rdf:resource="http://vitro.mannlib.cornell.edu/ns/vitro/public#FileByteStream"/>
+            <vitro-public:directDownloadUrl><xsl:value-of select="$thumbnailImagePathUrl" /></vitro-public:directDownloadUrl>
+        </rdf:Description>
+    </xsl:function>
+
     <!-- ======================================
          Template Library
          ======================================- -->
@@ -770,6 +871,7 @@
                      xmlns:swvocab="http://www.w3.org/2003/06/sw-vocab-status/ns#"
                      xmlns:ufVivo="http://vivo.ufl.edu/ontology/vivo-ufl/"
                      xmlns:vitro="http://vitro.mannlib.cornell.edu/ns/vitro/0.7#"
+                     xmlns:vitro-public="http://vitro.mannlib.cornell.edu/ns/vitro/public#"
                      xmlns:vocab="http://purl.org/vocab/vann/"
                      xmlns:symp="http://www.symplectic.co.uk/ontology/elements/"
                     >

@@ -257,36 +257,77 @@
     <!-- Select the journal title for the publication. Delegates to an internal function for iteration -->
     <xsl:function name="svfn:selectJournalTitle">
         <xsl:param name="object" />
-        <xsl:copy-of select="string(svfn:_selectJournalTitle($object, 1))" />
+        <!--<xsl:copy-of select="string(svfn:_selectAuthorityJournalTitle($object, 1))" />-->
+        <xsl:variable name="authority-title">
+            <xsl:copy-of select="string(svfn:_selectAuthorityJournalTitle($object, 1))" />
+        </xsl:variable>
+        <xsl:choose>
+            <xsl:when test="$authority-title != ''"><xsl:value-of select="$authority-title" /></xsl:when>
+            <xsl:otherwise><xsl:copy-of select="string(svfn:_selectRecordJournalTitle($object, 1))" /></xsl:otherwise>
+        </xsl:choose>
     </xsl:function>
 
     <!-- Iterating function to select the most appropriate journal title -->
-    <xsl:function name="svfn:_selectJournalTitle">
+    <xsl:function name="svfn:_selectAuthorityJournalTitle">
+        <xsl:param name="object" />
+        <xsl:param name="position" as="xs:integer" />
+        <xsl:variable name="current-precedence" select="$journal-precedence/config:journal-authority-precedences/config:journal-authority-precedence[$position]" />
+        <!-- Ensure that we haven't reached the end of the precedence settings -->
+        <xsl:choose>
+            <xsl:when test="$current-precedence">
+                <xsl:choose>
+                    <!-- If the precedence is for an authority record, and we have that authority record in the API feed, use the journal title in the preferred authority source -->
+                    <xsl:when test="$object/api:journal/api:records/api:record[@source-name=$current-precedence]/api:title">
+                        <xsl:value-of select="$object/api:journal/api:records/api:record[@source-name=$current-precedence]/api:title" />
+                    </xsl:when>
+                    <!-- No title found for the current precedence setting, try again with the next entry -->
+                    <xsl:otherwise>
+                        <xsl:copy-of select="svfn:_selectAuthorityJournalTitle($object, $position+1)" />
+                    </xsl:otherwise>
+                </xsl:choose>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:if test="$journal-precedence/config:journal-authority-precedences/@use-unlisted-sources != 'false'">
+                    <xsl:value-of select="$object/api:journal/api:records/api:record[1]/api:title" />
+                </xsl:if>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:function>
+
+    <xsl:function name="svfn:_selectRecordJournalTitle">
         <xsl:param name="object" />
         <xsl:param name="position" as="xs:integer" />
 
+        <xsl:variable name="current-precedence" select="$journal-precedence/config:journal-record-precedences/config:journal-record-precedence[$position]" />
         <!-- Ensure that we haven't reached the end of the precedence settings -->
-        <xsl:if test="$journal-precedence[$position]">
-            <xsl:choose>
-                <!-- If the precedence is for an authority record, and we have that authority record in the API feed, use the journal title in the preferred authority source -->
-                <xsl:when test="$journal-precedence[$position]/@type='authority' and $object/api:journal/api:records/api:record[@source-name=$journal-precedence[$position]]/api:title">
-                    <xsl:value-of select="$object/api:journal/api:records/api:record[@source-name=$journal-precedence[$position]]/api:title" />
-                </xsl:when>
-                <!-- If the precedence if for a record value from a specific field, use that value if it exists -->
-                <xsl:when test="$journal-precedence[$position]/@type='record' and $object/api:records/api:record[@source-name=$journal-precedence[$position]]/api:native/api:field[@name=$journal-precedence[$position]/@field]/api:text">
-                    <xsl:value-of select="$object/api:records/api:record[@source-name=$journal-precedence[$position]]/api:native/api:field[@name=$journal-precedence[$position]/@field]/api:text" />
-                </xsl:when>
-                <!-- If the precedence if for a record value from a field called 'journal', use that value if it exists -->
-                <xsl:when test="$journal-precedence[$position]/@type='record' and $object/api:records/api:record[@source-name=$journal-precedence[$position]]/api:native/api:field[@name='journal']/api:text">
-                    <xsl:value-of select="$object/api:records/api:record[@source-name=$journal-precedence[$position]]/api:native/api:field[@name='journal']/api:text" />
-                </xsl:when>
-                <!-- No title found for the current precedence setting, try again with the next entry -->
-                <xsl:otherwise>
-                    <xsl:copy-of select="svfn:_selectJournalTitle($object, $position+1)" />
-                </xsl:otherwise>
-            </xsl:choose>
-        </xsl:if>
+        <xsl:choose>
+            <xsl:when test="$current-precedence">
+                <xsl:variable name="field-name-to-use">
+                    <xsl:choose>
+                        <xsl:when test="$current-precedence/@field"><xsl:value-of select="$current-precedence/@field" /></xsl:when>
+                        <xsl:otherwise><xsl:value-of select="'journal'" /></xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
+                <xsl:choose>
+                    <!-- If the precedence if for a record value from a specific field, use that value if it exists -->
+                    <xsl:when test="$object/api:records/api:record[@source-name=$current-precedence]/api:native/api:field[@name=$field-name-to-use]/api:text">
+                        <xsl:value-of select="$object/api:records/api:record[@source-name=$current-precedence]/api:native/api:field[@name=$field-name-to-use]/api:text" />
+                    </xsl:when>
+                    <!-- No title found for the current precedence setting, try again with the next entry -->
+                    <xsl:otherwise>
+                        <xsl:copy-of select="svfn:_selectRecordJournalTitle($object, $position+1)" />
+                    </xsl:otherwise>
+                </xsl:choose>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:if test="$journal-precedence/config:journal-record-precedences/@use-unlisted-sources != 'false'">
+                    <xsl:variable name="default-precedence-field" select = "svfn:getRecordField($object,'journal')" />
+                    <xsl:value-of select="$default-precedence-field/api:text" />
+                </xsl:if>
+            </xsl:otherwise>
+        </xsl:choose>
     </xsl:function>
+
 
     <!-- Render the RDF object for the publication venue (journal) -->
     <xsl:function name="svfn:renderPublicationVenueObject">

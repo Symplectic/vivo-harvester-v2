@@ -49,6 +49,12 @@ public class ElementsRelationshipTranslateObserver extends ElementsTranslateObse
     }
     @Override
     protected void observeStoredRelationship(ElementsRelationshipInfo info, ElementsStoredItem item) {
+        //if we don't think this is a complete relationships then the current code base can't process it effectively - no point translating it..
+        if(!info.getIsComplete()){
+            log.warn(MessageFormat.format("{0} appears to be incomplete, this may indicate new Elements object categories have been added.", info.getItemId()));
+            return;
+        }
+
         Map<String, Object> extraXSLTParameters = new HashMap<String, Object>();
         if(this.relationshipTypesNeedingObjectsForTranslation == null || this.relationshipTypesNeedingObjectsForTranslation.contains(info.getType())) {
             extraXSLTParameters.put("extraObjects", getExtraObjectsDescription(info));

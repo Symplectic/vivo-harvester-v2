@@ -64,49 +64,32 @@ final class TranslationServiceImpl {
         return factory;
     }
 
-    static void translate(TranslationServiceConfig config, ElementsStoredItem input, ElementsItemStore output, StorableResourceType outputType, TemplatesHolder translationTemplates, Map<String, Object> extraParams) {
-        wrapper.submit(new ItemTranslateTask(config, input, output, outputType, translationTemplates, extraParams));
+    static void translate(TranslationServiceConfig config, ElementsStoredItem input, Source inputSource, ElementsItemStore output, StorableResourceType outputType, TemplatesHolder translationTemplates, Map<String, Object> extraParams) {
+        wrapper.submit(new ItemTranslateTask(config, input, inputSource, output, outputType, translationTemplates, extraParams));
     }
 
     static void awaitShutdown() {
         wrapper.awaitShutdown();
     }
 
-    static class ItemTranslateTask implements Callable<Boolean>{
+
+    static abstract class AbstractTranslateTask implements Callable<Boolean>{
 
         private final TemplatesHolder translationTemplates;
         //TODO: unstitch config layer?
         private final TranslationServiceConfig config;
         private final Map<String, Object> extraParams;
-        private final ElementsStoredItem inputItem;
-        private final ElementsItemStore outputStore;
-        private final StorableResourceType outputType;
 
-        private InputStream getInputStream() throws IOException{
-            return inputItem.getInputStream();
-        }
+        protected abstract Source getInputSource() throws IOException;
+        protected abstract String getInputDescription();
 
-        private String getInputDescription(){
-            return inputItem.getItemInfo().getItemId().toString();
-        }
+        protected abstract void storeOutput(byte[] translatedData) throws IOException;
+        protected abstract String getOutputDescription();
 
-        private void storeOutput(byte[] translatedData) throws IOException{
-            outputStore.storeItem(inputItem.getItemInfo(), outputType, translatedData);
-        }
-        private String getOutputDescription(){return "RDF store";}
-
-        ItemTranslateTask(TranslationServiceConfig config, ElementsStoredItem inputItem, ElementsItemStore outputStore,
-                          StorableResourceType outputType, TemplatesHolder translationTemplates, Map<String, Object> extraParams) {
+        AbstractTranslateTask(TranslationServiceConfig config, TemplatesHolder translationTemplates, Map<String, Object> extraParams) {
             if(translationTemplates == null) throw new NullArgumentException("translationTemplates");
             if(config == null) throw new NullArgumentException("config");
-            if(inputItem == null) throw new NullArgumentException("inputItem");
-            if(outputStore == null) throw new NullArgumentException("outputStore");
-            if(outputType == null) throw new NullArgumentException("outputType");
-            if(inputItem.getResourceType().getKeyItemType() != outputType.getKeyItemType()) throw new IllegalArgumentException("outputType must be compatible with input item type");
 
-            this.inputItem = inputItem;
-            this.outputStore = outputStore;
-            this.outputType = outputType;
             this.translationTemplates = translationTemplates;
             this.config = config;
             this.extraParams = extraParams;
@@ -114,13 +97,13 @@ final class TranslationServiceImpl {
 
         public Boolean call() throws Exception {
             Boolean retCode = Boolean.TRUE;
-            StreamSource xmlSource = null;
+            Source xmlSource = null;
 
             boolean tolerateIOErrors = config.getTolerateIndividualIOErrors();
             boolean tolerateTransformErrors = config.getTolerateIndividualTransformErrors();
 
             try {
-                xmlSource = new StreamSource(getInputStream());
+                xmlSource = getInputSource();
             } catch (IOException e) {
                 log.error(MessageFormat.format("Unable to open input stream on {0}", getInputDescription()), e);
                 if (!tolerateIOErrors) throw e;
@@ -175,7 +158,9 @@ final class TranslationServiceImpl {
                 }
                 finally {
                     try {
-                        xmlSource.getInputStream().close();
+                        if(xmlSource instanceof StreamSource) {
+                            ((StreamSource) xmlSource).getInputStream().close();
+                        }
                     } catch (IOException e) {
                         log.error(MessageFormat.format("Unable to close input stream on {0}", getInputDescription()), e);
                         if (!tolerateIOErrors) throw e;
@@ -184,6 +169,78 @@ final class TranslationServiceImpl {
                 }
             }
             return retCode;
+        }
+
+        //TODO : remove this entirely?
+        private class TranslateTaskErrorListener implements ErrorListener {
+            TranslationServiceConfig config;
+
+            TranslateTaskErrorListener(TranslationServiceConfig config) {
+                this.config = config == null ? new TranslationServiceConfig() : config;
+            }
+
+            @Override
+            public void warning(TransformerException exception) throws TransformerException {
+                throw exception;
+            }
+
+            @Override
+            public void error(TransformerException exception) throws TransformerException {
+                Throwable cause = exception.getCause();
+                if (config.getIgnoreFileNotFound() && cause instanceof FileNotFoundException) {
+                    log.trace("Ignoring file not found in transform");
+                } else {
+                    log.error("Transformer Exception", exception);
+                    throw exception;
+                }
+            }
+
+            @Override
+            public void fatalError(TransformerException exception) throws TransformerException {
+                throw exception;
+            }
+        }
+    }
+
+    static class ItemTranslateTask extends AbstractTranslateTask{
+
+        private final ElementsStoredItem inputItem;
+        private final Source inputSource;
+        private final ElementsItemStore outputStore;
+        private final StorableResourceType outputType;
+
+        @Override
+        protected Source getInputSource() throws IOException{
+            if(inputSource != null)
+                return inputSource;
+            return new StreamSource(inputItem.getInputStream());
+        }
+
+        @Override
+        protected String getInputDescription(){
+            return inputItem.getItemInfo().getItemId().toString();
+        }
+
+        @Override
+        protected void storeOutput(byte[] translatedData) throws IOException{
+            outputStore.storeItem(inputItem.getItemInfo(), outputType, translatedData);
+        }
+
+        @Override
+        protected String getOutputDescription(){return "RDF store";}
+
+        ItemTranslateTask(TranslationServiceConfig config, ElementsStoredItem inputItem, Source inputSource, ElementsItemStore outputStore,
+                          StorableResourceType outputType, TemplatesHolder translationTemplates, Map<String, Object> extraParams) {
+            super(config, translationTemplates, extraParams);
+            if(inputItem == null) throw new NullArgumentException("inputItem");
+            if(outputStore == null) throw new NullArgumentException("outputStore");
+            if(outputType == null) throw new NullArgumentException("outputType");
+            if(inputItem.getResourceType().getKeyItemType() != outputType.getKeyItemType()) throw new IllegalArgumentException("outputType must be compatible with input item type");
+
+            this.inputItem = inputItem;
+            this.inputSource = inputSource;
+            this.outputStore = outputStore;
+            this.outputType = outputType;
         }
 
         //TODO : remove this entirely?

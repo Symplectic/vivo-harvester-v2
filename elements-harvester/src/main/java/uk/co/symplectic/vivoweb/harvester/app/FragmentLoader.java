@@ -71,6 +71,7 @@ public class FragmentLoader {
             String graphUri = FLConfiguration.getSparqlApiGraphUri();
             String username = FLConfiguration.getSparqlApiUsername();
             String password = FLConfiguration.getSparqlApiPassword();
+            boolean processSubtractFilesFirst = FLConfiguration.getProcessSubtractFilesFirst();
 
             int logEveryN = 100;
 
@@ -87,7 +88,7 @@ public class FragmentLoader {
                     }
 
                     //get current file list and then loop to load them all.
-                    List<File> filesToSort = splitter.getFragmentFilesInOrder();
+                    List<File> filesToSort = splitter.getFragmentFilesInOrder(processSubtractFilesFirst);
 
                     if (filesToSort.size() > 0) {
                         if(isIdle) log.info("New work detected - waking up");

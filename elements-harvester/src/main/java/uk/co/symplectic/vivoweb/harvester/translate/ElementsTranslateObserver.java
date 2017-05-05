@@ -18,6 +18,7 @@ import uk.co.symplectic.translate.TranslationService;
 import uk.co.symplectic.vivoweb.harvester.config.Configuration;
 import uk.co.symplectic.vivoweb.harvester.store.*;
 
+import javax.xml.transform.Source;
 import java.util.Map;
 
 public abstract class ElementsTranslateObserver extends ElementsStoreOutputItemObserver {
@@ -44,6 +45,10 @@ public abstract class ElementsTranslateObserver extends ElementsStoreOutputItemO
 
     protected void translate(ElementsStoredItem item, Map<String, Object> extraParams){
         translationService.translate(item, getStore(), getOutputType(), templatesHolder, extraParams);
+    }
+
+    protected void translate(ElementsStoredItem item, Source inputSource, Map<String, Object> extraParams){
+        translationService.translate(item, inputSource, getStore(), getOutputType(), templatesHolder, extraParams);
     }
 }
 

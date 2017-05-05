@@ -142,6 +142,22 @@ public class ElementsStoredItem {
             }
             return new InFile(file, relationshipInfo, StorableResourceType.RAW_RELATIONSHIP, zipped);
         }
+
+        public synchronized static ElementsStoredItem loadRawGroup(File file, boolean zipped) {
+            return loadRawGroup(file, null, zipped);
+        }
+
+        public synchronized static ElementsStoredItem loadRawGroup(File file, ElementsItemId.GroupId idToCompareTo, boolean zipped) {
+            ElementsGroupInfo groupInfo = loadFromFile(file, new ElementsGroupInfo.Extractor.FromFile(1), zipped);
+
+            if (idToCompareTo != null && !idToCompareTo.equals(groupInfo.getItemId())) {
+                String message = MessageFormat.format("Elements group loaded from file \"{0}\" ({1}) does not match supplied check values ({2})",
+                        file.getName(), groupInfo.getItemId().toString(), idToCompareTo.toString());
+                throw new IllegalStateException(message);
+            }
+            return new InFile(file, groupInfo, StorableResourceType.RAW_GROUP, zipped);
+        }
+
     }
 }
 

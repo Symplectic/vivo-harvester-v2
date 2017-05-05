@@ -7,6 +7,7 @@
 package uk.co.symplectic.vivoweb.harvester.model;
 
 import org.apache.commons.lang.StringUtils;
+import uk.co.symplectic.utils.ImageUtils;
 
 public class ElementsUserInfo extends ElementsObjectInfo {
 
@@ -35,11 +36,20 @@ public class ElementsUserInfo extends ElementsObjectInfo {
         return additionalInfo.isAcademic;
     }
 
-    public String getPhotoUrl() {
-        if(!isFullyPopulated()) throw new IllegalAccessError("Cannot access photo-url if ElementsUserInfo is not fully populated");
-        return additionalInfo.photoUrl;
-    }
 
+    public String getPhotoUrl() { return getPhotoUrl(ImageUtils.PhotoType.PROFILE); }
+
+    public String getPhotoUrl(ImageUtils.PhotoType photoType) {
+        if(!isFullyPopulated()) throw new IllegalAccessError("Cannot access photo-url if ElementsUserInfo is not fully populated");
+        //Note: additionalInfo.photoUrl is trimmed to null in setter
+        if(additionalInfo.photoUrl == null || photoType == null) return additionalInfo.photoUrl;
+        switch(photoType){
+            case NONE: return null;
+            case ORIGINAL: return additionalInfo.photoUrl + "?type=original";
+            case THUMBNAIL: return additionalInfo.photoUrl + "type=thumbnail";
+            default : return additionalInfo.photoUrl;
+        }
+    }
 
     public String getUsername() {
         if(!isFullyPopulated()) throw new IllegalAccessError("Cannot access username if ElementsUserInfo is not fully populated");

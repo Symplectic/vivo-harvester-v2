@@ -9,6 +9,7 @@ package uk.co.symplectic.vivoweb.harvester.fetch;
 import org.apache.commons.lang.NullArgumentException;
 import org.apache.commons.lang.StringUtils;
 import uk.co.symplectic.elements.api.ElementsAPI;
+import uk.co.symplectic.utils.ImageUtils;
 import uk.co.symplectic.vivoweb.harvester.fetch.resources.ResourceFetchService;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
@@ -23,20 +24,23 @@ public class ElementsUserPhotoRetrievalObserver extends ElementsStoreOutputItemO
     //TODO: Sort out static as object behaviour here
     private final ResourceFetchService fetchService = new ResourceFetchService();
     private final ElementsAPI elementsApi;
+    private final ImageUtils.PhotoType photoType;
 
-    public ElementsUserPhotoRetrievalObserver(ElementsAPI elementsApi, ElementsItemFileStore objectStore) {
+    public ElementsUserPhotoRetrievalObserver(ElementsAPI elementsApi, ImageUtils.PhotoType photoType, ElementsItemFileStore objectStore) {
         super(objectStore, StorableResourceType.RAW_OBJECT, StorableResourceType.RAW_USER_PHOTO, false);
         if(elementsApi == null) throw new NullArgumentException("elementsApi");
         this.elementsApi  = elementsApi;
+        this.photoType = photoType; //can be set to null harmlessly - will act as if set to ImageUtils.PhotoType.Profile.
     }
 
     @Override
     protected void observeStoredObject(ElementsObjectInfo info, ElementsStoredItem item) {
         if (info instanceof ElementsUserInfo) {
             ElementsUserInfo userInfo = (ElementsUserInfo) info;
-            if (!StringUtils.isEmpty(userInfo.getPhotoUrl())) {
+            //will do nothing for a photoType of NONE..
+            if (!StringUtils.isEmpty(userInfo.getPhotoUrl(photoType))) {
                 try {
-                    fetchService.fetchUserPhoto(elementsApi, userInfo, getStore());
+                    fetchService.fetchUserPhoto(elementsApi, photoType, userInfo, getStore());
                 } catch (MalformedURLException mue) {
                     // TODO: Log error
                 }

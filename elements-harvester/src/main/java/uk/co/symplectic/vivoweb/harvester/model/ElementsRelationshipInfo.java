@@ -64,9 +64,15 @@ public class ElementsRelationshipInfo extends ElementsItemInfo{
                     workspace.setType(startElement.getAttributeByName(new QName("type")).getValue());
                 }
                 else if (name.equals(new QName(apiNS, "object"))) {
-                    ElementsObjectCategory objectCategory = ElementsObjectCategory.valueOf(startElement.getAttributeByName(new QName("category")).getValue());
-                    int objectID = Integer.parseInt(startElement.getAttributeByName(new QName("id")).getValue());
-                    workspace.addObjectId(ElementsItemId.createObjectId(objectCategory, objectID));
+                    try {
+                        ElementsObjectCategory objectCategory = ElementsObjectCategory.valueOf(startElement.getAttributeByName(new QName("category")).getValue());
+                        int objectID = Integer.parseInt(startElement.getAttributeByName(new QName("id")).getValue());
+                        workspace.addObjectId(ElementsItemId.createObjectId(objectCategory, objectID));
+                    }
+                    catch(IndexOutOfBoundsException e){
+                        //do nothing - this is just a relationship to an object type we don't know how to handle yet..
+                        //will result in an "incomplete" relationship
+                    }
                 }
                 else if(name.equals(new QName(apiNS, "is-visible"))){
                     XMLEvent nextEvent = readerProxy.peek();
@@ -101,6 +107,11 @@ public class ElementsRelationshipInfo extends ElementsItemInfo{
     public boolean getIsVisible() {
         return isVisible;
     }
+
+    public boolean getIsComplete() {
+        return objectIds.size() == 2;
+    }
+
     public void setIsVisible(boolean isVisible) {
         this.isVisible = isVisible;
     }

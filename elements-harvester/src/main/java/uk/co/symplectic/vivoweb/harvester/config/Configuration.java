@@ -12,6 +12,7 @@ import org.apache.commons.lang.text.StrBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.co.symplectic.elements.api.ElementsAPIVersion;
+import uk.co.symplectic.utils.ImageUtils;
 import uk.co.symplectic.utils.configuration.ConfigKey;
 import uk.co.symplectic.utils.configuration.ConfigParser;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
@@ -47,7 +48,8 @@ public class Configuration {
 
         private ConfigKey ARG_USE_FULL_UTF8 = new ConfigKey("useFullUTF8", "false"); //TODO: review this default
 
-        private ConfigKey ARG_VIVO_IMAGE_DIR = new ConfigKey("vivoImageDir", "/data");
+        private ConfigKey ARG_ELEMENTS_IMAGE_TYPE = new ConfigKey("elementsImageType", "profile");
+        private ConfigKey ARG_VIVO_IMAGE_DIR = new ConfigKey("vivoImageDir", "/data/harvestedImages/");
         private ConfigKey ARG_VIVO_BASE_URI = new ConfigKey("vivoBaseURI", "http://vivo.mydomain.edu/individual/");
 
         private ConfigKey ARG_API_QUERY_CATEGORIES = new ConfigKey("queryObjects"); //TODO : rename this input param?
@@ -83,6 +85,7 @@ public class Configuration {
         private String apiPassword;
         private boolean ignoreSSLErrors = false;
         private boolean rewriteMismatchedUrls = false;
+        private ImageUtils.PhotoType imageType = null;
 
         private int apiSoTimeout = -1;
         private int apiRequestDelay = -1;
@@ -146,6 +149,30 @@ public class Configuration {
             return null;
         }
 
+        private ImageUtils.PhotoType getImageType(ConfigKey configKey) {
+            String key = configKey.getName();
+            String value = configKey.getValue(props);
+
+            ImageUtils.PhotoType imageType = null;
+            String testValue = StringUtils.trimToNull(value);
+            if(testValue != null) {
+                testValue = testValue.toLowerCase();
+
+                for (ImageUtils.PhotoType type : ImageUtils.PhotoType.values()) {
+                    if (type.name().toLowerCase().equals(testValue)) {
+                        imageType = type;
+                        break;
+                    }
+                }
+            }
+
+            if(imageType == null){
+                configErrors.add(MessageFormat.format("Invalid value provided for argument {0} : {1} (must be a valid elements photo type : \"original\", \"photo\", \"thummbnail\" or \"none\")", key, value));
+            }
+
+            return imageType;
+        }
+
         void parse(){
             values.maxThreadsResource = getInt(ARG_MAX_RESOURCE_THREADS);
             values.maxThreadsXsl = getInt(ARG_MAX_XSL_THREADS);
@@ -195,6 +222,7 @@ public class Configuration {
             if(!baseUriString.endsWith("/")) baseUriString = baseUriString + "/";
             values.baseURI = baseUriString;
             values.vivoImageDir = getString(ARG_VIVO_IMAGE_DIR, false);
+            values.imageType = getImageType(ARG_ELEMENTS_IMAGE_TYPE);
             values.xslTemplate = getString(ARG_XSL_TEMPLATE, false);
 
             values.rawOutputDir = getFileDirFromConfig(ARG_RAW_OUTPUT_DIRECTORY);
@@ -287,6 +315,10 @@ public class Configuration {
 
     public static boolean getUseFullUTF8() {
         return values.useFullUTF8;
+    }
+
+    public static ImageUtils.PhotoType getImageType() {
+        return values.imageType;
     }
 
     public static String getVivoImageDir() {

@@ -117,6 +117,7 @@ public class MT_FragmentLoader {
             String graphUri = FLConfiguration.getSparqlApiGraphUri();
             String username = FLConfiguration.getSparqlApiUsername();
             String password = FLConfiguration.getSparqlApiPassword();
+            boolean processSubtractFilesFirst = FLConfiguration.getProcessSubtractFilesFirst();
 
             int logEveryN = 100;
 
@@ -132,7 +133,7 @@ public class MT_FragmentLoader {
                     }
 
                     //get current file list and then loop to load them all.
-                    List<File> filesToSort = splitter.getFragmentFilesInOrder();
+                    List<File> filesToSort = splitter.getFragmentFilesInOrder(processSubtractFilesFirst);
 
                     if (filesToSort.size() > 0) {
                         log.info(MessageFormat.format("{0} new fragments detected - sending to vivo at :{1}", filesToSort.size(), vivoUrl));

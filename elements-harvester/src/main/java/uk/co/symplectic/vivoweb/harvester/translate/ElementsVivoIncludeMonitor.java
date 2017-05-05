@@ -46,6 +46,9 @@ public class ElementsVivoIncludeMonitor extends IElementsStoredItemObserver.Elem
         //if invisible relationships should be included or if this relationship is visible we consider including this relationship for now.
         boolean includeRelationship = includeInvisibleLinks || info.getIsVisible();
 
+        //if the relationship is not complete then we are not interested..
+        includeRelationship = includeRelationship && info.getIsComplete();
+
         //optimise for early jump out wherever possible.
         if(includeRelationship) {
             //ensure we only ever make includeRelationship false once

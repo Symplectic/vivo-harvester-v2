@@ -34,6 +34,7 @@
     <xsl:import href="elements-to-vivo-group.xsl" />
     <xsl:import href="elements-to-vivo-object.xsl" />
     <xsl:import href="elements-to-vivo-relationship.xsl" />
+    <xsl:import href="elements-to-vivo-user-photo.xsl" />
     <xsl:output method="xml" indent="yes" encoding="UTF-8" />
 
     <xsl:include href="elements-to-vivo-util-overrides.xsl" />

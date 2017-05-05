@@ -30,5 +30,22 @@
 >
 
     <!-- This file exists to allow easy overriding of any of the templates in the elements-to-vivo pipeline -->
+    <!--<xsl:template match="api:object[@category='user']">-->
+        <!--&lt;!&ndash;<xsl:variable name="lastCharOfPid" select =  substring($s&ndash;&gt;-->
+        <!--&lt;!&ndash;<xsl:if test = substring($s, string-length($s) - string-length($t) +1)&ndash;&gt;-->
+        <!--<xsl:if test=".[ends-with(@proprietary-id,'A')] or .[ends-with(@proprietary-id,'a')]">-->
+            <!--<xsl:variable name="prefix" select="'profile-pictures/'" />-->
+            <!--<xsl:variable name="userPid" select="translate(./@proprietary-id, 'Aa', '')" />-->
+            <!--<xsl:variable name="fullImageFilename" select="concat($userPid, 'picture.jpg')" />-->
+            <!--<xsl:variable name="fullImagePath" select="concat($prefix, $userPid, 'picture')" />-->
+            <!--<xsl:variable name="thumbnailImageFilename" select="concat('thumbnail', $userPid, 'picture.jpg')" />-->
+            <!--<xsl:variable name="thumbnailImagePath" select="concat($prefix, 'thumbnail', $userPid, 'picture.jpg')" />-->
+
+            <!--<xsl:copy-of select="svfn:userPhotoDescription(svfn:userURI(.), $fullImageFilename, $fullImagePath,-->
+         <!--$thumbnailImageFilename, $thumbnailImagePath)" />-->
+
+        <!--</xsl:if>-->
+        <!--<xsl:apply-imports/>-->
+    <!--</xsl:template>-->
 
 </xsl:stylesheet>

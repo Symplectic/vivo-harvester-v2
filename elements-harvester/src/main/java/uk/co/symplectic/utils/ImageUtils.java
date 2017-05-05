@@ -14,6 +14,14 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public final class ImageUtils {
+
+    public static enum PhotoType{
+        NONE,
+        ORIGINAL,
+        PROFILE,
+        THUMBNAIL
+    }
+
     private ImageUtils() {}
 
     public static BufferedImage readFile(InputStream inputStream) throws IOException {
