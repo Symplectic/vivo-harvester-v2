@@ -124,6 +124,14 @@ public class ElementsRelationshipInfo extends ElementsItemInfo{
         return userIds;
     }
 
+    public List<ElementsItemId.ObjectId> getNonUserIds() {
+        List<ElementsItemId.ObjectId> nonUserIds = new ArrayList<ElementsItemId.ObjectId>();
+        for(ElementsItemId.ObjectId id : objectIds){
+            if(id.getItemSubType() != ElementsObjectCategory.USER) nonUserIds.add(id);
+        }
+        return nonUserIds;
+    }
+
     public void addObjectId(ElementsItemId.ObjectId id) { objectIds.add(id); }
 
     public List<ElementsItemId.ObjectId> getObjectIds() { return Collections.unmodifiableList(objectIds); }

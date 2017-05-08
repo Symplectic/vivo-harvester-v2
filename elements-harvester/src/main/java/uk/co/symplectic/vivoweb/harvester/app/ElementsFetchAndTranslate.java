@@ -10,6 +10,9 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 import uk.co.symplectic.utils.LoggingUtils;
 import uk.co.symplectic.utils.configuration.ConfigParser;
 import uk.co.symplectic.utils.triplestore.*;
@@ -24,6 +27,13 @@ import uk.co.symplectic.vivoweb.harvester.model.*;
 import uk.co.symplectic.vivoweb.harvester.store.*;
 import uk.co.symplectic.vivoweb.harvester.translate.*;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 import java.io.*;
 import java.text.MessageFormat;
 import java.text.ParseException;
@@ -49,6 +59,7 @@ public class ElementsFetchAndTranslate {
      * A descriptor used in the state file if the last attempted harvest was a full that failed..
      */
     final private static String failedFullHarvestDescriptor = "FAILED_FULL";
+    final private static String failedReprocessDescriptor = "FAILED_REPROCESS";
 
 
     /**
@@ -63,7 +74,12 @@ public class ElementsFetchAndTranslate {
         INITIAL,
         DELTA,
         FORCED_FULL,
-        ERROR_CORRECTING_FULL
+        REPROCESSING,
+    }
+
+    private enum PriorRunClassification{
+        FAILED_FULL,
+        FAILED_REPROCESS,
     }
 
     /**
@@ -97,7 +113,10 @@ public class ElementsFetchAndTranslate {
             Configuration.parse("elementsfetch.properties");
             log.info(Configuration.getConfiguredValues());
 
+            //only one of these will be true, both can be false
             boolean forceFullPull = args.length != 0 && args[0].equals("--full");
+            boolean reprocessTranslations = args.length != 0 && args[0].equals("--reprocess");
+
             boolean updateLocalTDB = true;
 
             //when did we start this run (i.e how "up to date" can we claim to be at the end).
@@ -109,10 +128,21 @@ public class ElementsFetchAndTranslate {
             Date lastRunDate = null;
 
             //TODO: improve logging about loading state file... improve it when writing it too.
+            PriorRunClassification previousRunClassification = null;
             BufferedReader reader = null;
             if(stateFile.exists()) {
                 //if we have a state file and we are not forcing a full, then its a delta.
-                runClassification = forceFullPull ? RunClassification.FORCED_FULL : RunClassification.DELTA;
+                if(forceFullPull) {
+                    runClassification = RunClassification.FORCED_FULL;
+                }
+                else if(reprocessTranslations) {
+                    runClassification = RunClassification.REPROCESSING;
+                }
+                else{
+                    runClassification = RunClassification.DELTA;
+                }
+
+                //runClassification = forceFullPull ? RunClassification.FORCED_FULL : RunClassification.DELTA;
                 try {
                     reader = new BufferedReader(new InputStreamReader(new FileInputStream(stateFile), "utf-8"));
                     String str;
@@ -127,9 +157,12 @@ public class ElementsFetchAndTranslate {
                             lastRunDate = lastRunDateFormat.parse(str);
                         } else {
                             if (counter == 2 && str.equals(failedFullHarvestDescriptor)) {
-                                //even if we were going to run a delta - instead we do a special type of full.
-                                runClassification = RunClassification.ERROR_CORRECTING_FULL;
-                            } else {
+                                previousRunClassification = PriorRunClassification.FAILED_FULL;
+                            }
+                            if (counter == 2 && str.equals(failedReprocessDescriptor)) {
+                                previousRunClassification = PriorRunClassification.FAILED_REPROCESS;
+                            }
+                            else {
                                 log.warn("state.txt file appears to be corrupt - too many lines detected");
                                 throw new IllegalStateException("state.txt is corrupt");
                             }
@@ -149,6 +182,15 @@ public class ElementsFetchAndTranslate {
                 } finally {
                     if (reader != null) reader.close();
                 }
+
+                //regardless of what was requested, if last run was a failed full we must error correct the raw cache.
+                if(previousRunClassification == PriorRunClassification.FAILED_FULL)
+                    runClassification = RunClassification.FORCED_FULL;
+                //if we are planning to do a full, then its irrelevant that last reprocess failed - we will correct the full translated cache
+                //if its a delta then we need to correct the translated cache, so try a reprocess instead.
+                else if(runClassification == RunClassification.DELTA && previousRunClassification == PriorRunClassification.FAILED_REPROCESS){
+                    runClassification = RunClassification.REPROCESSING;
+                }
             }
 
             //test if we have successfully loaded a run count, if not set it to zero and initiate a full;
@@ -158,12 +200,18 @@ public class ElementsFetchAndTranslate {
             switch(runClassification){
                 case FORCED_FULL:
                     lastRunDate = null;
+                    if(previousRunClassification == PriorRunClassification.FAILED_FULL){
+                        log.warn("Performing full pull of data to attempt to correct for previous failed harvest run.");
+                        log.warn("A delta cannot now be run until a full refresh has been completed.");
+                    }
                     log.info("Performing forced full pull of data (--full).");
                     break;
-                case ERROR_CORRECTING_FULL:
-                    lastRunDate = null;
-                    log.warn("Performing full pull of data to attempt to correct for previous failed harvest run.");
-                    log.warn("A delta cannot now be run until a full refresh has been completed.");
+                case REPROCESSING:
+                    if(previousRunClassification == PriorRunClassification.FAILED_FULL){
+                        log.warn("Performing reprocess of cached data to attempt to correct for previous failed reprocessing run.");
+                        log.warn("A delta cannot now be run until either a reprocess or a full refresh has been completed.");
+                    }
+                    log.info("Reprocessing all data in cache, to update existing cache with current mappings");
                     break;
                 case INITIAL:
                     lastRunDate = null; //should be true anyway
@@ -218,7 +266,7 @@ public class ElementsFetchAndTranslate {
                 //Get some config needed for wiring up the translation observers
                 String xslFilename = Configuration.getXslTemplate();
                 File processedImageDir = ElementsFetchAndTranslate.getDirectoryFromPath(Configuration.getVivoImageDir());
-                String vivoBaseURI = Configuration.getBaseURI();
+                //String vivoBaseURI = Configuration.getBaseURI();
 
                 //Hook item observers to the object store so that translations happen for any objects and relationships that arrive in that store
                 //translations are configured to output to the rdfStore;
@@ -227,7 +275,12 @@ public class ElementsFetchAndTranslate {
 
                 //TODO: work out how to marshall user photos into a web accessible area in a sensible manner based on included user set...
                 //Hook a photo retrieval observer onto the rdf store so that photos will be fetched and dropped in the object store for any translated users.
-                objectStore.addItemObserver(new ElementsUserPhotoRetrievalObserver(elementsAPI, Configuration.getImageType(), objectStore));
+                if(runClassification != RunClassification.REPROCESSING) {
+                    objectStore.addItemObserver(new ElementsUserPhotoRetrievalObserver(elementsAPI, Configuration.getImageType(), objectStore));
+                }
+                else{
+                    objectStore.addItemObserver(new ElementsUserPhotoRetrievalObserver.ReprocessingObserver(elementsAPI, Configuration.getImageType(), objectStore));
+                }
                 //Hook a photo RDF generating observer onto the object store so that any fetched photos have corresponding "rdf" created in the translated output.
                 //TODO: makethis use a configurable image path base.
                 objectStore.addItemObserver(new ElementsUserPhotoRdfGeneratingObserver2(rdfStore, xslFilename, processedImageDir, "/harvestedImages/"));
@@ -238,12 +291,17 @@ public class ElementsFetchAndTranslate {
 
                 //Now we have wired up all our store observers perform the main fetches
                 //NOTE: order is absolutely vital (relationship translation scripts can rely on raw object data having been fetched)
-                processObjects(objectStore, elementsFetcher, lastRunDate);
-                //fetch relationships.
-                //TODO: alter processRelationships call to just do re-processing of the the relevant links when re-pulling is not necessary.. (do based on API version?)
-                //processRelationships(objectStore, elementsFetcher, aDate, true, relationshipTypesNeedingObjectsForTranslation);
-                processRelationships(objectStore, elementsFetcher, lastRunDate, true, relationshipTypesNeedingObjectsForTranslation);
-
+                if(runClassification != RunClassification.REPROCESSING){
+                    processObjects(objectStore, elementsFetcher, lastRunDate);
+                    //fetch relationships.
+                    //TODO: alter processRelationships call to just do re-processing of the the relevant links when re-pulling is not necessary.. (do based on API version?)
+                    //processRelationships(objectStore, elementsFetcher, aDate, true, relationshipTypesNeedingObjectsForTranslation);
+                    processRelationships(objectStore, elementsFetcher, lastRunDate, true, relationshipTypesNeedingObjectsForTranslation);
+                }
+                else{
+                    reProcessCachedObjects(objectStore);
+                    reProcessCachedRelationships(objectStore);
+                }
 
                 //load the user cache from the now up to date full cache of user definitions on disk ..(they MUST be present)..
                 ElementsItemKeyedCollection.ItemRestrictor restrictToUsers = new ElementsItemKeyedCollection.RestrictToSubTypes(ElementsObjectCategory.USER);
@@ -254,10 +312,17 @@ public class ElementsFetchAndTranslate {
                 }
 
                 //Now query the groups, post processing to build a group hierarchy containing users.
-                ElementsGroupCollection groupCache = new ElementsGroupCollection();
-                elementsFetcher.execute(new ElementsFetch.GroupConfig(), groupCache.getStoreWrapper());
-                groupCache.constructHierarchy();
-                groupCache.populateUserMembership(elementsFetcher, userInfoCache.keySet());
+                ElementsGroupCollection groupCache;
+                if(runClassification != RunClassification.REPROCESSING) {
+                    groupCache = new ElementsGroupCollection();
+                    elementsFetcher.execute(new ElementsFetch.GroupConfig(), groupCache.getStoreWrapper());
+                    groupCache.constructHierarchy();
+                    groupCache.populateUserMembership(elementsFetcher, userInfoCache.keySet());
+                    createGroupMembershipDocument(groupCache);
+                }
+                else{
+                    groupCache = createGroupCache(objectStore, userInfoCache.keySet());
+                }
 
                 //work out the included users
                 ElementsItemKeyedCollection.ItemInfo includedUsers = CalculateIncludedUsers(userInfoCache, groupCache);
@@ -266,10 +331,30 @@ public class ElementsFetchAndTranslate {
 
                 //Wire up the group translation observer...(needs group cache to work out members Ids and included users to get the user info of those members)
                 objectStore.addItemObserver(new ElementsGroupTranslateObserver(rdfStore, xslFilename, groupCache, includedUsers));
-                //fetch the groups and translate them
-                log.debug("Clearing down old group cache");
-                objectStore.cleardown(StorableResourceType.RAW_GROUP);
-                elementsFetcher.execute(new ElementsFetch.GroupConfig(), objectStore);
+
+                if(runClassification != RunClassification.REPROCESSING) {
+                    //fetch the groups and translate them
+                    log.debug("Clearing down old group cache");
+                    objectStore.cleardown(StorableResourceType.RAW_GROUP);
+                    elementsFetcher.execute(new ElementsFetch.GroupConfig(), objectStore);
+                }
+                else{
+                    log.info("Reprocessing Elements groups from cache");
+                    StorableResourceType type = StorableResourceType.RAW_GROUP;
+                    int counter = 0;
+                    for (StoredData.InFile data : objectStore.getAllExistingFilesOfType(type)) {
+                        ElementsStoredItem item = ElementsStoredItem.InFile.loadRawGroup(data.getFile(), data.isZipped());
+                        try {
+                            objectStore.touchItem(item.getItemInfo(), type);
+                            counter++;
+                            if(counter % 1000 == 0) log.info(MessageFormat.format("{0} groups enqueued for re-processing", counter));
+                        }
+                        catch(IOException e){
+                            log.warn(MessageFormat.format("Error re-processing cached group {0}", item.getItemInfo().getItemId()));
+                        }
+                    }
+                    log.info(MessageFormat.format("Reprocessing complete, {0} groups enqueued for re-processing in total", counter));
+                }
 
                 //Initiate the shutdown of the asynchronous translation engine - note this will actually block until
                 //the engine has completed all its enqueued tasks - think of it as "await completion".
@@ -284,7 +369,7 @@ public class ElementsFetchAndTranslate {
                 //TODO: test performance against spinning rust...
 
                 boolean visibleLinksOnly = Configuration.getVisibleLinksOnly();
-                ElementsVivoIncludeMonitor monitor = new ElementsVivoIncludeMonitor(includedUsers.keySet(), includedGroups.keySet(), visibleLinksOnly);
+                ElementsVivoIncludeMonitor monitor = new ElementsVivoIncludeMonitor(includedUsers.keySet(), includedGroups.keySet(), Configuration.getCategoriesToHarvest(), visibleLinksOnly);
 
                 int counter = 0;
                 for (StoredData.InFile relData : objectStore.getAllExistingFilesOfType(StorableResourceType.RAW_RELATIONSHIP)) {
@@ -307,7 +392,7 @@ public class ElementsFetchAndTranslate {
                     for (ElementsItemType type : ElementsItemType.values()) {
                         for (ElementsItemId includedItem : monitor.getIncludedItems().get(type)) {
                             //TODO: restrict to certain output resource types?
-                            for (BasicElementsStoredItem item : rdfStore.retrieveAllItems(includedItem)) {
+                            for (BasicElementsStoredItem item : rdfStore.retrieveAllRelatedResources(includedItem)) {
                                 filesToProcess.add((StoredData.InFile) item.getStoredData());
                                 writer.write(item.getStoredData().getAddress());
                                 writer.newLine();
@@ -362,7 +447,10 @@ public class ElementsFetchAndTranslate {
                 stateWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(stateFile), "utf-8"));
                 stateWriter.write(Integer.toString(runCount));
                 stateWriter.newLine();
-                stateWriter.write(lastRunDateFormat.format(runStartedAt));
+                if(runClassification != RunClassification.REPROCESSING)
+                    stateWriter.write(lastRunDateFormat.format(runStartedAt));
+                else
+                    stateWriter.write(lastRunDateFormat.format(lastRunDate));
             }
             catch(IOException e){
                 stateFileManagementErrorDetected = true;
@@ -408,7 +496,7 @@ public class ElementsFetchAndTranslate {
                 //if an initial fails there is no state, and thats fine for next attempt
                 //if a delta fails it is safe to leave the file alone (will repull all data from time in current state)
                 //if an error correcting full fails then next time we want to try again to error correct - which we will do with the current state
-                if(begunProcessing && runClassification == RunClassification.FORCED_FULL){
+                if(begunProcessing && (runClassification == RunClassification.FORCED_FULL || runClassification == RunClassification.REPROCESSING)){
                     boolean stateFileManagementErrorDetected = false;
                     //manage state file
                     BufferedWriter stateWriter = null;
@@ -416,7 +504,15 @@ public class ElementsFetchAndTranslate {
                         //open state file for appending. = note will never be in a FORCED_FULL run until this error is corrected.
                         stateWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(stateFile, true), "utf-8"));
                         stateWriter.newLine();
-                        stateWriter.write(failedFullHarvestDescriptor);
+                        switch(runClassification){
+                            case FORCED_FULL:
+                                stateWriter.write(failedFullHarvestDescriptor);
+                                break;
+                            case REPROCESSING:
+                                stateWriter.write(failedReprocessDescriptor);
+                                break;
+                        }
+
                     }
                     catch(IOException err){
                         stateFileManagementErrorDetected = true;
@@ -439,6 +535,26 @@ public class ElementsFetchAndTranslate {
         }
     }
 
+    private static void reProcessCachedObjects(ElementsItemFileStore objectStore){
+        log.info("Reprocessing Elements objects from cache");
+        StorableResourceType type = StorableResourceType.RAW_OBJECT;
+        int counter = 0;
+
+        for (StoredData.InFile data : objectStore.getAllExistingFilesOfType(type)) {
+            ElementsStoredItem item = ElementsStoredItem.InFile.loadRawObject(data.getFile(), data.isZipped());
+            try {
+                ElementsItemInfo itemInfo = item.getItemInfo();
+                objectStore.touchItem(itemInfo, type);
+                counter++;
+                if(counter % 1000 == 0) log.info(MessageFormat.format("{0} objects enqueued for re-processing", counter));
+            }
+            catch(IOException e){
+                log.warn(MessageFormat.format("Error re-processing cached objects {0}", item.getItemInfo().getItemId()));
+            }
+        }
+        log.info(MessageFormat.format("Object Reprocessing complete, {0} objects enqueued for re-processing", counter));
+    }
+
     private static void processObjects(ElementsItemFileStore objectStore, ElementsFetch elementsFetcher, Date modifiedSince) throws IOException{
         //fetch all configured categories - ensure that users ARE fetched regardless of configuration
         //TODO: decide if not having users in configured categories should result in different behaviour in the monitor
@@ -458,6 +574,24 @@ public class ElementsFetchAndTranslate {
             elementsFetcher.execute(objConfig, objectStore);
             elementsFetcher.execute(delObjConfig, objectStore);
         }
+    }
+
+    private static void reProcessCachedRelationships(ElementsItemFileStore objectStore){
+        log.info("Reprocessing Elements relationships from cache");
+        StorableResourceType type = StorableResourceType.RAW_RELATIONSHIP;
+        int counter = 0;
+        for (StoredData.InFile data : objectStore.getAllExistingFilesOfType(type)) {
+            ElementsStoredItem item = ElementsStoredItem.InFile.loadRawRelationship(data.getFile(), data.isZipped());
+            try {
+                objectStore.touchItem(item.getItemInfo(), type);
+                counter++;
+                if(counter % 1000 == 0) log.info(MessageFormat.format("{0} relationships enqueued for re-processing", counter));
+            }
+            catch(IOException e){
+                log.warn(MessageFormat.format("Error re-processing cached relationship {0}", item.getItemInfo().getItemId()));
+            }
+        }
+        log.info(MessageFormat.format("Reprocessing complete, {0} relationships enqueued for re-processing in total", counter));
     }
 
     private static void processRelationships(ElementsItemFileStore objectStore, ElementsFetch elementsFetcher, Date modifiedSince,
@@ -546,6 +680,88 @@ public class ElementsFetchAndTranslate {
         }
     }
 
+    private static ElementsGroupCollection createGroupCache(ElementsItemFileStore objectStore, Set<ElementsItemId> systemUsers){
+        try {
+            log.info("Recreating Groups information from cache");
+            StorableResourceType type = StorableResourceType.RAW_GROUP;
+            ElementsGroupCollection groupCache = new ElementsGroupCollection();
+
+            int counter = 0;
+            for (StoredData.InFile data : objectStore.getAllExistingFilesOfType(type)) {
+                ElementsStoredItem item = ElementsStoredItem.InFile.loadRawGroup(data.getFile(), data.isZipped());
+                ElementsGroupInfo groupInfo = item.getItemInfo().asGroupInfo();
+                groupCache.put(item.getItemInfo().getItemId(), new ElementsGroupInfo.GroupHierarchyWrapper(groupInfo));
+                counter++;
+                if(counter % 1000 == 0) log.info(MessageFormat.format("{0} groups added to cache", counter));
+            }
+
+            groupCache.constructHierarchy();
+
+            DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+            Document doc = docBuilder.parse(new File("testgroups.xml"));
+
+            Map<ElementsItemId, Set<ElementsItemId>> groupUserMap = new HashMap<ElementsItemId, Set<ElementsItemId>>();
+            Element root = doc.getDocumentElement();
+            NodeList groupNodes = root.getElementsByTagName("group");
+            for(int i = 0; i < groupNodes.getLength(); i++){
+                Element groupNode = (Element) groupNodes.item(i);
+                NodeList userNodes = groupNode.getElementsByTagName("user");
+                if(userNodes.getLength() > 0){
+                    ElementsItemId.GroupId groupId = ElementsItemId.createGroupId(Integer.parseInt(groupNode.getAttribute("id")));
+                    Set userSet = new HashSet<ElementsItemId>();
+                    for(int j = 0; j < userNodes.getLength(); j++) {
+                        Element userNode = (Element) userNodes.item(j);
+                        ElementsItemId userID = ElementsItemId.createObjectId(ElementsObjectCategory.USER, Integer.parseInt(userNode.getTextContent()));
+                        userSet.add(userID);
+                    }
+                    groupUserMap.put(groupId, userSet);
+                }
+            }
+            groupCache.populateUserMembership(groupUserMap, systemUsers);
+
+            return groupCache;
+        }
+        catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+
+    private static void createGroupMembershipDocument(ElementsGroupCollection groupCache){
+        try {
+            DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+            Document doc = docBuilder.newDocument();
+            //Element rootElement = doc.createElementNS("blahblahblah", "entry");
+            Element rootElement = doc.createElement("groups");
+            doc.appendChild(rootElement);
+            for(ElementsGroupInfo.GroupHierarchyWrapper group : groupCache.values()){
+                Element groupElement = doc.createElement("group");
+                groupElement.setAttribute("id", Integer.toString(group.getGroupInfo().getItemId().getId()));
+                for(ElementsItemId user : group.getExplicitUsers()) {
+                    Element userElement = doc.createElement("user");
+                    userElement.setTextContent(Integer.toString(user.getId()));
+                    groupElement.appendChild(userElement);
+                }
+                rootElement.appendChild(groupElement);
+            }
+
+            try {
+                TransformerFactory tFactory = TransformerFactory.newInstance();
+                Transformer transformer = tFactory.newTransformer();
+                DOMSource source = new DOMSource(doc);
+                StreamResult result = new StreamResult(new File("testgroups.xml"));
+                transformer.transform(source, result);
+            }
+            catch(Exception e){
+                throw new IllegalStateException(e);
+            }
+        }
+        catch (ParserConfigurationException pce) {
+            throw new IllegalStateException(pce);
+        }
+    }
 
     private static ElementsItemKeyedCollection.ItemInfo CalculateIncludedGroups(ElementsGroupCollection groupCache) {
         ElementsItemKeyedCollection.ItemRestrictor restrictToGroupsOnly = new ElementsItemKeyedCollection.RestrictToType(ElementsItemType.GROUP);

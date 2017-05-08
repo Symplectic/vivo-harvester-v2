@@ -16,6 +16,7 @@ import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItem;
 import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.Set;
 
 public class ElementsGroupCollection extends ElementsItemKeyedCollection<ElementsGroupInfo.GroupHierarchyWrapper> {
@@ -68,19 +69,46 @@ public class ElementsGroupCollection extends ElementsItemKeyedCollection<Element
                 if (topLevel == group) continue; //don't process explicit memberships for the org group
                 fetcher.execute(new ElementsFetch.GroupMembershipConfig(group.getGroupInfo().getItemId().getId()),new GroupMembershipStore(group));
             }
-
-           //calculate organisation membership from passed in user cache information
-            Set<ElementsItemId> usersInNonOrgGroups = topLevel.getImplicitUsers();
-            for (ElementsItemId userID : systemUsers) {
-                if(userID instanceof ElementsItemId.ObjectId) {
-                    ElementsItemId.ObjectId userObjID = (ElementsItemId.ObjectId) userID;
-                    if (!usersInNonOrgGroups.contains(userObjID))
-                        topLevel.addExplicitUser(userObjID);
-                }
-            }
-            membershipPopulated = true;
+            finaliseUserMembership(systemUsers);
         }
     }
+
+    public void populateUserMembership(Map<ElementsItemId, Set<ElementsItemId>> groupUserMap, Set<ElementsItemId> systemUsers) throws IOException {
+        if(topLevel == null) throw new IllegalStateException("must construct group hierarchy before populating membership");
+        if(!membershipPopulated) {
+            //fetch memberships from the API
+            for (ElementsGroupInfo.GroupHierarchyWrapper group : this.values()) {
+                //take care with == here - this really is the same reference...
+                if (topLevel == group) continue; //don't process explicit memberships for the org group
+                ElementsItemId gid = group.getGroupInfo().getItemId();
+                if(groupUserMap.containsKey(gid)){
+                    Set<ElementsItemId> users = groupUserMap.get(gid);
+                    if(users != null){
+                        for(ElementsItemId uid : users){
+                            if(uid.getItemType() == ElementsItemType.OBJECT && uid.getItemSubType() == ElementsObjectCategory.USER) {
+                                group.addExplicitUser((ElementsItemId.ObjectId) uid);
+                            }
+                        }
+                    }
+                }
+            }
+            finaliseUserMembership(systemUsers);
+        }
+    }
+
+    private void finaliseUserMembership(Set<ElementsItemId> systemUsers){
+        //calculate organisation membership from passed in user cache information
+        Set<ElementsItemId> usersInNonOrgGroups = topLevel.getImplicitUsers();
+        for (ElementsItemId userID : systemUsers) {
+            if(userID instanceof ElementsItemId.ObjectId) {
+                ElementsItemId.ObjectId userObjID = (ElementsItemId.ObjectId) userID;
+                if (!usersInNonOrgGroups.contains(userObjID))
+                    topLevel.addExplicitUser(userObjID);
+            }
+        }
+        membershipPopulated = true;
+    }
+
 
     @Override
     protected ElementsGroupInfo.GroupHierarchyWrapper getItemToStore(ElementsItemInfo itemInfo, StorableResourceType resourceType, byte[] data) {

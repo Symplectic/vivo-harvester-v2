@@ -16,6 +16,8 @@ import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectInfo;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsUserInfo;
 import uk.co.symplectic.vivoweb.harvester.store.*;
+
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.text.MessageFormat;
 
@@ -25,6 +27,8 @@ public class ElementsUserPhotoRetrievalObserver extends ElementsStoreOutputItemO
     private final ResourceFetchService fetchService = new ResourceFetchService();
     private final ElementsAPI elementsApi;
     private final ImageUtils.PhotoType photoType;
+
+    protected ImageUtils.PhotoType getPhotoType(){return photoType;}
 
     public ElementsUserPhotoRetrievalObserver(ElementsAPI elementsApi, ImageUtils.PhotoType photoType, ElementsItemFileStore objectStore) {
         super(objectStore, StorableResourceType.RAW_OBJECT, StorableResourceType.RAW_USER_PHOTO, false);
@@ -38,9 +42,9 @@ public class ElementsUserPhotoRetrievalObserver extends ElementsStoreOutputItemO
         if (info instanceof ElementsUserInfo) {
             ElementsUserInfo userInfo = (ElementsUserInfo) info;
             //will do nothing for a photoType of NONE..
-            if (!StringUtils.isEmpty(userInfo.getPhotoUrl(photoType))) {
+            if (!StringUtils.isEmpty(userInfo.getPhotoUrl(getPhotoType()))) {
                 try {
-                    fetchService.fetchUserPhoto(elementsApi, photoType, userInfo, getStore());
+                    fetchService.fetchUserPhoto(elementsApi, getPhotoType(), userInfo, getStore());
                 } catch (MalformedURLException mue) {
                     // TODO: Log error
                 }
@@ -52,6 +56,27 @@ public class ElementsUserPhotoRetrievalObserver extends ElementsStoreOutputItemO
     protected void observeObjectDeletion(ElementsItemId.ObjectId objectId, StorableResourceType type){
         if (objectId.getItemSubType() == ElementsObjectCategory.USER) {
             safelyDeleteItem(objectId, MessageFormat.format("Unable to delete user-photo for user {0}", objectId.toString()));
+        }
+    }
+
+
+    public static class ReprocessingObserver extends ElementsUserPhotoRetrievalObserver{
+
+        public ReprocessingObserver(ElementsAPI elementsApi, ImageUtils.PhotoType photoType, ElementsItemFileStore objectStore){
+            super(elementsApi, photoType, objectStore);
+        }
+
+        protected void observeStoredObject(ElementsObjectInfo info, ElementsStoredItem item) {
+            if (info instanceof ElementsUserInfo) {
+                ElementsUserInfo userInfo = (ElementsUserInfo) info;
+                if (!StringUtils.isEmpty(userInfo.getPhotoUrl(getPhotoType()))) {
+                    try {
+                        getStore().touchItem(info, getOutputType());
+                    } catch (IOException e) {
+                        // TODO: Log error
+                    }
+                }
+            }
         }
     }
 }

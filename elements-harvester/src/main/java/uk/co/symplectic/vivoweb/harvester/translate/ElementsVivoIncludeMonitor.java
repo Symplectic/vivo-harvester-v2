@@ -9,6 +9,7 @@ package uk.co.symplectic.vivoweb.harvester.translate;
 import org.apache.commons.lang.NullArgumentException;
 import uk.co.symplectic.vivoweb.harvester.fetch.ElementsItemCollection;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsRelationshipInfo;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItem;
 import uk.co.symplectic.vivoweb.harvester.store.IElementsStoredItemObserver;
@@ -20,14 +21,21 @@ import java.util.Set;
 
 public class ElementsVivoIncludeMonitor extends IElementsStoredItemObserver.ElementsStoredResourceObserverAdapter {
 
+    final private List<ElementsObjectCategory> includedCategories;
     final private boolean includeInvisibleLinks;
     final private Set<ElementsItemId> includedUsers;
     final private ElementsItemCollection includedItems = new ElementsItemCollection();
 
-    public ElementsVivoIncludeMonitor(Set<ElementsItemId> includedUsers, Set<ElementsItemId> includedGroups, boolean visibleLinksOnly) {
+
+    public ElementsVivoIncludeMonitor(Set<ElementsItemId> includedUsers, Set<ElementsItemId> includedGroups, List<ElementsObjectCategory> includedCategories, boolean visibleLinksOnly) {
         super(StorableResourceType.RAW_RELATIONSHIP);
         if(includedUsers == null) throw new NullArgumentException("includedUsers");
+        if(includedCategories == null) throw new NullArgumentException("includedCategories");
+
         this.includedUsers = Collections.unmodifiableSet(includedUsers);
+        //make unmodifiable
+        this.includedCategories = Collections.unmodifiableList(includedCategories);
+
         //note not!
         this.includeInvisibleLinks = !visibleLinksOnly;
 
@@ -60,11 +68,20 @@ public class ElementsVivoIncludeMonitor extends IElementsStoredItemObserver.Elem
             }
             //todo: do we want to account for only including things that were successfully translated? dodgy for the ones where the translation IS in the relationship?
 
-            //if we still want to include the relationship then add the objects within it into the includedItems set.
-            if (includeRelationship) {
-                includedItems.add(info.getItemId());
-                for (ElementsItemId.ObjectId id : info.getObjectIds()) {
-                    includedItems.add(id);
+            if(includeRelationship) {
+                List<ElementsItemId.ObjectId> nonUserIds = info.getNonUserIds();
+                if (!nonUserIds.isEmpty()) {
+                    for (ElementsItemId.ObjectId nonUserId : nonUserIds) {
+                        includeRelationship = includeRelationship && includedCategories.contains(nonUserId.getItemSubType());
+                    }
+                }
+
+                //if we still want to include the relationship then add the objects within it into the includedItems set.
+                if (includeRelationship) {
+                    includedItems.add(info.getItemId());
+                    for (ElementsItemId.ObjectId id : info.getObjectIds()) {
+                        includedItems.add(id);
+                    }
                 }
             }
         }
