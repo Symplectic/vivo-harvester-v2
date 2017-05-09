@@ -21,7 +21,7 @@ import static uk.co.symplectic.elements.api.ElementsAPI.atomNS;
 
 public class ElementsObjectInfo extends ElementsItemInfo{
 
-    public abstract static class Extractor extends XMLEventProcessor.ItemExtractingFilter<ElementsObjectInfo>{
+    public abstract static class Extractor extends XMLEventProcessor.ItemExtractingFilter<ElementsItemInfo>{
 
         private static DocumentLocation fileEntryLocation = new DocumentLocation(new QName(atomNS, "entry"), new QName(apiNS, "object"));
         private static DocumentLocation feedEntryLocation = new DocumentLocation(new QName(atomNS, "feed"), new QName(atomNS, "entry"), new QName(apiNS, "object"));

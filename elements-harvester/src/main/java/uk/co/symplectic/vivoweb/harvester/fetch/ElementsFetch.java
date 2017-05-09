@@ -45,11 +45,14 @@ public class ElementsFetch {
         private ByteArrayOutputStream dataStream = null;
         private final XMLEventFactory eventFactory = StAXUtils.getXMLEventFactory();
         private final QName rootElement;
+        private final String itemDescriptor;
         private int counter = 0;
 
-        DataProcessingFilter(QName rootElement, T innerFilter){
+        DataProcessingFilter(QName rootElement, T innerFilter, String itemDescriptor){
             super(innerFilter);
             this.rootElement = rootElement;
+            String trimmedDescriptor = StringUtils.trimToNull(itemDescriptor);
+            this.itemDescriptor = trimmedDescriptor == null ? "items" : itemDescriptor;
         }
 
         protected void postInnerItemStart(StartElement initialElement, XMLEventProcessor.ReaderProxy readerProxy) throws XMLStreamException {
@@ -72,7 +75,7 @@ public class ElementsFetch {
                 S item = innerFilter.getExtractedItem();
                 counter++;
                 if(counter % logProgressEveryN == 0) {
-                    log.info(MessageFormat.format("{0} items processed and stored", counter));
+                    log.info(MessageFormat.format("{0} {1} processed and stored", counter, itemDescriptor));
                 }
 
                 processItem(item, dataStream.toByteArray());
@@ -85,80 +88,41 @@ public class ElementsFetch {
         protected abstract void processItem(S item, byte[] data) throws IOException;
     }
 
-    private static class ItemStoringFilter<S extends ElementsItemInfo, T extends XMLEventProcessor.ItemExtractingFilter<S>> extends DataProcessingFilter<S, T> {
+    private static class ItemStoringFilter extends DataProcessingFilter<ElementsItemInfo, XMLEventProcessor.ItemExtractingFilter<ElementsItemInfo>> {
 
-        private static final QName outputRootElement = new QName(ElementsAPI.atomNS, "entry");
+        protected static final QName outputRootElement = new QName(ElementsAPI.atomNS, "entry");
 
-        protected final ElementsItemStore objectStore;
+        private final StorableResourceType resourceType;
+        private final ElementsItemStore objectStore;
 
-        protected ItemStoringFilter(T innerFilter, ElementsItemStore objectStore) {
-            this(outputRootElement, innerFilter, objectStore);
+        protected ElementsItemStore getObjectStore(){ return objectStore; }
+        protected StorableResourceType getResourceType(){ return resourceType; }
+
+        public ItemStoringFilter(StorableResourceType resourceType, ElementsItemStore objectStore) {
+            this(outputRootElement, resourceType, ElementsItemInfo.ExtractionSource.FEED, objectStore);
         }
 
-        protected ItemStoringFilter(QName rootElement, T innerFilter, ElementsItemStore objectStore) {
-            super(rootElement, innerFilter);
+        protected ItemStoringFilter(QName rootElement, StorableResourceType resourceType, ElementsItemInfo.ExtractionSource source, ElementsItemStore objectStore) {
+            super(rootElement, ElementsItemInfo.getExtractor(resourceType.getKeyItemType(), source, 0), resourceType.getKeyItemType().getPluralName());
             if (objectStore == null) throw new NullArgumentException("objectStore");
             this.objectStore = objectStore;
+            this.resourceType = resourceType;
         }
 
         @Override
-        protected void processItem(S item, byte[] data) throws IOException {
-            objectStore.storeItem(item, getResourceType(item), data);
-        }
-
-        protected StorableResourceType getResourceType(S item){
-            //wrapper to decide on the stored resource type...
-            if(item == null) throw new NullArgumentException("item");
-            if(item.isObjectInfo()) return StorableResourceType.RAW_OBJECT;
-            if(item.isRelationshipInfo()) return StorableResourceType.RAW_RELATIONSHIP;
-            if(item.isGroupInfo()) return StorableResourceType.RAW_GROUP;
-            throw new IllegalStateException("Unstorable raw item");
+        protected void processItem(ElementsItemInfo item, byte[] data) throws IOException {
+            getObjectStore().storeItem(item, getResourceType(), data);
         }
     }
 
-    private static class ItemDeletingFilter<S extends ElementsItemInfo, T extends XMLEventProcessor.ItemExtractingFilter<S>> extends ItemStoringFilter<S,T> {
-
-        protected ItemDeletingFilter(T innerFilter, ElementsItemStore.ElementsDeletableItemStore objectStore) {
-            super(innerFilter, objectStore);
-        }
-
-        protected ItemDeletingFilter(QName rootElement, T innerFilter, ElementsItemStore objectStore) {
-            super(rootElement, innerFilter, objectStore);
+    private static class ItemDeletingFilter extends ItemStoringFilter {
+        public ItemDeletingFilter(StorableResourceType resourceType, ElementsItemStore.ElementsDeletableItemStore objectStore) {
+            super(outputRootElement, resourceType, ElementsItemInfo.ExtractionSource.DELETED_FEED,  objectStore);
         }
 
         @Override
-        protected void processItem(S item, byte[] data) throws IOException {
-            ((ElementsItemStore.ElementsDeletableItemStore) objectStore).deleteItem(item.getItemId(), getResourceType(item));
-        }
-    }
-
-    private static class FileStoringObjectFilter extends ItemStoringFilter<ElementsObjectInfo, ElementsObjectInfo.Extractor> {
-        private FileStoringObjectFilter(ElementsItemStore objectStore){
-            super(new ElementsObjectInfo.Extractor.FromFeed(), objectStore);
-        }
-    }
-
-    private static class FileDeletingObjectFilter extends ItemDeletingFilter<ElementsObjectInfo, ElementsObjectInfo.Extractor> {
-        private FileDeletingObjectFilter(ElementsItemStore.ElementsDeletableItemStore objectStore){
-            super(new ElementsObjectInfo.Extractor.DeletedFromFeed(), objectStore);
-        }
-    }
-
-    private static class FileStoringRelationshipFilter extends ItemStoringFilter<ElementsRelationshipInfo, ElementsRelationshipInfo.Extractor> {
-        protected FileStoringRelationshipFilter(ElementsItemStore objectStore){
-            super(new ElementsRelationshipInfo.Extractor.FromFeed(), objectStore);
-        }
-    }
-
-    private static class FileDeletingRelationshipFilter extends ItemDeletingFilter<ElementsRelationshipInfo, ElementsRelationshipInfo.Extractor> {
-        protected FileDeletingRelationshipFilter(ElementsItemStore.ElementsDeletableItemStore objectStore){
-            super(new ElementsRelationshipInfo.Extractor.DeletedFromFeed(), objectStore);
-        }
-    }
-
-    private static class FileStoringGroupFilter extends ItemStoringFilter<ElementsGroupInfo, ElementsGroupInfo.Extractor> {
-        FileStoringGroupFilter(ElementsItemStore objectStore){
-            super(new ElementsGroupInfo.Extractor.FromFeed(), objectStore);
+        protected void processItem(ElementsItemInfo item, byte[] data) throws IOException {
+            ((ElementsItemStore.ElementsDeletableItemStore) getObjectStore()).deleteItem(item.getItemId(), getResourceType());
         }
     }
 
@@ -235,7 +199,7 @@ public class ElementsFetch {
             return new DescribedQuery(currentQuery, MessageFormat.format("Processing {0}", category.getPlural())){
                 @Override
                 public ElementsAPI.APIResponseFilter getExtractor(ElementsItemStore objectStore){
-                    return wrapFilterAsApiResponse(new FileStoringObjectFilter(objectStore));
+                    return wrapFilterAsApiResponse(new ItemStoringFilter(StorableResourceType.RAW_OBJECT, objectStore));
                 }
             };
         }
@@ -256,7 +220,7 @@ public class ElementsFetch {
                 @Override
                 public ElementsAPI.APIResponseFilter getExtractor(ElementsItemStore objectStore){
                     if(!(objectStore instanceof ElementsItemStore.ElementsDeletableItemStore)) throw new IllegalStateException("store must be a ElementsDeletableItemStore if processing deletions");
-                    return wrapFilterAsApiResponse(new FileDeletingObjectFilter((ElementsItemStore.ElementsDeletableItemStore) objectStore));
+                    return wrapFilterAsApiResponse(new ItemDeletingFilter(StorableResourceType.RAW_OBJECT, (ElementsItemStore.ElementsDeletableItemStore) objectStore));
                 }
             };
         }
@@ -273,7 +237,7 @@ public class ElementsFetch {
                 new ElementsAPIFeedRelationshipQuery(fullDetails, getModifiedSince()), "Processing relationships"){
                 @Override
                 public ElementsAPI.APIResponseFilter getExtractor(ElementsItemStore objectStore) {
-                    return wrapFilterAsApiResponse(new FileStoringRelationshipFilter(objectStore));
+                    return wrapFilterAsApiResponse(new ItemStoringFilter(StorableResourceType.RAW_RELATIONSHIP, objectStore));
                 }
             };
             return Collections.singletonList(query);
@@ -290,7 +254,7 @@ public class ElementsFetch {
                 @Override
                 public ElementsAPI.APIResponseFilter getExtractor(ElementsItemStore objectStore) {
                     if(!(objectStore instanceof ElementsItemStore.ElementsDeletableItemStore)) throw new IllegalStateException("store must be a ElementsDeletableItemStore if processing deletions");
-                    return wrapFilterAsApiResponse(new FileDeletingRelationshipFilter((ElementsItemStore.ElementsDeletableItemStore) objectStore));
+                    return wrapFilterAsApiResponse(new ItemDeletingFilter(StorableResourceType.RAW_RELATIONSHIP, (ElementsItemStore.ElementsDeletableItemStore) objectStore));
                 }
             };
             return Collections.singletonList(query);
@@ -318,7 +282,7 @@ public class ElementsFetch {
                     new ElementsAPIFeedRelationshipQuery.IdList(new HashSet<ElementsItemId.RelationshipId>(relationshipsToProcess)), description){
                 @Override
                 public ElementsAPI.APIResponseFilter getExtractor(ElementsItemStore objectStore) {
-                    return wrapFilterAsApiResponse(new FileStoringRelationshipFilter(objectStore));
+                    return wrapFilterAsApiResponse(new ItemStoringFilter(StorableResourceType.RAW_RELATIONSHIP, objectStore));
                 }
             };
             queries.add(query);
@@ -336,7 +300,7 @@ public class ElementsFetch {
             DescribedQuery query = new DescribedQuery(new ElementsAPIFeedGroupQuery(), "Processing groups"){
                 @Override
                 public ElementsAPI.APIResponseFilter getExtractor(ElementsItemStore objectStore) {
-                    return wrapFilterAsApiResponse(new FileStoringGroupFilter(objectStore));
+                    return wrapFilterAsApiResponse(new ItemStoringFilter(StorableResourceType.RAW_GROUP ,objectStore));
                 }
             };
             return Collections.singletonList(query);
@@ -357,7 +321,7 @@ public class ElementsFetch {
                     MessageFormat.format("Processing group membership for group : {0}", groupId)){
                 @Override
                 public ElementsAPI.APIResponseFilter getExtractor(ElementsItemStore objectStore) {
-                    return wrapFilterAsApiResponse(new FileStoringObjectFilter(objectStore));
+                    return wrapFilterAsApiResponse(new ItemStoringFilter(StorableResourceType.RAW_OBJECT ,objectStore));
                 }
             };
             return Collections.singletonList(query);

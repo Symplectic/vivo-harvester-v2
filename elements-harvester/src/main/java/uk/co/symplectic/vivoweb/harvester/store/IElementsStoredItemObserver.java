@@ -12,7 +12,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 public interface IElementsStoredItemObserver{
-    void observe(ElementsStoredItem item);
+    void observe(ElementsStoredItemInfo item);
     void observeDeletion(ElementsItemId itemId, StorableResourceType type);
     void observeCleardown(StorableResourceType type, ElementsItemStore source);
 
@@ -34,7 +34,7 @@ public interface IElementsStoredItemObserver{
 
 
         @Override
-        final public void observe(ElementsStoredItem item) {
+        final public void observe(ElementsStoredItemInfo item) {
             if (supportsInputType(item.getResourceType())) {
 
                 ElementsItemType itemType = item.getResourceType().getKeyItemType();
@@ -52,9 +52,9 @@ public interface IElementsStoredItemObserver{
         }
 
         //broken out calls for implementers to fill in
-        protected abstract void observeStoredObject(ElementsObjectInfo info, ElementsStoredItem item);
-        protected abstract void observeStoredRelationship(ElementsRelationshipInfo info, ElementsStoredItem item);
-        protected abstract void observeStoredGroup(ElementsGroupInfo info, ElementsStoredItem item);
+        protected abstract void observeStoredObject(ElementsObjectInfo info, ElementsStoredItemInfo item);
+        protected abstract void observeStoredRelationship(ElementsRelationshipInfo info, ElementsStoredItemInfo item);
+        protected abstract void observeStoredGroup(ElementsGroupInfo info, ElementsStoredItemInfo item);
 
         @Override
         final public void observeDeletion(ElementsItemId itemId, StorableResourceType type) {
@@ -93,15 +93,15 @@ public interface IElementsStoredItemObserver{
 
         //addition overrides
         @Override
-        protected void observeStoredObject(ElementsObjectInfo info, ElementsStoredItem item){
+        protected void observeStoredObject(ElementsObjectInfo info, ElementsStoredItemInfo item){
             throw new IllegalAccessError("unexpected use of observeStoredObject");
         }
         @Override
-        protected void observeStoredRelationship(ElementsRelationshipInfo info, ElementsStoredItem item){
+        protected void observeStoredRelationship(ElementsRelationshipInfo info, ElementsStoredItemInfo item){
             throw new IllegalAccessError("unexpected use of observeStoredRelationship");
         }
         @Override
-        protected void observeStoredGroup(ElementsGroupInfo info, ElementsStoredItem item){
+        protected void observeStoredGroup(ElementsGroupInfo info, ElementsStoredItemInfo item){
             throw new IllegalAccessError("unexpected use of observeStoredGroup");
         }
 

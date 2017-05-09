@@ -43,11 +43,11 @@ public abstract class ElementsTranslateObserver extends ElementsStoreOutputItemO
 
     }
 
-    protected void translate(ElementsStoredItem item, Map<String, Object> extraParams){
+    protected void translate(ElementsStoredItemInfo item, Map<String, Object> extraParams){
         translationService.translate(item, getStore(), getOutputType(), templatesHolder, extraParams);
     }
 
-    protected void translate(ElementsStoredItem item, Source inputSource, Map<String, Object> extraParams){
+    protected void translate(ElementsStoredItemInfo item, Source inputSource, Map<String, Object> extraParams){
         translationService.translate(item, inputSource, getStore(), getOutputType(), templatesHolder, extraParams);
     }
 }

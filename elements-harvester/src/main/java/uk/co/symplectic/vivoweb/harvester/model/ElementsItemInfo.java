@@ -10,8 +10,15 @@
 package uk.co.symplectic.vivoweb.harvester.model;
 
 import org.apache.commons.lang.NullArgumentException;
+import uk.co.symplectic.utils.xml.XMLEventProcessor;
 
 public abstract class ElementsItemInfo {
+
+    public enum ExtractionSource{
+        FEED,
+        DELETED_FEED,
+        FILE
+    }
 
     //Static portion to deal with construction of Concrete ItemInfos
     public static ElementsObjectInfo createObjectItem(ElementsObjectCategory category, int id) {
@@ -27,6 +34,32 @@ public abstract class ElementsItemInfo {
 
     public static ElementsGroupInfo createGroupItem(int id) {
         return new ElementsGroupInfo(id);
+    }
+
+    public static XMLEventProcessor.ItemExtractingFilter<ElementsItemInfo> getExtractor(ElementsItemType type, ExtractionSource source, int maximumExpected) {
+        switch(type){
+            case OBJECT :
+                switch(source) {
+                    case FEED : return new ElementsObjectInfo.Extractor.FromFeed(maximumExpected);
+                    case DELETED_FEED : return new ElementsObjectInfo.Extractor.DeletedFromFeed(maximumExpected);
+                    case FILE : return new ElementsObjectInfo.Extractor.FromFile(maximumExpected);
+                    default : throw new IllegalStateException("invalid extractor source type requested");
+                }
+            case RELATIONSHIP:
+                switch(source) {
+                    case FEED : return new ElementsRelationshipInfo.Extractor.FromFeed(maximumExpected);
+                    case DELETED_FEED : return new ElementsRelationshipInfo.Extractor.DeletedFromFeed(maximumExpected);
+                    case FILE : return new ElementsRelationshipInfo.Extractor.FromFile(maximumExpected);
+                    default : throw new IllegalStateException("invalid extractor source type requested");
+                }
+            case GROUP :
+                switch(source) {
+                    case FEED : return new ElementsGroupInfo.Extractor.FromFeed(maximumExpected);
+                    case FILE : return new ElementsGroupInfo.Extractor.FromFile(maximumExpected);
+                    default : throw new IllegalStateException("invalid extractor source type requested");
+                }
+            default : throw new IllegalStateException("invalid extractor object type requested");
+        }
     }
 
     //Main class definition

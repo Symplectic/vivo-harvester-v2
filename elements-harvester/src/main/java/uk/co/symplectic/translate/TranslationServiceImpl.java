@@ -11,7 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.co.symplectic.utils.ExecutorServiceUtils;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsItemStore;
-import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItem;
+import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItemInfo;
 import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
 
 import javax.xml.transform.*;
@@ -20,12 +20,10 @@ import javax.xml.transform.stream.StreamSource;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.Future;
 
 /**
  * Static implementation of an Executor based translation service.
@@ -64,7 +62,7 @@ final class TranslationServiceImpl {
         return factory;
     }
 
-    static void translate(TranslationServiceConfig config, ElementsStoredItem input, Source inputSource, ElementsItemStore output, StorableResourceType outputType, TemplatesHolder translationTemplates, Map<String, Object> extraParams) {
+    static void translate(TranslationServiceConfig config, ElementsStoredItemInfo input, Source inputSource, ElementsItemStore output, StorableResourceType outputType, TemplatesHolder translationTemplates, Map<String, Object> extraParams) {
         wrapper.submit(new ItemTranslateTask(config, input, inputSource, output, outputType, translationTemplates, extraParams));
     }
 
@@ -204,7 +202,7 @@ final class TranslationServiceImpl {
 
     static class ItemTranslateTask extends AbstractTranslateTask{
 
-        private final ElementsStoredItem inputItem;
+        private final ElementsStoredItemInfo inputItem;
         private final Source inputSource;
         private final ElementsItemStore outputStore;
         private final StorableResourceType outputType;
@@ -229,7 +227,7 @@ final class TranslationServiceImpl {
         @Override
         protected String getOutputDescription(){return "RDF store";}
 
-        ItemTranslateTask(TranslationServiceConfig config, ElementsStoredItem inputItem, Source inputSource, ElementsItemStore outputStore,
+        ItemTranslateTask(TranslationServiceConfig config, ElementsStoredItemInfo inputItem, Source inputSource, ElementsItemStore outputStore,
                           StorableResourceType outputType, TemplatesHolder translationTemplates, Map<String, Object> extraParams) {
             super(config, translationTemplates, extraParams);
             if(inputItem == null) throw new NullArgumentException("inputItem");

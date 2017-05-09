@@ -21,13 +21,19 @@ public enum ElementsItemType {
     GROUP("group");
 
     private final String name;
-    public String getName() {
-        return name;
-    }
+    private final String pluralName;
+    public String getName() { return name; }
+    public String getPluralName() {
+        return pluralName;
+    } ;
 
-    ElementsItemType(String name) {
+    ElementsItemType(String name) { this(name, name + 's'); }
+
+    ElementsItemType(String name, String pluralName) {
         if (StringUtils.trimToNull(name) == null) throw new NullArgumentException("name");
+        if (StringUtils.trimToNull(pluralName) == null) throw new NullArgumentException("pluralName");
         this.name = name;
+        this.pluralName = pluralName;
     }
 
     private static final Map<ElementsItemType, Map<String, SubType>> singularMap = new HashMap<ElementsItemType, Map<String, SubType>>();

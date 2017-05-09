@@ -36,7 +36,6 @@ public class ElementsUserInfo extends ElementsObjectInfo {
         return additionalInfo.isAcademic;
     }
 
-
     public String getPhotoUrl() { return getPhotoUrl(ImageUtils.PhotoType.PROFILE); }
 
     public String getPhotoUrl(ImageUtils.PhotoType photoType) {

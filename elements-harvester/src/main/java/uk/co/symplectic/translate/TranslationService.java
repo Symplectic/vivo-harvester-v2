@@ -9,7 +9,7 @@ package uk.co.symplectic.translate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsItemStore;
-import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItem;
+import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItemInfo;
 import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
 
 import javax.xml.transform.Source;
@@ -37,19 +37,19 @@ public final class TranslationService {
         return TranslationServiceImpl.compileSource(new StreamSource(file));
     }
 
-    public void translate(ElementsStoredItem input, ElementsItemStore output, StorableResourceType outputType, TemplatesHolder translationTemplates) {
+    public void translate(ElementsStoredItemInfo input, ElementsItemStore output, StorableResourceType outputType, TemplatesHolder translationTemplates) {
         translate(input, null, output, outputType, translationTemplates, null);
     }
 
-    public void translate(ElementsStoredItem input, Source inputSource, ElementsItemStore output, StorableResourceType outputType, TemplatesHolder translationTemplates) {
+    public void translate(ElementsStoredItemInfo input, Source inputSource, ElementsItemStore output, StorableResourceType outputType, TemplatesHolder translationTemplates) {
         translate(input, inputSource, output, outputType, translationTemplates, null);
     }
 
-    public void translate(ElementsStoredItem input, ElementsItemStore output, StorableResourceType outputType, TemplatesHolder translationTemplates, Map<String, Object> extraParams) {
+    public void translate(ElementsStoredItemInfo input, ElementsItemStore output, StorableResourceType outputType, TemplatesHolder translationTemplates, Map<String, Object> extraParams) {
         translate(input, null, output, outputType, translationTemplates, extraParams);
     }
 
-    public void translate(ElementsStoredItem input, Source inputSource, ElementsItemStore output, StorableResourceType outputType, TemplatesHolder translationTemplates, Map<String, Object> extraParams) {
+    public void translate(ElementsStoredItemInfo input, Source inputSource, ElementsItemStore output, StorableResourceType outputType, TemplatesHolder translationTemplates, Map<String, Object> extraParams) {
         TranslationServiceImpl.translate(config, input, inputSource, output, outputType, translationTemplates, extraParams);
     }
 

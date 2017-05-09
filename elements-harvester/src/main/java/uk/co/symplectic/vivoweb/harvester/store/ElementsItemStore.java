@@ -18,7 +18,7 @@ import java.io.IOException;
 //import java.util.List;
 
 public interface ElementsItemStore {
-    ElementsStoredItem storeItem(ElementsItemInfo itemInfo, StorableResourceType resourceType, byte[] data) throws IOException;
+    ElementsStoredItemInfo storeItem(ElementsItemInfo itemInfo, StorableResourceType resourceType, byte[] data) throws IOException;
 
 //    class MultiStore implements ElementsItemStore {
 //        List<ElementsItemStore> stores = new ArrayList<ElementsItemStore>();
@@ -30,7 +30,7 @@ public interface ElementsItemStore {
 //        }
 //
 //        @Override
-//        public ElementsStoredItem storeItem(ElementsItemInfo itemInfo, StorableResourceType resourceType, byte[] data) throws IOException {
+//        public ElementsStoredItemInfo storeItem(ElementsItemInfo itemInfo, StorableResourceType resourceType, byte[] data) throws IOException {
 //            for (ElementsItemStore store : stores) {
 //                store.storeItem(itemInfo, resourceType, data);
 //            }
@@ -40,7 +40,7 @@ public interface ElementsItemStore {
 
     interface ElementsDeletableItemStore extends ElementsItemStore{
         //TODO move touch, its not in a good place.
-        ElementsStoredItem touchItem(ElementsItemInfo itemInfo, StorableResourceType resourceType) throws IOException;
+        ElementsStoredItemInfo touchItem(ElementsItemInfo itemInfo, StorableResourceType resourceType) throws IOException;
         void deleteItem(ElementsItemId itemId, StorableResourceType resourceType) throws IOException;
         void cleardown(StorableResourceType resourceType, boolean followObservers) throws IOException;
     }

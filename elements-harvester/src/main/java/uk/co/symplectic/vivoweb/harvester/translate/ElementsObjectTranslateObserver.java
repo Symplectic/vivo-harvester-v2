@@ -9,7 +9,7 @@ package uk.co.symplectic.vivoweb.harvester.translate;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectInfo;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsRdfStore;
-import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItem;
+import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItemInfo;
 import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
 import java.text.MessageFormat;
 
@@ -19,7 +19,7 @@ public class ElementsObjectTranslateObserver extends ElementsTranslateObserver{
     }
 
     @Override
-    protected void observeStoredObject(ElementsObjectInfo info, ElementsStoredItem item) { translate(item, null); }
+    protected void observeStoredObject(ElementsObjectInfo info, ElementsStoredItemInfo item) { translate(item, null); }
 
     @Override
     protected void observeObjectDeletion(ElementsItemId.ObjectId objectId, StorableResourceType type){

@@ -11,7 +11,7 @@ import uk.co.symplectic.vivoweb.harvester.fetch.ElementsItemCollection;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsRelationshipInfo;
-import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItem;
+import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItemInfo;
 import uk.co.symplectic.vivoweb.harvester.store.IElementsStoredItemObserver;
 import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
 
@@ -50,7 +50,7 @@ public class ElementsVivoIncludeMonitor extends IElementsStoredItemObserver.Elem
     public ElementsItemCollection getIncludedItems(){ return includedItems; }
 
     @Override
-    public void observeStoredRelationship(ElementsRelationshipInfo info, ElementsStoredItem item) {
+    public void observeStoredRelationship(ElementsRelationshipInfo info, ElementsStoredItemInfo item) {
         //if invisible relationships should be included or if this relationship is visible we consider including this relationship for now.
         boolean includeRelationship = includeInvisibleLinks || info.getIsVisible();
 

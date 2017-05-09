@@ -14,15 +14,11 @@ import uk.co.symplectic.utils.ExecutorServiceUtils;
 import uk.co.symplectic.utils.ImageUtils;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsUserInfo;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsItemFileStore;
-import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItem;
 import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.concurrent.Callable;
-import java.util.concurrent.Future;
 
 public final class ResourceFetchServiceImpl {
 

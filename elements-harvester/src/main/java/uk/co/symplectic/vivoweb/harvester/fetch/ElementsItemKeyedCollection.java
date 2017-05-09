@@ -13,8 +13,9 @@ import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemInfo;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemType;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsItemStore;
-import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItem;
+import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItemInfo;
 import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
+import uk.co.symplectic.vivoweb.harvester.store.StoredData;
 
 import java.io.IOException;
 import java.text.MessageFormat;
@@ -73,14 +74,14 @@ public abstract class ElementsItemKeyedCollection<T> {
 
     private class StoreWrapper implements ElementsItemStore {
         @Override
-        public ElementsStoredItem storeItem(ElementsItemInfo itemInfo, StorableResourceType resourceType, byte[] data) throws IOException {
+        public ElementsStoredItemInfo storeItem(ElementsItemInfo itemInfo, StorableResourceType resourceType, byte[] data) throws IOException {
             put(itemInfo.getItemId(), getItemToStore(itemInfo, resourceType, data));
             return null;
         }
     }
 
     public interface ItemRestrictor{
-        //checkItemId shuold throw an IllegalStateException if the item key is invalid
+        //checkItemId should throw an IllegalStateException if the item key is invalid
         void checkItemIdIsValid(ElementsItemId itemId);
     }
 
@@ -131,13 +132,13 @@ public abstract class ElementsItemKeyedCollection<T> {
         }
     }
 
-    public static class StoredItem extends ElementsItemKeyedCollection<ElementsStoredItem.InRam>{
+    public static class StoredItem extends ElementsItemKeyedCollection<ElementsStoredItemInfo>{
         public StoredItem(){ super(null); }
         public StoredItem(ItemRestrictor restrictor){ super(restrictor); }
 
         @Override
-        protected ElementsStoredItem.InRam getItemToStore(ElementsItemInfo itemInfo, StorableResourceType resourceType, byte[] data) {
-            return new ElementsStoredItem.InRam(data, itemInfo, resourceType);
+        protected ElementsStoredItemInfo getItemToStore(ElementsItemInfo itemInfo, StorableResourceType resourceType, byte[] data) {
+            return new ElementsStoredItemInfo(itemInfo, resourceType, new StoredData.InRam(data));
         }
     }
 }

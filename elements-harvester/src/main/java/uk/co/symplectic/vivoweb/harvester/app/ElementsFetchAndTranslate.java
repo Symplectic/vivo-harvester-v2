@@ -4,6 +4,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  ******************************************************************************/
+/*******************************************************************************
+ * Copyright (c) 2012 Symplectic Ltd. All rights reserved.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ ******************************************************************************/
 package uk.co.symplectic.vivoweb.harvester.app;
 
 import org.apache.commons.io.FileUtils;
@@ -21,6 +27,7 @@ import uk.co.symplectic.utils.http.HttpClient;
 import uk.co.symplectic.elements.api.ElementsAPIVersion;
 import uk.co.symplectic.translate.TranslationService;
 import uk.co.symplectic.utils.ExecutorServiceUtils;
+import uk.co.symplectic.vivoweb.harvester.config.StateManagement;
 import uk.co.symplectic.vivoweb.harvester.config.Configuration;
 import uk.co.symplectic.vivoweb.harvester.fetch.*;
 import uk.co.symplectic.vivoweb.harvester.model.*;
@@ -36,8 +43,6 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.*;
 import java.text.MessageFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 
@@ -48,39 +53,6 @@ public class ElementsFetchAndTranslate {
      * SLF4J Logger
      */
     final private static Logger log = LoggerFactory.getLogger(ElementsFetchAndTranslate.class);
-
-
-    /**
-     * Date format that is used within state file to keep track of when the last successfully completed run occurred.
-     */
-    final private static SimpleDateFormat lastRunDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
-
-    /**
-     * A descriptor used in the state file if the last attempted harvest was a full that failed..
-     */
-    final private static String failedFullHarvestDescriptor = "FAILED_FULL";
-    final private static String failedReprocessDescriptor = "FAILED_REPROCESS";
-
-
-    /**
-     * StateType keeps track of whether this is an odd or an even run (i.e if this process has been run n times, is n%2 0 or 1)
-     */
-    private enum StateType{
-        ODD,
-        EVEN
-    }
-
-    private enum RunClassification{
-        INITIAL,
-        DELTA,
-        FORCED_FULL,
-        REPROCESSING,
-    }
-
-    private enum PriorRunClassification{
-        FAILED_FULL,
-        FAILED_REPROCESS,
-    }
 
     /**
      * Main entry method for ElementsFetchAndTranslate
@@ -99,14 +71,12 @@ public class ElementsFetchAndTranslate {
     public static void main(String[] args) {
         Throwable caught = null;
 
-        //todo: move to config?
-        File stateFile = new File("state.txt");
+        //todo: move state file location to config?
+        StateManagement stateManager = new StateManagement(new File("state.txt"));
+        //assume default state (initial run of number 0 with no previous errors) until we have read the state file (or failed to...)
+        StateManagement.State state = new StateManagement.State();
 
         boolean begunProcessing = false;
-
-        //assume is an initial run until we have read the state file (or failed to...)
-        RunClassification runClassification = RunClassification.INITIAL;
-
         try {
             LoggingUtils.initialise("eft_logback.xml");
             log.info(MessageFormat.format("running {0}", "ElementsFetchAndTranslate"));
@@ -119,106 +89,37 @@ public class ElementsFetchAndTranslate {
 
             boolean updateLocalTDB = true;
 
-            //when did we start this run (i.e how "up to date" can we claim to be at the end).
-            Date runStartedAt = new Date();
-            //how many times has this process been run?
-            int runCount = 0;
-            //initially we assume there never has been a previous run (or at least we don't know when it was).
-            //TODO: decide if having no prior run should remove any prior loads in the TDB layer..?
-            Date lastRunDate = null;
-
-            //TODO: improve logging about loading state file... improve it when writing it too.
-            PriorRunClassification previousRunClassification = null;
-            BufferedReader reader = null;
-            if(stateFile.exists()) {
-                //if we have a state file and we are not forcing a full, then its a delta.
-                if(forceFullPull) {
-                    runClassification = RunClassification.FORCED_FULL;
-                }
-                else if(reprocessTranslations) {
-                    runClassification = RunClassification.REPROCESSING;
-                }
-                else{
-                    runClassification = RunClassification.DELTA;
-                }
-
-                //runClassification = forceFullPull ? RunClassification.FORCED_FULL : RunClassification.DELTA;
-                try {
-                    reader = new BufferedReader(new InputStreamReader(new FileInputStream(stateFile), "utf-8"));
-                    String str;
-                    int counter = 0;
-                    while ((str = reader.readLine()) != null) {
-                        if (counter == 0) {
-                            //load number of last completed run
-                            runCount = Integer.parseInt(str);
-                            //increment for this run.
-                            runCount++;
-                        } else if (counter == 1) {
-                            lastRunDate = lastRunDateFormat.parse(str);
-                        } else {
-                            if (counter == 2 && str.equals(failedFullHarvestDescriptor)) {
-                                previousRunClassification = PriorRunClassification.FAILED_FULL;
-                            }
-                            if (counter == 2 && str.equals(failedReprocessDescriptor)) {
-                                previousRunClassification = PriorRunClassification.FAILED_REPROCESS;
-                            }
-                            else {
-                                log.warn("state.txt file appears to be corrupt - too many lines detected");
-                                throw new IllegalStateException("state.txt is corrupt");
-                            }
-                        }
-                        counter++;
-                    }
-
-                } catch (IOException e) {
-                    log.warn("Could not successfully load information from state.txt file.");
-                    throw new IllegalStateException("state.txt is corrupt", e);
-                } catch (NumberFormatException e) {
-                    log.warn("Could not successfully load run count from state.txt file. ");
-                    throw new IllegalStateException("state.txt is corrupt", e);
-                } catch (ParseException e) {
-                    log.warn("Could not successfully load last run date from state.txt file. ");
-                    throw new IllegalStateException("state.txt is corrupt", e);
-                } finally {
-                    if (reader != null) reader.close();
-                }
-
-                //regardless of what was requested, if last run was a failed full we must error correct the raw cache.
-                if(previousRunClassification == PriorRunClassification.FAILED_FULL)
-                    runClassification = RunClassification.FORCED_FULL;
-                //if we are planning to do a full, then its irrelevant that last reprocess failed - we will correct the full translated cache
-                //if its a delta then we need to correct the translated cache, so try a reprocess instead.
-                else if(runClassification == RunClassification.DELTA && previousRunClassification == PriorRunClassification.FAILED_REPROCESS){
-                    runClassification = RunClassification.REPROCESSING;
-                }
-            }
+            //load the state from the state file
+            state = stateManager.loadState(forceFullPull, reprocessTranslations);
 
             //test if we have successfully loaded a run count, if not set it to zero and initiate a full;
-            StateType runType = (runCount%2 == 0) ? StateType.EVEN : StateType.ODD;
+            StateManagement.StateType currentRunType = state.getCurrentRunType();
+            StateManagement.RunClassification currentRunClassification = state.getRunClassification();
 
             //if we are pulling all data then we want to force the run to be a full reload of the on disk cache.
-            switch(runClassification){
+            Date pullNewDataSinceDate = null;
+
+            switch(currentRunClassification){
                 case FORCED_FULL:
-                    lastRunDate = null;
-                    if(previousRunClassification == PriorRunClassification.FAILED_FULL){
-                        log.warn("Performing full pull of data to attempt to correct for previous failed harvest run.");
+                    if(state.getPreviousRunClassification() == StateManagement.PriorRunClassification.FAILED_FULL){
+                        log.warn("Performing full pull of data to attempt to correct the raw data cache after a previous full harvest failed.");
                         log.warn("A delta cannot now be run until a full refresh has been completed.");
                     }
                     log.info("Performing forced full pull of data (--full).");
                     break;
                 case REPROCESSING:
-                    if(previousRunClassification == PriorRunClassification.FAILED_FULL){
-                        log.warn("Performing reprocess of cached data to attempt to correct for previous failed reprocessing run.");
+                    if(state.getPreviousRunClassification() == StateManagement.PriorRunClassification.FAILED_REPROCESS){
+                        log.warn("Performing reprocess of cached data to attempt to correct the translated data cache after a previous reprocessing run failed.");
                         log.warn("A delta cannot now be run until either a reprocess or a full refresh has been completed.");
                     }
-                    log.info("Reprocessing all data in cache, to update existing cache with current mappings");
+                    log.info("Reprocessing all data in cache, to update existing translated data cache based on current mappings");
                     break;
                 case INITIAL:
-                    lastRunDate = null; //should be true anyway
                     log.info("Performing initial full pull of data.");
                     break;
                 case DELTA:
-                    log.info(MessageFormat.format("Performing differential pull (processing changes since {0}).", lastRunDateFormat.format(lastRunDate)));
+                    pullNewDataSinceDate = state.getLastRunDate();
+                    log.info(MessageFormat.format("Performing differential pull (processing changes since {0}).", state.getLastRunDateAsString()));
                     break;
                 default:
                     throw new IllegalStateException("Invalid RunClassification");
@@ -238,11 +139,10 @@ public class ElementsFetchAndTranslate {
             //TODO: ensure that configured directories are valid (either already exist or can be created?)
             File interimTdbDirectory = Configuration.getTdbOutputDir();
             interimTdbDirectory.mkdirs();
-            File currentTdbStore = new File(interimTdbDirectory, runType == StateType.EVEN ? "0" : "1");
-            File previousTdbStore = new File(interimTdbDirectory, runType == StateType.ODD ? "0" : "1");
+            File currentTdbStore = new File(interimTdbDirectory, currentRunType == StateManagement.StateType.EVEN ? "0" : "1");
+            File previousTdbStore = new File(interimTdbDirectory, currentRunType == StateManagement.StateType.ODD ? "0" : "1");
 
             log.debug("ElementsFetchAndTranslate: Start");
-
 
 
             if(updateLocalTDB) {
@@ -275,7 +175,7 @@ public class ElementsFetchAndTranslate {
 
                 //TODO: work out how to marshall user photos into a web accessible area in a sensible manner based on included user set...
                 //Hook a photo retrieval observer onto the rdf store so that photos will be fetched and dropped in the object store for any translated users.
-                if(runClassification != RunClassification.REPROCESSING) {
+                if(currentRunClassification != StateManagement.RunClassification.REPROCESSING) {
                     objectStore.addItemObserver(new ElementsUserPhotoRetrievalObserver(elementsAPI, Configuration.getImageType(), objectStore));
                 }
                 else{
@@ -283,7 +183,7 @@ public class ElementsFetchAndTranslate {
                 }
                 //Hook a photo RDF generating observer onto the object store so that any fetched photos have corresponding "rdf" created in the translated output.
                 //TODO: makethis use a configurable image path base.
-                objectStore.addItemObserver(new ElementsUserPhotoRdfGeneratingObserver2(rdfStore, xslFilename, processedImageDir, "/harvestedImages/"));
+                objectStore.addItemObserver(new ElementsUserPhotoRdfGeneratingObserver(rdfStore, xslFilename, processedImageDir, "/harvestedImages/"));
 
 
                 //we are about to start doing things that affect out caches..
@@ -291,29 +191,29 @@ public class ElementsFetchAndTranslate {
 
                 //Now we have wired up all our store observers perform the main fetches
                 //NOTE: order is absolutely vital (relationship translation scripts can rely on raw object data having been fetched)
-                if(runClassification != RunClassification.REPROCESSING){
-                    processObjects(objectStore, elementsFetcher, lastRunDate);
+                if(currentRunClassification != StateManagement.RunClassification.REPROCESSING){
+                    processObjects(objectStore, elementsFetcher, pullNewDataSinceDate);
                     //fetch relationships.
                     //TODO: alter processRelationships call to just do re-processing of the the relevant links when re-pulling is not necessary.. (do based on API version?)
                     //processRelationships(objectStore, elementsFetcher, aDate, true, relationshipTypesNeedingObjectsForTranslation);
-                    processRelationships(objectStore, elementsFetcher, lastRunDate, true, relationshipTypesNeedingObjectsForTranslation);
+                    processRelationships(objectStore, elementsFetcher, pullNewDataSinceDate, true, relationshipTypesNeedingObjectsForTranslation);
                 }
                 else{
-                    reProcessCachedObjects(objectStore);
-                    reProcessCachedRelationships(objectStore);
+                    reprocessCachedItems(objectStore, StorableResourceType.RAW_OBJECT);
+                    reprocessCachedItems(objectStore, StorableResourceType.RAW_RELATIONSHIP);
                 }
 
                 //load the user cache from the now up to date full cache of user definitions on disk ..(they MUST be present)..
                 ElementsItemKeyedCollection.ItemRestrictor restrictToUsers = new ElementsItemKeyedCollection.RestrictToSubTypes(ElementsObjectCategory.USER);
                 ElementsItemKeyedCollection.ItemInfo userInfoCache = new ElementsItemKeyedCollection.ItemInfo(restrictToUsers);
                 for (StoredData.InFile userData : objectStore.getAllExistingFilesOfType(StorableResourceType.RAW_OBJECT, ElementsObjectCategory.USER)) {
-                    ElementsStoredItem userItem = ElementsStoredItem.InFile.loadRawObject(userData.getFile(), userData.isZipped());
+                    ElementsStoredItemInfo userItem = ElementsStoredItemInfo.loadStoredResource(userData, StorableResourceType.RAW_OBJECT);
                     userInfoCache.put(userItem.getItemInfo().getItemId(), userItem.getItemInfo());
                 }
 
                 //Now query the groups, post processing to build a group hierarchy containing users.
                 ElementsGroupCollection groupCache;
-                if(runClassification != RunClassification.REPROCESSING) {
+                if(currentRunClassification != StateManagement.RunClassification.REPROCESSING) {
                     groupCache = new ElementsGroupCollection();
                     elementsFetcher.execute(new ElementsFetch.GroupConfig(), groupCache.getStoreWrapper());
                     groupCache.constructHierarchy();
@@ -332,28 +232,14 @@ public class ElementsFetchAndTranslate {
                 //Wire up the group translation observer...(needs group cache to work out members Ids and included users to get the user info of those members)
                 objectStore.addItemObserver(new ElementsGroupTranslateObserver(rdfStore, xslFilename, groupCache, includedUsers));
 
-                if(runClassification != RunClassification.REPROCESSING) {
+                if(currentRunClassification != StateManagement.RunClassification.REPROCESSING) {
                     //fetch the groups and translate them
                     log.debug("Clearing down old group cache");
                     objectStore.cleardown(StorableResourceType.RAW_GROUP);
                     elementsFetcher.execute(new ElementsFetch.GroupConfig(), objectStore);
                 }
                 else{
-                    log.info("Reprocessing Elements groups from cache");
-                    StorableResourceType type = StorableResourceType.RAW_GROUP;
-                    int counter = 0;
-                    for (StoredData.InFile data : objectStore.getAllExistingFilesOfType(type)) {
-                        ElementsStoredItem item = ElementsStoredItem.InFile.loadRawGroup(data.getFile(), data.isZipped());
-                        try {
-                            objectStore.touchItem(item.getItemInfo(), type);
-                            counter++;
-                            if(counter % 1000 == 0) log.info(MessageFormat.format("{0} groups enqueued for re-processing", counter));
-                        }
-                        catch(IOException e){
-                            log.warn(MessageFormat.format("Error re-processing cached group {0}", item.getItemInfo().getItemId()));
-                        }
-                    }
-                    log.info(MessageFormat.format("Reprocessing complete, {0} groups enqueued for re-processing in total", counter));
+                    reprocessCachedItems(objectStore, StorableResourceType.RAW_GROUP);
                 }
 
                 //Initiate the shutdown of the asynchronous translation engine - note this will actually block until
@@ -373,7 +259,7 @@ public class ElementsFetchAndTranslate {
 
                 int counter = 0;
                 for (StoredData.InFile relData : objectStore.getAllExistingFilesOfType(StorableResourceType.RAW_RELATIONSHIP)) {
-                    ElementsStoredItem relItem = ElementsStoredItem.InFile.loadRawRelationship(relData.getFile(), relData.isZipped());
+                    ElementsStoredItemInfo relItem = ElementsStoredItemInfo.loadStoredResource(relData, StorableResourceType.RAW_RELATIONSHIP);
                     monitor.observe(relItem);
                     counter++;
                     if (counter % 10000 == 0)
@@ -435,37 +321,12 @@ public class ElementsFetchAndTranslate {
             File fragmentStore = new File(interimTdbDirectory, "fragments");
             //FileSplitter splitter = new FileSplitter(fragmentStore);
             FileSplitter splitter = new FileSplitter.NTriplesSplitter(fragmentStore, Configuration.getMaxFragmentFileSize());
-            splitter.split(additionsFile, runStartedAt, FileSplitter.Type.Additions);
-            splitter.split(subtractionsFile, runStartedAt, FileSplitter.Type.Subtractions);
+            splitter.split(additionsFile, state.getCurrentRunStartedAt(), FileSplitter.Type.Additions);
+            splitter.split(subtractionsFile, state.getCurrentRunStartedAt(), FileSplitter.Type.Subtractions);
 
             //if completed successfully manage state file..
-            //TODO: worry about how to handle failures that mean the state file is not updated after the diff phase.
-            boolean stateFileManagementErrorDetected = false;
-            //manage state file
-            BufferedWriter stateWriter = null;
-            try {
-                stateWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(stateFile), "utf-8"));
-                stateWriter.write(Integer.toString(runCount));
-                stateWriter.newLine();
-                if(runClassification != RunClassification.REPROCESSING)
-                    stateWriter.write(lastRunDateFormat.format(runStartedAt));
-                else
-                    stateWriter.write(lastRunDateFormat.format(lastRunDate));
-            }
-            catch(IOException e){
-                stateFileManagementErrorDetected = true;
-            }
-            finally{
-                try {
-                    if(stateWriter != null) stateWriter.close();
-                }catch(IOException e){
-                    stateFileManagementErrorDetected = true;
-                }
-            }
+            stateManager.manageStateForCompleteRun(state);
 
-            if(stateFileManagementErrorDetected){
-                log.error("FATAL ERROR MANAGING STATE FILE - STATE MAY BE IRRETREIVABLY CORRUPT");
-            }
         }
         catch (ConfigParser.UsageException e) {
             caught = e;
@@ -492,67 +353,17 @@ public class ElementsFetchAndTranslate {
             }
 
             if (caught != null) {
-                //if we are specifically in the middle of a full pull that goes wrong, we need to tag our state file to allow for error correction
+                //if we are specifically in the middle of a something that goes wrong, we may need to tag our state file to allow for error correction
                 //if an initial fails there is no state, and thats fine for next attempt
                 //if a delta fails it is safe to leave the file alone (will repull all data from time in current state)
                 //if an error correcting full fails then next time we want to try again to error correct - which we will do with the current state
-                if(begunProcessing && (runClassification == RunClassification.FORCED_FULL || runClassification == RunClassification.REPROCESSING)){
-                    boolean stateFileManagementErrorDetected = false;
-                    //manage state file
-                    BufferedWriter stateWriter = null;
-                    try {
-                        //open state file for appending. = note will never be in a FORCED_FULL run until this error is corrected.
-                        stateWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(stateFile, true), "utf-8"));
-                        stateWriter.newLine();
-                        switch(runClassification){
-                            case FORCED_FULL:
-                                stateWriter.write(failedFullHarvestDescriptor);
-                                break;
-                            case REPROCESSING:
-                                stateWriter.write(failedReprocessDescriptor);
-                                break;
-                        }
-
-                    }
-                    catch(IOException err){
-                        stateFileManagementErrorDetected = true;
-                    }
-                    finally{
-                        try {
-                            if(stateWriter != null) stateWriter.close();
-                        }catch(IOException err){
-                            stateFileManagementErrorDetected = true;
-                        }
-                    }
-                    if(stateFileManagementErrorDetected){
-                        log.error("FATAL ERROR MANAGING STATE FILE - STATE MAY BE IRRETREIVABLY CORRUPT");
-                    }
+                if(begunProcessing){
+                    stateManager.manageStateForIncompleteRun(state);
                 }
-
                 //exit with an error code.
                 System.exit(1);
             }
         }
-    }
-
-    private static void reProcessCachedObjects(ElementsItemFileStore objectStore){
-        log.info("Reprocessing Elements objects from cache");
-        StorableResourceType type = StorableResourceType.RAW_OBJECT;
-        int counter = 0;
-
-        for (StoredData.InFile data : objectStore.getAllExistingFilesOfType(type)) {
-            ElementsStoredItem item = ElementsStoredItem.InFile.loadRawObject(data.getFile(), data.isZipped());
-            try {
-                ElementsItemInfo itemInfo = item.getItemInfo();
-                objectStore.touchItem(itemInfo, type);
-                counter++;
-                if(counter % 1000 == 0) log.info(MessageFormat.format("{0} objects enqueued for re-processing", counter));
-            }
-            catch(IOException e){
-                log.warn(MessageFormat.format("Error re-processing cached objects {0}", item.getItemInfo().getItemId()));
-            }
-        }
-        log.info(MessageFormat.format("Object Reprocessing complete, {0} objects enqueued for re-processing", counter));
     }
 
     private static void processObjects(ElementsItemFileStore objectStore, ElementsFetch elementsFetcher, Date modifiedSince) throws IOException{
@@ -576,22 +387,24 @@ public class ElementsFetchAndTranslate {
         }
     }
 
-    private static void reProcessCachedRelationships(ElementsItemFileStore objectStore){
-        log.info("Reprocessing Elements relationships from cache");
-        StorableResourceType type = StorableResourceType.RAW_RELATIONSHIP;
+
+    private static void reprocessCachedItems(ElementsItemFileStore objectStore, StorableResourceType type){
+        String typeNameForLog = type.getKeyItemType().getName();
+        String pluralTypeNameForLog = type.getKeyItemType().getPluralName();
+        log.info(MessageFormat.format("Reprocessing Elements {0} from cache", pluralTypeNameForLog));
         int counter = 0;
         for (StoredData.InFile data : objectStore.getAllExistingFilesOfType(type)) {
-            ElementsStoredItem item = ElementsStoredItem.InFile.loadRawRelationship(data.getFile(), data.isZipped());
+            ElementsStoredItemInfo item = ElementsStoredItemInfo.loadStoredResource(data, type);
             try {
                 objectStore.touchItem(item.getItemInfo(), type);
                 counter++;
-                if(counter % 1000 == 0) log.info(MessageFormat.format("{0} relationships enqueued for re-processing", counter));
+                if(counter % 1000 == 0) log.info(MessageFormat.format("{0} {1} enqueued for re-processing", counter, pluralTypeNameForLog));
             }
             catch(IOException e){
-                log.warn(MessageFormat.format("Error re-processing cached relationship {0}", item.getItemInfo().getItemId()));
+                log.warn(MessageFormat.format("Error re-processing cached {0} {1}", typeNameForLog, item.getItemInfo().getItemId()));
             }
         }
-        log.info(MessageFormat.format("Reprocessing complete, {0} relationships enqueued for re-processing in total", counter));
+        log.info(MessageFormat.format("Reprocessing complete, {0} {1} enqueued for re-processing in total", counter, pluralTypeNameForLog));
     }
 
     private static void processRelationships(ElementsItemFileStore objectStore, ElementsFetch elementsFetcher, Date modifiedSince,
@@ -620,7 +433,7 @@ public class ElementsFetchAndTranslate {
                 //loop over the current state of our raw object cache (which is up to date on this thread) to establish which relationships are related to the recently modified objects
                 int counter = 0;
                 for (StoredData.InFile relData : objectStore.getAllExistingFilesOfType(StorableResourceType.RAW_RELATIONSHIP)) {
-                    ElementsStoredItem relItem = ElementsStoredItem.InFile.loadRawRelationship(relData.getFile(), relData.isZipped());
+                    ElementsStoredItemInfo relItem = ElementsStoredItemInfo.loadStoredResource(relData, StorableResourceType.RAW_RELATIONSHIP);
                     //check if the object on either side is one that has been modified, if so then flag this relationship as needing re-pulling
                     //TODO: could not do this for user objects? - or is that unsafe?
                     for (ElementsItemId.ObjectId objectId : relItem.getItemInfo().asRelationshipInfo().getObjectIds()) {
@@ -654,7 +467,7 @@ public class ElementsFetchAndTranslate {
                 Set<ElementsItemInfo> relationshipsToReprocess = new HashSet<ElementsItemInfo>();
                 int counter = 0;
                 for (StoredData.InFile relData : objectStore.getAllExistingFilesOfType(StorableResourceType.RAW_RELATIONSHIP)) {
-                    ElementsStoredItem relItem = ElementsStoredItem.InFile.loadRawRelationship(relData.getFile(), relData.isZipped());
+                    ElementsStoredItemInfo relItem = ElementsStoredItemInfo.loadStoredResource(relData, StorableResourceType.RAW_RELATIONSHIP);
                     //if this relationship is of a type we may need to reprocess
                     if (relationshipTypesToReprocess.contains("all") || relationshipTypesToReprocess.contains(relItem.getItemInfo().asRelationshipInfo().getType())) {
                         //check if the object on either side is one that has been modified, if so then flag the relationship as needing re-processing
@@ -688,7 +501,7 @@ public class ElementsFetchAndTranslate {
 
             int counter = 0;
             for (StoredData.InFile data : objectStore.getAllExistingFilesOfType(type)) {
-                ElementsStoredItem item = ElementsStoredItem.InFile.loadRawGroup(data.getFile(), data.isZipped());
+                ElementsStoredItemInfo item = ElementsStoredItemInfo.loadStoredResource(data, StorableResourceType.RAW_GROUP);
                 ElementsGroupInfo groupInfo = item.getItemInfo().asGroupInfo();
                 groupCache.put(item.getItemInfo().getItemId(), new ElementsGroupInfo.GroupHierarchyWrapper(groupInfo));
                 counter++;

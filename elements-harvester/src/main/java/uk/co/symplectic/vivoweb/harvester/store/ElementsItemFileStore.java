@@ -79,7 +79,7 @@ public class ElementsItemFileStore implements ElementsItemStore.ElementsDeletabl
         if(!resourceType.isAppropriateForItem(itemId))  throw new IllegalStateException("resourceType is incompatible with item");
         if(!supportedTypes.contains(resourceType)) throw new IllegalStateException("resourceType is incompatible with store");
         File file = layoutStrategy.getItemFile(dir, itemId, resourceType);
-        //return file == null ? null : new ElementsStoredItem.InFile(file, itemInfo, resourceType, shouldZipResourceFile(resourceType));
+        //return file == null ? null : new ElementsStoredItemInfo.InFile(file, itemInfo, resourceType, shouldZipResourceFile(resourceType));
         return file == null || !file.exists() ? null : new BasicElementsStoredItem(itemId, resourceType, new StoredData.InFile(file, shouldZipResourceFile(resourceType)));
     }
 
@@ -96,12 +96,12 @@ public class ElementsItemFileStore implements ElementsItemStore.ElementsDeletabl
         return data;
     }
 
-    public ElementsStoredItem innerStoreItem(ElementsItemInfo itemInfo, StorableResourceType resourceType, byte[] data, boolean actuallyStoreData) throws IOException{
+    public ElementsStoredItemInfo innerStoreItem(ElementsItemInfo itemInfo, StorableResourceType resourceType, byte[] data, boolean actuallyStoreData) throws IOException{
         //TODO: do something better here with error message?
         if(!resourceType.isAppropriateForItem(itemInfo.getItemId())) throw new IllegalStateException("resourceType is incompatible with item");
         if(!supportedTypes.contains(resourceType)) throw new IllegalStateException("resourceType is incompatible with store");
         File file = layoutStrategy.getItemFile(dir, itemInfo.getItemId(), resourceType);
-        ElementsStoredItem storedItem = new ElementsStoredItem.InFile(file, itemInfo, resourceType, shouldZipResourceFile(resourceType));
+        ElementsStoredItemInfo storedItem = new ElementsStoredItemInfo(itemInfo, resourceType, new StoredData.InFile(file, shouldZipResourceFile(resourceType)));
         if(actuallyStoreData){ store(file, data, zipFiles && resourceType.shouldZip()); }
         else if(!file.exists()){ throw new FileNotFoundException(file.getAbsolutePath()); }
 
@@ -116,12 +116,12 @@ public class ElementsItemFileStore implements ElementsItemStore.ElementsDeletabl
     }
 
     @Override
-    public ElementsStoredItem storeItem(ElementsItemInfo itemInfo, StorableResourceType resourceType, byte[] data) throws IOException{
+    public ElementsStoredItemInfo storeItem(ElementsItemInfo itemInfo, StorableResourceType resourceType, byte[] data) throws IOException{
         return innerStoreItem(itemInfo, resourceType, data, true);
     }
 
     @Override
-    public ElementsStoredItem touchItem(ElementsItemInfo itemInfo, StorableResourceType resourceType) throws IOException{
+    public ElementsStoredItemInfo touchItem(ElementsItemInfo itemInfo, StorableResourceType resourceType) throws IOException{
         return innerStoreItem(itemInfo, resourceType, null, false);
     }
 

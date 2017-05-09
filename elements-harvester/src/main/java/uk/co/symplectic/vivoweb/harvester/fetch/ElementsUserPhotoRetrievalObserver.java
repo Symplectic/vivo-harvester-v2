@@ -38,7 +38,7 @@ public class ElementsUserPhotoRetrievalObserver extends ElementsStoreOutputItemO
     }
 
     @Override
-    protected void observeStoredObject(ElementsObjectInfo info, ElementsStoredItem item) {
+    protected void observeStoredObject(ElementsObjectInfo info, ElementsStoredItemInfo item) {
         if (info instanceof ElementsUserInfo) {
             ElementsUserInfo userInfo = (ElementsUserInfo) info;
             //will do nothing for a photoType of NONE..
@@ -66,7 +66,7 @@ public class ElementsUserPhotoRetrievalObserver extends ElementsStoreOutputItemO
             super(elementsApi, photoType, objectStore);
         }
 
-        protected void observeStoredObject(ElementsObjectInfo info, ElementsStoredItem item) {
+        protected void observeStoredObject(ElementsObjectInfo info, ElementsStoredItemInfo item) {
             if (info instanceof ElementsUserInfo) {
                 ElementsUserInfo userInfo = (ElementsUserInfo) info;
                 if (!StringUtils.isEmpty(userInfo.getPhotoUrl(getPhotoType()))) {

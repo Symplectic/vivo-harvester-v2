@@ -18,7 +18,7 @@ import uk.co.symplectic.vivoweb.harvester.model.ElementsGroupInfo;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsUserInfo;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsRdfStore;
-import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItem;
+import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItemInfo;
 import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -40,7 +40,7 @@ public class ElementsGroupTranslateObserver extends ElementsTranslateObserver {
         this.includedUsers = includedUsers;
     }
     @Override
-    protected void observeStoredGroup(ElementsGroupInfo info, ElementsStoredItem item) {
+    protected void observeStoredGroup(ElementsGroupInfo info, ElementsStoredItemInfo item) {
         Map<String, Object> extraXSLTParameters = new HashMap<String, Object>();
         extraXSLTParameters.put("groupMembers", getGroupMembershipDescription(info));
         translate(item, extraXSLTParameters);
