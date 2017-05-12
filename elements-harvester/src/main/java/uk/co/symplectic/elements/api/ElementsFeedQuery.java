@@ -7,6 +7,7 @@
 package uk.co.symplectic.elements.api;
 
 import org.apache.commons.lang.NullArgumentException;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsItemType;
 
 import java.util.*;
 
@@ -16,14 +17,18 @@ abstract public class ElementsFeedQuery {
     //public int page;
 
     private final boolean fullDetails;
+    private final ElementsItemType itemType;
 
     /**
      *
      * @param fullDetails to request whether the feed contain full object details or reference level information
      */
-    public ElementsFeedQuery(boolean fullDetails)  {
+    public ElementsFeedQuery(ElementsItemType itemType, boolean fullDetails){
+        if(itemType == null) throw new NullArgumentException("itemType");
+        this.itemType = itemType;
         this.fullDetails = fullDetails;
     }
+
 
     /**
      * Should the feed contain full object details
@@ -33,6 +38,9 @@ abstract public class ElementsFeedQuery {
     public boolean getFullDetails() {
         return fullDetails;
     }
+    public ElementsItemType getItemType() { return itemType; }
+    public boolean queryRepresentsDeletedItems() { return false; }
+
 
     /**
      * Call to convert this particular query into a set of URLs using the passed in builder to account for version differences.
@@ -65,8 +73,8 @@ abstract public class ElementsFeedQuery {
 
         public Date getModifiedSince(){return modifiedSince;}
 
-        public DeltaCapable(boolean fullDetails, Date modifiedSince){
-            super(fullDetails);
+        public DeltaCapable(ElementsItemType itemType, boolean fullDetails, Date modifiedSince){
+            super(itemType, fullDetails);
             this.modifiedSince = modifiedSince;
         }
     }

@@ -89,43 +89,41 @@ public class ElementsFetch {
         protected abstract void processItem(S item, byte[] data) throws IOException;
     }
 
-    private static class ItemStoringFilter extends DataProcessingFilter<ElementsItemInfo, XMLEventProcessor.ItemExtractingFilter<ElementsItemInfo>> {
+    private static class ItemProcessingFilter extends DataProcessingFilter<ElementsItemInfo, XMLEventProcessor.ItemExtractingFilter<ElementsItemInfo>> {
 
         protected static final QName outputRootElement = new QName(ElementsAPI.atomNS, "entry");
 
         private final StorableResourceType resourceType;
+        ElementsItemInfo.ExtractionSource extractionSource;
         private final ElementsItemStore objectStore;
+
 
         protected ElementsItemStore getObjectStore(){ return objectStore; }
         protected StorableResourceType getResourceType(){ return resourceType; }
 
-        public ItemStoringFilter(StorableResourceType resourceType, ElementsItemStore objectStore) {
-            this(outputRootElement, resourceType, ElementsItemInfo.ExtractionSource.FEED, objectStore);
+        public ItemProcessingFilter(StorableResourceType resourceType, ElementsItemInfo.ExtractionSource extractionSource, ElementsItemStore objectStore) {
+            this(outputRootElement, resourceType, extractionSource, objectStore);
         }
 
-        protected ItemStoringFilter(QName rootElement, StorableResourceType resourceType, ElementsItemInfo.ExtractionSource source, ElementsItemStore objectStore) {
-            super(rootElement, ElementsItemInfo.getExtractor(resourceType.getKeyItemType(), source, 0), resourceType.getKeyItemType().getPluralName());
+        protected ItemProcessingFilter(QName rootElement, StorableResourceType resourceType, ElementsItemInfo.ExtractionSource extractionSource, ElementsItemStore objectStore) {
+            super(rootElement, ElementsItemInfo.getExtractor(resourceType.getKeyItemType(), extractionSource, 0), resourceType.getKeyItemType().getPluralName());
             if (objectStore == null) throw new NullArgumentException("objectStore");
+            if(resourceType == null) throw new NullArgumentException("resourceType");
+            if(extractionSource == null ) throw new NullArgumentException("extractionSource");
+            else if(extractionSource == ElementsItemInfo.ExtractionSource.DELETED_FEED && !(objectStore instanceof ElementsItemStore.ElementsDeletableItemStore))
+                throw new IllegalArgumentException("objectStore must be an ElementsItemStore.ElementsDeletableItemStore if extraction source is DELETED_FEED");
+
             this.objectStore = objectStore;
             this.resourceType = resourceType;
+            this.extractionSource = extractionSource;
         }
 
         @Override
         protected void processItem(ElementsItemInfo item, byte[] data) throws IOException {
-            getObjectStore().storeItem(item, getResourceType(), data);
-        }
-    }
-
-    private static class ItemDeletingFilter extends ItemStoringFilter {
-        public ItemDeletingFilter(StorableResourceType resourceType, ElementsItemStore objectStore) {
-            super(outputRootElement, resourceType, ElementsItemInfo.ExtractionSource.DELETED_FEED,  objectStore);
-            if(!(objectStore instanceof ElementsItemStore.ElementsDeletableItemStore))
-                throw new IllegalArgumentException("objectStore must be an ElementsItemStore.ElementsDeletableItemStore when instantiating an ItemDeletingFilter");
-        }
-
-        @Override
-        protected void processItem(ElementsItemInfo item, byte[] data) throws IOException {
-            ((ElementsItemStore.ElementsDeletableItemStore) getObjectStore()).deleteItem(item.getItemId(), getResourceType());
+            if(extractionSource == ElementsItemInfo.ExtractionSource.DELETED_FEED)
+                ((ElementsItemStore.ElementsDeletableItemStore) getObjectStore()).deleteItem(item.getItemId(), getResourceType());
+            else
+                getObjectStore().storeItem(item, getResourceType(), data);
         }
     }
 
@@ -145,36 +143,32 @@ public class ElementsFetch {
         public static class DescribedQuery{
             private final ElementsFeedQuery query;
             private final String description;
-            protected final StorableResourceType resourceType;
 
-            protected DescribedQuery(ElementsFeedQuery query, StorableResourceType resourceType, String description){
+            protected DescribedQuery(ElementsFeedQuery query, String description){
                 if(query == null) throw new NullArgumentException("query");
                 if(StringUtils.trimToNull(description) == null) throw new IllegalArgumentException("description cannot be null or empty");
-                if(resourceType == null) throw new NullArgumentException("resourceType");
 
                 this.query = query;
                 this.description = StringUtils.trimToNull(description);
-                this.resourceType = resourceType;
             }
 
-            //public abstract ElementsAPI.APIResponseFilter getExtractor(ElementsItemStore objectStore);
+            protected StorableResourceType getResourceType(){
+                switch(query.getItemType()){
+                    case OBJECT: return StorableResourceType.RAW_OBJECT;
+                    case RELATIONSHIP: return StorableResourceType.RAW_RELATIONSHIP;
+                    case GROUP: return StorableResourceType.RAW_GROUP;
+                    case RELATIONSHIP_TYPE: return StorableResourceType.RAW_RELATIONSHIP_TYPES;
+                    default : throw new IllegalStateException("invalid item type");
+                }
+            }
 
             protected ElementsAPI.APIResponseFilter wrapFilterAsApiResponse(XMLEventProcessor.EventFilter filter){
                 return new ElementsAPI.APIResponseFilter(filter, ElementsAPIVersion.allVersions());
             }
 
             protected ElementsAPI.APIResponseFilter getExtractor(ElementsItemStore objectStore){
-                return wrapFilterAsApiResponse(new ItemStoringFilter(resourceType, objectStore));
-            }
-        }
-
-        public static class DescribedDeletingQuery extends DescribedQuery{
-            public DescribedDeletingQuery(ElementsFeedQuery query, StorableResourceType resourceType, String description){
-                super(query, resourceType, description);
-            }
-
-            protected ElementsAPI.APIResponseFilter getExtractor(ElementsItemStore objectStore){
-                return wrapFilterAsApiResponse(new ItemDeletingFilter(resourceType, objectStore));
+                ElementsItemInfo.ExtractionSource extractionSource = query.queryRepresentsDeletedItems() ? ElementsItemInfo.ExtractionSource.DELETED_FEED : ElementsItemInfo.ExtractionSource.FEED;
+                return wrapFilterAsApiResponse(new ItemProcessingFilter(getResourceType(), extractionSource, objectStore));
             }
         }
     }
@@ -217,12 +211,12 @@ public class ElementsFetch {
 
         private DescribedQuery getQuery(ElementsObjectCategory category, boolean fullDetails) {
             ElementsFeedQuery currentQuery = new ElementsAPIFeedObjectQuery(category, fullDetails, getModifiedSince());
-            return new DescribedQuery(currentQuery, StorableResourceType.RAW_OBJECT, MessageFormat.format("Processing {0}", category.getPlural()));
+            return new DescribedQuery(currentQuery, MessageFormat.format("Processing {0}", category.getPlural()));
         }
 
         private DescribedQuery getDeletedQuery(ElementsObjectCategory category) {
             ElementsFeedQuery currentQuery = new ElementsAPIFeedObjectQuery.Deleted(category, getModifiedSince());
-            return new DescribedDeletingQuery(currentQuery, StorableResourceType.RAW_OBJECT, MessageFormat.format("Processing deleted {0}", category.getPlural()));
+            return new DescribedQuery(currentQuery, MessageFormat.format("Processing deleted {0}", category.getPlural()));
         }
     }
 
@@ -251,12 +245,12 @@ public class ElementsFetch {
 
         private DescribedQuery getQuery(boolean fullDetails){
             ElementsFeedQuery currentQuery = new ElementsAPIFeedRelationshipQuery(fullDetails, getModifiedSince(), relationshipTypesToInclude);
-            return new DescribedQuery(currentQuery, StorableResourceType.RAW_RELATIONSHIP , "Processing relationships");
+            return new DescribedQuery(currentQuery, "Processing relationships");
         }
 
         private DescribedQuery getDeletedQuery(){
             ElementsFeedQuery currentQuery = new ElementsAPIFeedRelationshipQuery.Deleted(getModifiedSince(), relationshipTypesToInclude);
-            return new DescribedDeletingQuery(currentQuery, StorableResourceType.RAW_RELATIONSHIP, "Processing deleted relationships");
+            return new DescribedQuery(currentQuery, "Processing deleted relationships");
         }
     }
 
@@ -277,8 +271,9 @@ public class ElementsFetch {
         @Override
         protected Collection<DescribedQuery> getQueries(boolean fullDetails){
             String description = MessageFormat.format("Re-pulling {0} relationships for modified objects", relationshipsToProcess.size());
-            DescribedQuery query = new DescribedQuery(new ElementsAPIFeedRelationshipQuery.IdList(new HashSet<ElementsItemId.RelationshipId>(relationshipsToProcess)),
-                    StorableResourceType.RAW_RELATIONSHIP, description);
+            DescribedQuery query = new DescribedQuery(
+                    new ElementsAPIFeedRelationshipQuery.IdList(new HashSet<ElementsItemId.RelationshipId>(relationshipsToProcess)), description
+            );
             return Collections.singletonList(query);
         }
     }
@@ -289,7 +284,7 @@ public class ElementsFetch {
 
         @Override
         public Collection<DescribedQuery> getQueries(boolean fullDetails){
-            DescribedQuery query = new DescribedQuery(new ElementsAPIFeedGroupQuery(), StorableResourceType.RAW_GROUP,"Processing groups");
+            DescribedQuery query = new DescribedQuery(new ElementsAPIFeedGroupQuery(),"Processing groups");
             return Collections.singletonList(query);
         }
     }
@@ -305,7 +300,7 @@ public class ElementsFetch {
         @Override
         public Collection<DescribedQuery> getQueries(boolean fullDetails){
             DescribedQuery query = new DescribedQuery(new ElementsAPIFeedObjectQuery.GroupMembershipQuery(groupId),
-                    StorableResourceType.RAW_OBJECT, MessageFormat.format("Processing group membership for group : {0}", groupId));
+                    MessageFormat.format("Processing group membership for group : {0}", groupId));
             return Collections.singletonList(query);
         }
     }
@@ -316,8 +311,7 @@ public class ElementsFetch {
 
         @Override
         public Collection<DescribedQuery> getQueries(boolean fullDetails){
-            DescribedQuery query = new DescribedQuery(new ElementsAPIFeedRelationshipTypesQuery(),
-                    StorableResourceType.RAW_RELATIONSHIP_TYPES, "Processing relationship types");
+            DescribedQuery query = new DescribedQuery(new ElementsAPIFeedRelationshipTypesQuery(), "Processing relationship types");
             return Collections.singletonList(query);
         }
     }

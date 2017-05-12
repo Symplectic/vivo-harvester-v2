@@ -16,6 +16,7 @@ package uk.co.symplectic.elements.api.queries;
 
 import uk.co.symplectic.elements.api.ElementsAPIURLBuilder;
 import uk.co.symplectic.elements.api.ElementsFeedQuery;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsItemType;
 
 import java.util.Collections;
 import java.util.Set;
@@ -24,7 +25,7 @@ public class ElementsAPIFeedRelationshipTypesQuery extends ElementsFeedQuery {
     public ElementsAPIFeedRelationshipTypesQuery(){
         //relationship types resource has no concept of ref/full detail level..
         //relationship types resource is not paginated..
-        super(false);
+        super(ElementsItemType.RELATIONSHIP_TYPE, false);
     }
 
     @Override

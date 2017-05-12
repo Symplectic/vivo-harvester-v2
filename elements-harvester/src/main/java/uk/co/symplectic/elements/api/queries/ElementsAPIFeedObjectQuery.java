@@ -9,6 +9,7 @@ package uk.co.symplectic.elements.api.queries;
 import org.apache.commons.lang.NullArgumentException;
 import uk.co.symplectic.elements.api.ElementsAPIURLBuilder;
 import uk.co.symplectic.elements.api.ElementsFeedQuery;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsItemType;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
 import java.util.*;
 
@@ -29,7 +30,7 @@ public class ElementsAPIFeedObjectQuery extends ElementsFeedQuery.DeltaCapable {
     }
 
     protected ElementsAPIFeedObjectQuery(ElementsObjectCategory category, boolean fullDetails, Date modifiedSince, Collection<Integer> groupsToInclude, boolean explicitMembersOnly) {
-        super(fullDetails, modifiedSince);
+        super(ElementsItemType.OBJECT, fullDetails, modifiedSince);
         if(category == null) throw new NullArgumentException("category");
         this.category = category;
         if(groupsToInclude != null) {
@@ -53,8 +54,6 @@ public class ElementsAPIFeedObjectQuery extends ElementsFeedQuery.DeltaCapable {
         return approvedObjectsOnly;
     }
 
-    public boolean getQueryDeletedObjects(){ return false;}
-
     @Override
     protected Set<String> getUrlStrings(String apiBaseUrl, ElementsAPIURLBuilder builder, int perPage){
         return Collections.singleton(builder.buildObjectFeedQuery(apiBaseUrl, this, perPage));
@@ -67,7 +66,7 @@ public class ElementsAPIFeedObjectQuery extends ElementsFeedQuery.DeltaCapable {
         }
 
         @Override
-        public boolean getQueryDeletedObjects(){ return true;}
+        public boolean queryRepresentsDeletedItems(){ return true;}
     }
 
     //TODO: move these into the app?

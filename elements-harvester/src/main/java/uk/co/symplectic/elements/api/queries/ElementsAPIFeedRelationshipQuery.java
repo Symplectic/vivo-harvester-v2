@@ -9,6 +9,8 @@ package uk.co.symplectic.elements.api.queries;
 import uk.co.symplectic.elements.api.ElementsAPIURLBuilder;
 import uk.co.symplectic.elements.api.ElementsFeedQuery;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsItemType;
+
 import java.util.*;
 
 public class ElementsAPIFeedRelationshipQuery extends ElementsFeedQuery.DeltaCapable {
@@ -19,7 +21,7 @@ public class ElementsAPIFeedRelationshipQuery extends ElementsFeedQuery.DeltaCap
     List<Integer> relationshipTypeIds = new ArrayList<Integer>();
 
     public ElementsAPIFeedRelationshipQuery(boolean fullDetails, Date modifiedSince, Set<ElementsItemId.RelationshipTypeId> relTypeIds) {
-        super(fullDetails, modifiedSince);
+        super(ElementsItemType.RELATIONSHIP, fullDetails, modifiedSince);
         if(relTypeIds != null) {
             for (ElementsItemId.RelationshipTypeId id : relTypeIds) {
                 relationshipTypeIds.add(id.getId());
@@ -28,8 +30,6 @@ public class ElementsAPIFeedRelationshipQuery extends ElementsFeedQuery.DeltaCap
     }
 
     public List<Integer> getRelationshipTypeIds(){ return relationshipTypeIds;}
-
-    public boolean getQueryDeletedObjects(){ return false;}
 
     @Override
     protected Set<String> getUrlStrings(String apiBaseUrl, ElementsAPIURLBuilder builder, int perPage){
@@ -42,7 +42,7 @@ public class ElementsAPIFeedRelationshipQuery extends ElementsFeedQuery.DeltaCap
         }
 
         @Override
-        public boolean getQueryDeletedObjects(){ return true;}
+        public boolean queryRepresentsDeletedItems(){ return true;}
     }
 
     public static class IdList extends ElementsAPIFeedRelationshipQuery{

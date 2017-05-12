@@ -38,7 +38,7 @@ public class ElementsRelationshipInfo extends ElementsItemInfo{
 
         private ElementsRelationshipInfo workspace = null;
 
-        protected Extractor(DocumentLocation location, int maximumAmountExpected){
+        private Extractor(DocumentLocation location, int maximumAmountExpected){
             super(location, maximumAmountExpected);
         }
 
@@ -94,7 +94,7 @@ public class ElementsRelationshipInfo extends ElementsItemInfo{
         if(type == null) throw new IllegalAccessError("typeId has not been initialised");
         return type;
     }
-    public void setType(String type) {
+    private void setType(String type) {
         this.type = type;
     }
 
@@ -106,7 +106,7 @@ public class ElementsRelationshipInfo extends ElementsItemInfo{
         return objectIds.size() == 2;
     }
 
-    public void setIsVisible(boolean isVisible) {
+    private void setIsVisible(boolean isVisible) {
         this.isVisible = isVisible;
     }
 
@@ -126,7 +126,7 @@ public class ElementsRelationshipInfo extends ElementsItemInfo{
         return nonUserIds;
     }
 
-    public void addObjectId(ElementsItemId.ObjectId id) { objectIds.add(id); }
+    private void addObjectId(ElementsItemId.ObjectId id) { objectIds.add(id); }
 
     public List<ElementsItemId.ObjectId> getObjectIds() { return Collections.unmodifiableList(objectIds); }
 }

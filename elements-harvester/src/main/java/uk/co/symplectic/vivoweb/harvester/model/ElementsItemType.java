@@ -26,7 +26,7 @@ public enum ElementsItemType {
     public String getName() { return name; }
     public String getPluralName() {
         return pluralName;
-    } ;
+    }
 
     ElementsItemType(String name) { this(name, name + 's'); }
 

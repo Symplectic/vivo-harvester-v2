@@ -22,7 +22,7 @@ public class ElementsAPIv4_XURLBuilder extends ElementsAPIURLBuilder.GenericBase
     public String buildObjectFeedQuery(String endpointUrl, ElementsAPIFeedObjectQuery feedQuery, int perPage) {
         URLBuilder queryUrl = new URLBuilder(endpointUrl);
 
-        if(feedQuery.getQueryDeletedObjects()){
+        if(feedQuery.queryRepresentsDeletedItems()){
             queryUrl.appendPath("deleted");
         }
 
@@ -54,7 +54,7 @@ public class ElementsAPIv4_XURLBuilder extends ElementsAPIURLBuilder.GenericBase
 
         if (feedQuery.getModifiedSince() != null) {
             String modifiedSinceString = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").format(feedQuery.getModifiedSince());
-            if(feedQuery.getQueryDeletedObjects())
+            if(feedQuery.queryRepresentsDeletedItems())
                 queryUrl.addParam("deleted-since", modifiedSinceString);
             else {
                 queryUrl.addParam("modified-since", modifiedSinceString);
@@ -62,7 +62,7 @@ public class ElementsAPIv4_XURLBuilder extends ElementsAPIURLBuilder.GenericBase
         }
 
         //if we are not querying deleted objects we should order by id (regardless of whether we are doing a delta or a full pull
-        if(!feedQuery.getQueryDeletedObjects()) {
+        if(!feedQuery.queryRepresentsDeletedItems()) {
             //TODO: this needs to exist on the equivalent deleted resource to make things better (really needs to be a continuation token)
             //TODO: also same concepts need extending to relationships and deleted relationships - relationships in particular definitely need it for deleted I think.
             queryUrl.addParam("order-by", "id");
@@ -79,7 +79,7 @@ public class ElementsAPIv4_XURLBuilder extends ElementsAPIURLBuilder.GenericBase
 
         queryUrl.appendPath("relationships");
 
-        if(feedQuery.getQueryDeletedObjects()){
+        if(feedQuery.queryRepresentsDeletedItems()){
             queryUrl.appendPath("deleted");
         }
 
@@ -113,7 +113,7 @@ public class ElementsAPIv4_XURLBuilder extends ElementsAPIURLBuilder.GenericBase
 
         if (feedQuery.getModifiedSince() != null) {
             String modifiedSinceString = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").format(feedQuery.getModifiedSince());
-            if(feedQuery.getQueryDeletedObjects())
+            if(feedQuery.queryRepresentsDeletedItems())
                 queryUrl.addParam("deleted-since", modifiedSinceString);
             else {
                 queryUrl.addParam("modified-since", modifiedSinceString);

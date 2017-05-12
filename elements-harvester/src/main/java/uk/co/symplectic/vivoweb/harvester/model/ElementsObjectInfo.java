@@ -6,9 +6,7 @@
  ******************************************************************************/
 package uk.co.symplectic.vivoweb.harvester.model;
 
-import org.apache.commons.lang.StringUtils;
 import uk.co.symplectic.utils.xml.XMLEventProcessor;
-
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.events.Attribute;

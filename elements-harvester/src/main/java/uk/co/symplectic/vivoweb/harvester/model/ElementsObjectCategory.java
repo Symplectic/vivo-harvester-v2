@@ -8,11 +8,6 @@
  */
 package uk.co.symplectic.vivoweb.harvester.model;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
 public class ElementsObjectCategory extends ElementsItemType.SubType {
 
     public static final ElementsObjectCategory ACTIVITY          = new ElementsObjectCategory("activity", "activities");
@@ -24,10 +19,6 @@ public class ElementsObjectCategory extends ElementsItemType.SubType {
     public static final ElementsObjectCategory USER              = new ElementsObjectCategory("user", "users");
     public static final ElementsObjectCategory TEACHING_ACTIVITY = new ElementsObjectCategory("teaching-activity", "teaching-activities");
     public static final ElementsObjectCategory IMPACT = new ElementsObjectCategory("impact", "impact-records");
-
-//    public static final Collection<ElementsObjectCategory> knownCategories(){
-//        return Collections.unmodifiableCollection(singularMap.values());
-//    };
 
     public static ElementsObjectCategory valueOf(String value) {
         return (ElementsObjectCategory) ElementsItemType.getSubType(ElementsItemType.OBJECT, value);
