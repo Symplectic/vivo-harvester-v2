@@ -7,24 +7,99 @@
 package uk.co.symplectic.vivoweb.harvester.store;
 
 import org.apache.commons.lang.StringUtils;
-import uk.co.symplectic.elements.api.ElementsObjectCategory;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsItemInfo;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsItemType;
 
 import java.io.File;
+import java.io.FilenameFilter;
+import java.util.*;
 
 public class DefaultLayoutStrategy implements LayoutStrategy {
-    @Override
-    public File getObjectFile(File storeDir, ElementsObjectCategory category, String id) {
-        return  getObjectExtraFile(storeDir, category, id, null);
+
+    Map<ElementsItemType, StorableResourceType> mainResourceTypes = new HashMap<ElementsItemType, StorableResourceType>();
+    Set<StorableResourceType> resourceTypesWithOwnDirectory = new HashSet<StorableResourceType>();
+
+    public DefaultLayoutStrategy(){
+        this(null, null);
+    }
+    public DefaultLayoutStrategy(StorableResourceType[] mainResourceTypes, StorableResourceType[] resourceTypesWithOwnDirectory){
+        if(mainResourceTypes != null) {
+            for (StorableResourceType type : mainResourceTypes) {
+                //put returns null if the key currently does not have a value..
+                if (this.mainResourceTypes.put(type.getKeyItemType(), type) != null)
+                    throw new IllegalArgumentException("cannot have multiple mainTypes of the same ElementsItemType in a layoutStrategy");
+            }
+        }
+        if(resourceTypesWithOwnDirectory != null)
+            this.resourceTypesWithOwnDirectory.addAll(Arrays.asList(resourceTypesWithOwnDirectory));
     }
 
     @Override
-    public File getObjectExtraFile(File storeDir, ElementsObjectCategory category, String id, String type) {
+    public File getItemFile(File storeDir, ElementsItemId itemId, StorableResourceType resourceType) {
+        if(mainResourceTypes.containsValue(resourceType))
+            return getObjectExtraFile(storeDir, itemId.getItemDescriptor(), Integer.toString(itemId.getId()), null);
+        if(resourceTypesWithOwnDirectory.contains(resourceType))
+            return getResourceFile(storeDir, itemId.getItemDescriptor(), resourceType.getName(), Integer.toString(itemId.getId()));
+        return getObjectExtraFile(storeDir, itemId.getItemDescriptor(), Integer.toString(itemId.getId()), resourceType.getName());
+    }
+
+    @Override
+    public Collection<File> getAllExistingFilesOfType(File storeDir, StorableResourceType resourceType) {
+        List<File> filesOfType = new ArrayList<File>();
+        for(ElementsItemType.SubType subTypes : ElementsItemType.knownSubTypes(resourceType.getKeyItemType())){
+            filesOfType.addAll(getAllExistingFilesOfType(storeDir, resourceType, subTypes));
+        }
+        return filesOfType;
+    }
+
+    public Collection<File> getAllExistingFilesOfType(File storeDir, StorableResourceType resourceType, ElementsItemType.SubType subType) {
+        if(subType.getMainType() != resourceType.getKeyItemType()) throw new IllegalStateException("requested subtype must match resource item type");
+        List<File> filesOfType = new ArrayList<File>();
+        final String resourceTypeDescriptor = resourceType.getName();
+        String subTypeDescriptor = subType.getSingular();
+        if(resourceTypesWithOwnDirectory.contains(resourceType)){
+            File dir = new File(storeDir, subTypeDescriptor + "-" + resourceTypeDescriptor);
+            if(dir.exists())
+                filesOfType.addAll(Arrays.asList(dir.listFiles()));
+        }
+        if(mainResourceTypes.containsValue(resourceType)){
+            File dir = new File(storeDir, subTypeDescriptor);
+            if(dir.exists()) {
+                filesOfType.addAll(Arrays.asList(dir.listFiles(
+                        new FilenameFilter() {
+                            @Override
+                            public boolean accept(File dir, String name) {
+                                return !name.contains("-");
+                            }
+                        }
+                )));
+            }
+        }
+        else{
+            File dir = new File(storeDir, subTypeDescriptor);
+            if(dir.exists()) {
+                filesOfType.addAll(Arrays.asList(dir.listFiles(
+                        new FilenameFilter() {
+                            @Override
+                            public boolean accept(File dir, String name) {
+                                return name.endsWith("-" + resourceTypeDescriptor);
+                            }
+                        }
+                )));
+            }
+        }
+
+        return filesOfType;
+    }
+
+    private File getObjectExtraFile(File storeDir, String categoryDescriptor, String id, String type) {
         File file = storeDir;
-        if (storeDir == null || category == null) {
+        if (storeDir == null || categoryDescriptor == null) {
             throw new IllegalStateException();
         }
 
-        file = new File(file, category.getSingular());
+        file = new File(file, categoryDescriptor);
         if (!file.exists()) {
             file.mkdirs();
         }
@@ -36,29 +111,14 @@ public class DefaultLayoutStrategy implements LayoutStrategy {
         }
     }
 
-    @Override
-    public File getResourceFile(File storeDir, ElementsObjectCategory category, String resourceLabel, String id) {
+
+    private File getResourceFile(File storeDir, String categoryDescriptor, String resourceLabel, String id) {
         File file = storeDir;
-        if (storeDir == null || category == null) {
+        if (storeDir == null || categoryDescriptor == null) {
             throw new IllegalStateException();
         }
 
-        file = new File(file, category.getSingular() + "-" + resourceLabel);
-        if (!file.exists()) {
-            file.mkdirs();
-        }
-
-        return new File(file, id);
-    }
-
-    @Override
-    public File getRelationshipFile(File storeDir, String id) {
-        File file = storeDir;
-        if (storeDir == null) {
-            throw new IllegalStateException();
-        }
-
-        file = new File(file, "relationship");
+        file = new File(file, categoryDescriptor + "-" + resourceLabel);
         if (!file.exists()) {
             file.mkdirs();
         }
@@ -69,4 +129,5 @@ public class DefaultLayoutStrategy implements LayoutStrategy {
     public String getRootNodeForType(String type) {
         return "entry";
     }
+
 }

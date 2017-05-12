@@ -24,7 +24,7 @@
                 xmlns:svfn="http://www.symplectic.co.uk/vivo/namespaces/functions"
                 xmlns:config="http://www.symplectic.co.uk/vivo/namespaces/config"
                 exclude-result-prefixes="rdf rdfs fn bibo obo vivo vcard foaf score ufVivo vitro api symp svfn config xs"
-        >
+>
 
     <!--
         XSLT for generating VIVO representation of a publication object (journal article, conference preceding, etc.)
@@ -44,14 +44,14 @@
         <!-- Attempt to generate a URI for the publication date object -->
         <xsl:variable name="publicationDateURI" select="concat(svfn:objectURI(.),'-publicationDate')" />
 
-        <!-- Generate the publication date object. Custom XSLT 2 function that takes the current object, the URI for the date, and the field that holds the publication date -->
-        <xsl:variable name="publicationDateObject" select="svfn:renderDateObject(.,$publicationDateURI,svfn:getRecordField(.,'publication-date'))" />
+        <!-- Generate the publication date object. Custom XSLT 2 function that takes the URI for the date, the field that holds the publication date, and what precision you would like to output the date in -->
+        <xsl:variable name="publicationDateObject" select="svfn:renderDateObject($publicationDateURI,svfn:getRecordField(.,'publication-date'), '')" />
 
         <!-- Attempt to generate a URI for the filed date object -->
         <xsl:variable name="filedDateURI" select="concat(svfn:objectURI(.),'-filedDate')" />
 
-        <!-- Generate the filed date object. Custom XSLT 2 function that takes the current object, the URI for the date, and the field that holds the filed date -->
-        <xsl:variable name="filedDateObject" select="svfn:renderDateObject(.,$filedDateURI,svfn:getRecordField(.,'filed-date'))" />
+        <!-- Generate the filed date object. Custom XSLT 2 function that takes the URI for the date, the field that holds the filed date and what precision you would like to output the date in  -->
+        <xsl:variable name="filedDateObject" select="svfn:renderDateObject($filedDateURI,svfn:getRecordField(.,'filed-date'), '')" />
 
         <!-- Attempt to get a journal title for the article -->
         <xsl:variable name="publicationVenueTitle" select="svfn:selectJournalTitle(.)" />
@@ -139,9 +139,9 @@
                     <xsl:when test="$publicationStatus/api:text='Submitted'"><bibo:status rdf:resource="http://vivoweb.org/ontology/core#submitted" /></xsl:when>
                     <xsl:when test="$publicationStatus/api:text='Unpublished'"><bibo:status rdf:resource="http://purl.org/ontology/bibo/unpublished" /></xsl:when>
                 </xsl:choose>
-                <xsl:copy-of select="svfn:renderControlledSubjectLinks($allLabels, 'mesh', $meshDefinedBy)" />
-                <xsl:copy-of select="svfn:renderControlledSubjectLinks($allLabels, 'science-metrix', $scimetDefinedBy)" />
-                <xsl:copy-of select="svfn:renderControlledSubjectLinks($allLabels, 'for', $forDefinedBy)" />
+                <!-- add label links -->
+                <xsl:copy-of select="svfn:renderControlledSubjectLinks(., '')" />
+
             </xsl:with-param>
         </xsl:call-template>
 
@@ -200,20 +200,13 @@
         <xsl:copy-of select="svfn:renderLinksAndExternalPeople($authors, $publicationId, $publicationUri)" />
         <xsl:copy-of select="svfn:renderLinksAndExternalPeople($editors, $publicationId, $publicationUri)" />
 
+        <!-- add label objects -->
         <xsl:choose>
             <xsl:when test="$publicationVenueObject/*">
-                <!-- Link MeSH to publication only -->
-                <xsl:copy-of select="svfn:renderControlledSubjectObjects($allLabels, $publicationUri, '', 'mesh', $meshDefinedBy)" />
-
-                <!-- Link science metrix and for to publication and journal -->
-                <xsl:copy-of select="svfn:renderControlledSubjectObjects($allLabels, $publicationUri, $publicationVenueURI, 'science-metrix', $scimetDefinedBy)" />
-                <xsl:copy-of select="svfn:renderControlledSubjectObjects($allLabels, $publicationUri, $publicationVenueURI, 'for', $forDefinedBy)" />
+                <xsl:copy-of select="svfn:renderControlledSubjectObjects(., $publicationUri, $publicationVenueURI)" />
             </xsl:when>
             <xsl:otherwise>
-                <!-- Link everything to publication only -->
-                <xsl:copy-of select="svfn:renderControlledSubjectObjects($allLabels, $publicationUri, '', 'mesh', $meshDefinedBy)" />
-                <xsl:copy-of select="svfn:renderControlledSubjectObjects($allLabels, $publicationUri, '', 'science-metrix', $scimetDefinedBy)" />
-                <xsl:copy-of select="svfn:renderControlledSubjectObjects($allLabels, $publicationUri, '', 'for', $forDefinedBy)" />
+                <xsl:copy-of select="svfn:renderControlledSubjectObjects(., $publicationUri, '')" />
             </xsl:otherwise>
         </xsl:choose>
     </xsl:template>
@@ -221,9 +214,6 @@
     <!-- ====================================================
          XSLT Function Library
          ==================================================== -->
-
-    <!-- Read the publication types XML configuration file -->
-    <xsl:variable name="publication-types" select="document('elements-to-vivo-config-publication-types.xml')//config:publication-types" />
 
     <!-- Get publication type statements from the XML configuration (for the type supplied as a parameter) -->
     <xsl:function name="svfn:getTypesForPublication">
@@ -267,36 +257,77 @@
     <!-- Select the journal title for the publication. Delegates to an internal function for iteration -->
     <xsl:function name="svfn:selectJournalTitle">
         <xsl:param name="object" />
-        <xsl:copy-of select="string(svfn:_selectJournalTitle($object, 1))" />
+        <!--<xsl:copy-of select="string(svfn:_selectAuthorityJournalTitle($object, 1))" />-->
+        <xsl:variable name="authority-title">
+            <xsl:copy-of select="string(svfn:_selectAuthorityJournalTitle($object, 1))" />
+        </xsl:variable>
+        <xsl:choose>
+            <xsl:when test="$authority-title != ''"><xsl:value-of select="$authority-title" /></xsl:when>
+            <xsl:otherwise><xsl:copy-of select="string(svfn:_selectRecordJournalTitle($object, 1))" /></xsl:otherwise>
+        </xsl:choose>
     </xsl:function>
 
     <!-- Iterating function to select the most appropriate journal title -->
-    <xsl:function name="svfn:_selectJournalTitle">
+    <xsl:function name="svfn:_selectAuthorityJournalTitle">
+        <xsl:param name="object" />
+        <xsl:param name="position" as="xs:integer" />
+        <xsl:variable name="current-precedence" select="$journal-precedence/config:journal-authority-precedences/config:journal-authority-precedence[$position]" />
+        <!-- Ensure that we haven't reached the end of the precedence settings -->
+        <xsl:choose>
+            <xsl:when test="$current-precedence">
+                <xsl:choose>
+                    <!-- If the precedence is for an authority record, and we have that authority record in the API feed, use the journal title in the preferred authority source -->
+                    <xsl:when test="$object/api:journal/api:records/api:record[@source-name=$current-precedence]/api:title">
+                        <xsl:value-of select="$object/api:journal/api:records/api:record[@source-name=$current-precedence]/api:title" />
+                    </xsl:when>
+                    <!-- No title found for the current precedence setting, try again with the next entry -->
+                    <xsl:otherwise>
+                        <xsl:copy-of select="svfn:_selectAuthorityJournalTitle($object, $position+1)" />
+                    </xsl:otherwise>
+                </xsl:choose>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:if test="$journal-precedence/config:journal-authority-precedences/@use-unlisted-sources != 'false'">
+                    <xsl:value-of select="$object/api:journal/api:records/api:record[1]/api:title" />
+                </xsl:if>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:function>
+
+    <xsl:function name="svfn:_selectRecordJournalTitle">
         <xsl:param name="object" />
         <xsl:param name="position" as="xs:integer" />
 
+        <xsl:variable name="current-precedence" select="$journal-precedence/config:journal-record-precedences/config:journal-record-precedence[$position]" />
         <!-- Ensure that we haven't reached the end of the precedence settings -->
-        <xsl:if test="$journal-precedence[$position]">
-            <xsl:choose>
-                <!-- If the precedence is for an authority record, and we have that authority record in the API feed, use the journal title in the preferred authority source -->
-                <xsl:when test="$journal-precedence[$position]/@type='authority' and $object/api:journal/api:records/api:record[@source-name=$journal-precedence[$position]]/api:title">
-                    <xsl:value-of select="$object/api:journal/api:records/api:record[@source-name=$journal-precedence[$position]]/api:title" />
-                </xsl:when>
-                <!-- If the precedence if for a record value from a specific field, use that value if it exists -->
-                <xsl:when test="$journal-precedence[$position]/@type='record' and $object/api:records/api:record[@source-name=$journal-precedence[$position]]/api:native/api:field[@name=$journal-precedence[$position]/@field]/api:text">
-                    <xsl:value-of select="$object/api:records/api:record[@source-name=$journal-precedence[$position]]/api:native/api:field[@name=$journal-precedence[$position]/@field]/api:text" />
-                </xsl:when>
-                <!-- If the precedence if for a record value from a field called 'journal', use that value if it exists -->
-                <xsl:when test="$journal-precedence[$position]/@type='record' and $object/api:records/api:record[@source-name=$journal-precedence[$position]]/api:native/api:field[@name='journal']/api:text">
-                    <xsl:value-of select="$object/api:records/api:record[@source-name=$journal-precedence[$position]]/api:native/api:field[@name='journal']/api:text" />
-                </xsl:when>
-                <!-- No title found for the current precedence setting, try again with the next entry -->
-                <xsl:otherwise>
-                    <xsl:copy-of select="svfn:_selectJournalTitle($object, $position+1)" />
-                </xsl:otherwise>
-            </xsl:choose>
-        </xsl:if>
+        <xsl:choose>
+            <xsl:when test="$current-precedence">
+                <xsl:variable name="field-name-to-use">
+                    <xsl:choose>
+                        <xsl:when test="$current-precedence/@field"><xsl:value-of select="$current-precedence/@field" /></xsl:when>
+                        <xsl:otherwise><xsl:value-of select="'journal'" /></xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
+                <xsl:choose>
+                    <!-- If the precedence if for a record value from a specific field, use that value if it exists -->
+                    <xsl:when test="$object/api:records/api:record[@source-name=$current-precedence]/api:native/api:field[@name=$field-name-to-use]/api:text">
+                        <xsl:value-of select="$object/api:records/api:record[@source-name=$current-precedence]/api:native/api:field[@name=$field-name-to-use]/api:text" />
+                    </xsl:when>
+                    <!-- No title found for the current precedence setting, try again with the next entry -->
+                    <xsl:otherwise>
+                        <xsl:copy-of select="svfn:_selectRecordJournalTitle($object, $position+1)" />
+                    </xsl:otherwise>
+                </xsl:choose>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:if test="$journal-precedence/config:journal-record-precedences/@use-unlisted-sources != 'false'">
+                    <xsl:variable name="default-precedence-field" select = "svfn:getRecordField($object,'journal')" />
+                    <xsl:value-of select="$default-precedence-field/api:text" />
+                </xsl:if>
+            </xsl:otherwise>
+        </xsl:choose>
     </xsl:function>
+
 
     <!-- Render the RDF object for the publication venue (journal) -->
     <xsl:function name="svfn:renderPublicationVenueObject">
@@ -316,8 +347,8 @@
                     <vivo:publicationVenueFor rdf:resource="{$publicationURI}" />
                     <xsl:copy-of select="svfn:renderPropertyFromField($object,'bibo:issn','issn')" />
                     <xsl:copy-of select="svfn:renderPropertyFromField($object,'bibo:eissn','eissn')" />
-                    <xsl:copy-of select="svfn:renderControlledSubjectLinks($allLabels, 'science-metrix', $scimetDefinedBy)" />
-                    <xsl:copy-of select="svfn:renderControlledSubjectLinks($allLabels, 'for', $forDefinedBy)" />
+                    <!-- add label links-->
+                    <xsl:copy-of select="svfn:renderControlledSubjectLinks($object, 'issn-inferred')" />
                 </xsl:with-param>
             </xsl:call-template>
         </xsl:if>
@@ -326,14 +357,14 @@
     <xsl:function name="svfn:renderConferenceObject">
         <xsl:param name="object" />
         <xsl:param name="conferenceObjectURI" as="xs:string" />
-        <xsl:param name="conferenceName" as="xs:string" />
+        <xsl:param name="confName" as="xs:string" />
         <xsl:param name="publicationURI" as="xs:string" />
 
-        <xsl:if test="$conferenceName">
+        <xsl:if test="$confName">
             <xsl:call-template name="render_rdf_object">
                 <xsl:with-param name="objectURI" select="$conferenceObjectURI" />
                 <xsl:with-param name="rdfNodes">
-                    <rdfs:label><xsl:value-of select="$conferenceName" /></rdfs:label>
+                    <rdfs:label><xsl:value-of select="$confName" /></rdfs:label>
                     <rdf:type rdf:resource="http://purl.org/ontology/bibo/Conference"/>
                     <bibo:presents rdf:resource="{$publicationURI}" />
                     <!-- obo:RO_0001025 rdf:resource="" / --><!-- location -->

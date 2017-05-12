@@ -6,26 +6,24 @@
  ******************************************************************************/
 package uk.co.symplectic.translate;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.NullArgumentException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.co.symplectic.utils.ExecutorServiceUtils;
-import uk.co.symplectic.vivoweb.harvester.config.Configuration;
+import uk.co.symplectic.vivoweb.harvester.store.ElementsItemStore;
+import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItemInfo;
+import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
 
-import javax.xml.transform.ErrorListener;
-import javax.xml.transform.Result;
-import javax.xml.transform.Source;
-import javax.xml.transform.Templates;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerConfigurationException;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.TransformerFactoryConfigurationError;
+import javax.xml.transform.*;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.text.MessageFormat;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.Future;
 
 /**
  * Static implementation of an Executor based translation service.
@@ -37,7 +35,7 @@ import java.util.concurrent.Future;
 final class TranslationServiceImpl {
     private static final Logger log = LoggerFactory.getLogger(TranslationServiceImpl.class);
 
-    private static final ExecutorServiceUtils.ExecutorServiceWrapper wrapper = ExecutorServiceUtils.newFixedThreadPool("TranslationService");
+    private static final ExecutorServiceUtils.ExecutorServiceWrapper<Boolean> wrapper = ExecutorServiceUtils.newFixedThreadPool("TranslationService");
 
     private TranslationServiceImpl() {}
 
@@ -50,207 +48,227 @@ final class TranslationServiceImpl {
         }
     }
 
-    static TransformerFactory getFactory() {
+    private static TransformerFactory getFactory() {
         TransformerFactory factory = null;
         try {
             factory =  TransformerFactory.newInstance("net.sf.saxon.TransformerFactoryImpl", null);
         } catch (TransformerFactoryConfigurationError transformerFactoryConfigurationError) {
-            log.warn("Unable to obtain Saxon XSLT factory. Attempting fallback to default.", transformerFactoryConfigurationError);
-        }
-
-        if (null == factory) {
-            factory = TransformerFactory.newInstance();
+            log.error("Unable to obtain Saxon XSLT factory.", transformerFactoryConfigurationError);
         }
 
         if (null == factory) {
             throw new IllegalStateException("Unable to obtain a TransformerFactory instance");
         }
-
         return factory;
     }
 
-    static void translate(TranslationServiceConfig config, File input, File output, TemplatesHolder translationTemplates, PostTranslateCallback callback) {
-        Future<Boolean> result = wrapper.submit(new TranslateTask(config, input, output, translationTemplates, callback));
+    static void translate(TranslationServiceConfig config, ElementsStoredItemInfo input, Source inputSource, ElementsItemStore output, StorableResourceType outputType, TemplatesHolder translationTemplates, Map<String, Object> extraParams) {
+        wrapper.submit(new ItemTranslateTask(config, input, inputSource, output, outputType, translationTemplates, extraParams));
     }
 
-    static void translate(TranslationServiceConfig config, InputStream inputStream, OutputStream outputStream, TemplatesHolder translationTemplates, PostTranslateCallback callback) {
-        Future<Boolean> result = wrapper.submit(new TranslateTask(config, inputStream, outputStream, translationTemplates, callback));
+    static void awaitShutdown() {
+        wrapper.awaitShutdown();
     }
 
-    static class TranslateTask implements Callable<Boolean> {
-        private File inputFile = null;
-        private File outputFile = null;
 
-        private InputStream inputStream = null;
-        private OutputStream outputStream = null;
+    static abstract class AbstractTranslateTask implements Callable<Boolean>{
 
-        private TemplatesHolder templates;
+        private final TemplatesHolder translationTemplates;
+        //TODO: unstitch config layer?
+        private final TranslationServiceConfig config;
+        private final Map<String, Object> extraParams;
 
-        private PostTranslateCallback postTranslateCallback;
+        protected abstract Source getInputSource() throws IOException;
+        protected abstract String getInputDescription();
 
-        private TranslationServiceConfig config;
+        protected abstract void storeOutput(byte[] translatedData) throws IOException;
+        protected abstract String getOutputDescription();
 
-        TranslateTask(TranslationServiceConfig config, InputStream inputStream, OutputStream outputStream, TemplatesHolder translationTemplates, PostTranslateCallback callback) {
-            this.config = config == null ? new TranslationServiceConfig() : config;
-            this.inputFile = null;
-            this.outputFile = null;
-            this.inputStream  = inputStream;
-            this.outputStream = outputStream;
-            this.templates = translationTemplates;
-            this.postTranslateCallback = callback;
+        AbstractTranslateTask(TranslationServiceConfig config, TemplatesHolder translationTemplates, Map<String, Object> extraParams) {
+            if(translationTemplates == null) throw new NullArgumentException("translationTemplates");
+            if(config == null) throw new NullArgumentException("config");
+
+            this.translationTemplates = translationTemplates;
+            this.config = config;
+            this.extraParams = extraParams;
         }
 
-        TranslateTask(TranslationServiceConfig config, File input, File output, TemplatesHolder translationTemplates, PostTranslateCallback callback) {
-            this.config = config == null ? new TranslationServiceConfig() : config;
-            this.inputFile = input;
-            this.outputFile = output;
-            this.templates = translationTemplates;
-            this.postTranslateCallback = callback;
-        }
-
-        @Override
         public Boolean call() throws Exception {
             Boolean retCode = Boolean.TRUE;
-            Exception caughtException = null;
+            Source xmlSource = null;
 
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            Source xmlSource = new StreamSource(getInputStream());
-            Result outputResult = new StreamResult(baos);
+            boolean tolerateIOErrors = config.getTolerateIndividualIOErrors();
+            boolean tolerateTransformErrors = config.getTolerateIndividualTransformErrors();
 
             try {
-                String baseURI = Configuration.getBaseURI();
-                String rawDir = Configuration.getRawOutputDir();
-
-                Transformer transformer = templates.getTemplates().newTransformer();
-                transformer.setErrorListener(new TranslateTaskErrorListener(config));
-
-                if (!StringUtils.isEmpty(baseURI)) {
-                    try { transformer.setParameter("baseURI", baseURI); } catch (RuntimeException re) { }
-                }
-
-                if (!StringUtils.isEmpty(rawDir)) {
-                    try { transformer.setParameter("recordDir", rawDir); } catch (RuntimeException re) { }
-                }
-
-                transformer.transform(xmlSource, outputResult);
-
-                String xml = baos.toString("utf-8");
-                if (!Configuration.getUseFullUTF8()) {
-                    xml = xml.replaceAll("[^\\u0000-\\uFFFF]", "\uFFFD");
-                }
-                getOutputStream().write(xml.getBytes("utf-8"));
-
-                if (outputStream != null) {
-                    outputStream.flush();
-                }
+                xmlSource = getInputSource();
             } catch (IOException e) {
-                log.error("Unable to write to output stream", e);
-                caughtException = e;
+                log.error(MessageFormat.format("Unable to open input stream on {0}", getInputDescription()), e);
+                if (!tolerateIOErrors) throw e;
+                //otherwise
                 retCode = Boolean.FALSE;
-            } catch (TransformerException e) {
-                if (inputFile != null) {
-                    log.error("Unable to perform translation on " + inputFile.getAbsolutePath(), e);
-                } else {
-                    log.error("Unable to perform translation", e);
-                }
-                caughtException = e;
-                retCode = Boolean.FALSE;
-            } finally {
-                IOException caughtIOException = null;
-                try { releaseInputStream(); } catch (IOException e) { caughtIOException = e; }
-                try { releaseOutputStream(); } catch (IOException e) { caughtIOException = e; }
-
-                if (postTranslateCallback != null) {
-                    if (retCode) {
-                        postTranslateCallback.translationSuccess();
-                    } else {
-                        postTranslateCallback.translationFailure(caughtException);
-                    }
-                }
-
-                if (caughtIOException != null) {
-                    throw caughtIOException;
-                }
             }
 
+            if (xmlSource != null) {
+                try {
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    StreamResult outputResult = new StreamResult(baos);
+
+                    Transformer transformer = translationTemplates.getTemplates().newTransformer();
+                    transformer.setErrorListener(new TranslateTaskErrorListener(config));
+
+                    Map<String, Object> parameters = new HashMap<String, Object>();
+                    parameters.putAll(config.getXslParameters());
+                    if(extraParams != null) parameters.putAll(extraParams);
+
+                    for (String key : parameters.keySet()) {
+                        try {
+                            transformer.setParameter(key, parameters.get(key));
+                        } catch (RuntimeException re) {
+                            //TODO : handle better here?
+                        }
+                    }
+
+                    transformer.transform(xmlSource, outputResult);
+
+                    String xml = baos.toString("utf-8");
+                    if (!config.getUseFullUTF8()) {
+                        xml = xml.replaceAll("[^\\u0000-\\uFFFF]", "\uFFFD");
+                    }
+
+                    //work around saxon oddness
+                    if(xml.equals("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")) {
+                        storeOutput(null);
+//                        log.info(MessageFormat.format("no translated output for item {0}", inputItem.getItemInfo().getItemId()));
+                    }
+                    else {
+                        storeOutput(xml.getBytes("utf-8"));
+                    }
+
+                } catch (IOException e) {
+                    log.error(MessageFormat.format("Unable to write to {0}", getOutputDescription()), e);
+                    if (!tolerateIOErrors) throw e;
+                    retCode = Boolean.FALSE;
+                } catch (TransformerException e) {
+                    log.error(MessageFormat.format("Unable to perform translation on {0}", getInputDescription()), e);
+                    if (!tolerateTransformErrors) throw e;
+                    retCode = Boolean.FALSE;
+                }
+                finally {
+                    try {
+                        if(xmlSource instanceof StreamSource) {
+                            ((StreamSource) xmlSource).getInputStream().close();
+                        }
+                    } catch (IOException e) {
+                        log.error(MessageFormat.format("Unable to close input stream on {0}", getInputDescription()), e);
+                        if (!tolerateIOErrors) throw e;
+                        retCode = Boolean.FALSE;
+                    }
+                }
+            }
             return retCode;
         }
 
-        private InputStream getInputStream() {
-            if (inputStream != null) {
-                return inputStream;
-            } else if (inputFile != null) {
-                try {
-                    inputStream = new BufferedInputStream(new FileInputStream(inputFile));
-                    return inputStream;
-                } catch (IOException e) {
-                    throw new IllegalStateException("Unable to open input stream", e);
+        //TODO : remove this entirely?
+        private class TranslateTaskErrorListener implements ErrorListener {
+            TranslationServiceConfig config;
+
+            TranslateTaskErrorListener(TranslationServiceConfig config) {
+                this.config = config == null ? new TranslationServiceConfig() : config;
+            }
+
+            @Override
+            public void warning(TransformerException exception) throws TransformerException {
+                throw exception;
+            }
+
+            @Override
+            public void error(TransformerException exception) throws TransformerException {
+                Throwable cause = exception.getCause();
+                if (config.getIgnoreFileNotFound() && cause instanceof FileNotFoundException) {
+                    log.trace("Ignoring file not found in transform");
+                } else {
+                    log.error("Transformer Exception", exception);
+                    throw exception;
                 }
             }
 
-            return null;
-        }
-
-        private OutputStream getOutputStream() {
-            if (outputStream != null) {
-                return outputStream;
-            } else if (outputFile != null) {
-                try {
-                    outputStream = new BufferedOutputStream(new FileOutputStream(outputFile));
-                    return outputStream;
-                } catch (IOException e) {
-                    throw new IllegalStateException("Unable to open output stream", e);
-                }
-            }
-
-            return null;
-        }
-
-        private void releaseInputStream() throws IOException {
-            if (inputFile != null && inputStream != null) {
-                inputStream.close();
-                inputStream = null;
-            }
-        }
-
-        private void releaseOutputStream() throws IOException {
-            if (outputFile != null && outputStream != null) {
-                outputStream.close();
-                outputStream = null;
-            }
-        }
-    }
-
-    static void shutdown() {
-        wrapper.shutdown();
-    }
-
-    private static class TranslateTaskErrorListener implements ErrorListener {
-        TranslationServiceConfig config;
-
-        TranslateTaskErrorListener(TranslationServiceConfig config) {
-            this.config = config == null ? new TranslationServiceConfig() : config;
-        }
-
-        @Override
-        public void warning(TransformerException exception) throws TransformerException {
-            throw exception;
-        }
-
-        @Override
-        public void error(TransformerException exception) throws TransformerException {
-            Throwable cause = exception.getCause();
-            if (config.getIgnoreFileNotFound() && cause instanceof FileNotFoundException) {
-                log.trace("Ignoring file not found in transform");
-            } else {
-                log.error("Transformer Exception", exception);
+            @Override
+            public void fatalError(TransformerException exception) throws TransformerException {
                 throw exception;
             }
         }
+    }
+
+    static class ItemTranslateTask extends AbstractTranslateTask{
+
+        private final ElementsStoredItemInfo inputItem;
+        private final Source inputSource;
+        private final ElementsItemStore outputStore;
+        private final StorableResourceType outputType;
 
         @Override
-        public void fatalError(TransformerException exception) throws TransformerException {
-            throw exception;
+        protected Source getInputSource() throws IOException{
+            if(inputSource != null)
+                return inputSource;
+            return new StreamSource(inputItem.getInputStream());
         }
-    };
+
+        @Override
+        protected String getInputDescription(){
+            return inputItem.getItemInfo().getItemId().toString();
+        }
+
+        @Override
+        protected void storeOutput(byte[] translatedData) throws IOException{
+            outputStore.storeItem(inputItem.getItemInfo(), outputType, translatedData);
+        }
+
+        @Override
+        protected String getOutputDescription(){return "RDF store";}
+
+        ItemTranslateTask(TranslationServiceConfig config, ElementsStoredItemInfo inputItem, Source inputSource, ElementsItemStore outputStore,
+                          StorableResourceType outputType, TemplatesHolder translationTemplates, Map<String, Object> extraParams) {
+            super(config, translationTemplates, extraParams);
+            if(inputItem == null) throw new NullArgumentException("inputItem");
+            if(outputStore == null) throw new NullArgumentException("outputStore");
+            if(outputType == null) throw new NullArgumentException("outputType");
+            if(inputItem.getResourceType().getKeyItemType() != outputType.getKeyItemType()) throw new IllegalArgumentException("outputType must be compatible with input item type");
+
+            this.inputItem = inputItem;
+            this.inputSource = inputSource;
+            this.outputStore = outputStore;
+            this.outputType = outputType;
+        }
+
+        //TODO : remove this entirely?
+        private class TranslateTaskErrorListener implements ErrorListener {
+            TranslationServiceConfig config;
+
+            TranslateTaskErrorListener(TranslationServiceConfig config) {
+                this.config = config == null ? new TranslationServiceConfig() : config;
+            }
+
+            @Override
+            public void warning(TransformerException exception) throws TransformerException {
+                throw exception;
+            }
+
+            @Override
+            public void error(TransformerException exception) throws TransformerException {
+                Throwable cause = exception.getCause();
+                if (config.getIgnoreFileNotFound() && cause instanceof FileNotFoundException) {
+                    log.trace("Ignoring file not found in transform");
+                } else {
+                    log.error("Transformer Exception", exception);
+                    throw exception;
+                }
+            }
+
+            @Override
+            public void fatalError(TransformerException exception) throws TransformerException {
+                throw exception;
+            }
+        }
+    }
 }

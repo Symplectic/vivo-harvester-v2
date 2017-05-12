@@ -9,15 +9,17 @@ package uk.co.symplectic.vivoweb.harvester.store;
 import uk.co.symplectic.vivoweb.harvester.config.Configuration;
 
 public class ElementsStoreFactory {
-    private static ElementsObjectStore objectStore = null;
+    private static ElementsItemFileStore objectStore = null;
     private static ElementsRdfStore rdfStore = null;
 
-    public static ElementsObjectStore getObjectStore() {
+    public static ElementsItemFileStore getObjectStore() {
         if (objectStore != null) {
             return objectStore;
         } else {
             synchronized (ElementsStoreFactory.class) {
-                return objectStore != null ? objectStore : (objectStore = new ElementsObjectStore(Configuration.getRawOutputDir()));
+                if (objectStore == null)
+                    objectStore = new ElementsItemFileStore.ElementsRawDataStore(Configuration.getRawOutputDir(), false, Configuration.getZipFiles());
+                return objectStore;
             }
         }
     }
@@ -27,7 +29,9 @@ public class ElementsStoreFactory {
             return rdfStore;
         } else {
             synchronized (ElementsStoreFactory.class) {
-                return rdfStore != null ? rdfStore : (rdfStore = new ElementsRdfStore(Configuration.getRdfOutputDir()));
+                if(rdfStore == null)
+                    rdfStore = new ElementsRdfStore(Configuration.getRdfOutputDir(), false, Configuration.getZipFiles());
+                return rdfStore;
             }
         }
     }

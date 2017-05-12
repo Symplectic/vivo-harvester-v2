@@ -6,13 +6,23 @@
  ******************************************************************************/
 package uk.co.symplectic.elements.api;
 
-abstract class ElementsFeedQuery {
-    private boolean fullDetails = false;
-    private boolean processAllPages = false;
-    private int perPage = -1;
+import org.apache.commons.lang.NullArgumentException;
 
-    ElementsFeedQuery() {
-        super();
+import java.util.*;
+
+abstract public class ElementsFeedQuery {
+
+    //occasionally useful hack for testing.
+    //public int page;
+
+    private final boolean fullDetails;
+
+    /**
+     *
+     * @param fullDetails to request whether the feed contain full object details or reference level information
+     */
+    public ElementsFeedQuery(boolean fullDetails)  {
+        this.fullDetails = fullDetails;
     }
 
     /**
@@ -25,47 +35,70 @@ abstract class ElementsFeedQuery {
     }
 
     /**
-     * Number of records per page in the feed
-     *
-     * @return An integer, 0 or below uses the feed default
+     * Call to convert this particular query into a set of URLs using the passed in builder to account for version differences.
+     * Will normally just return a single url, but in the general case could be a set.
+     * @param apiBaseUrl the base url of the api you want to query
+     * @param builder an api version specific builder that knows how to construct different types of query URL.
+     * @return : a QueryIterator that will loop through all the queries that are need to be made to the API to process this FeedQuery
      */
-    public int getPerPage() {
-        return perPage;
+    QueryIterator getQueryIterator(String apiBaseUrl, ElementsAPIURLBuilder builder, ElementsAPI.ProcessingOptions options) {
+        Set<String> urls = getUrlStrings(apiBaseUrl, builder, options.getPerPage());
+        return new QueryIterator(options, urls);
     }
 
     /**
-     * For a query that goes over multiple pages, should all the pages be processed
-     *
-     * @return true to process all pages, false to only process the first
+     * Call to convert this particular query into (generically) a set of URLs to be fetched
+     * Note: each URL in the set may need to have several pages fetched to retrieve all the data for that query.
+     * uses the passed in builder to account for version differences.
+     * @param apiBaseUrl the base url of the api you want to query
+     * @param builder an api version specific builder that knows how to construct different types of query URL.
+     * @param perPage the number of items to retrieve per page (not always used by the builder).
+     * @return a set of strings that describe the distinct queries that need to be made to complete this feedquery
+     *         note that each query in the set may have multiple pages that need to be fetched (this is covered by the query iterator)
      */
-    public boolean getProcessAllPages() {
-        return processAllPages;
+    protected abstract Set<String> getUrlStrings(String apiBaseUrl, ElementsAPIURLBuilder builder, int perPage);
+
+
+
+    public abstract static class DeltaCapable extends ElementsFeedQuery{
+        private final Date modifiedSince;
+
+        public Date getModifiedSince(){return modifiedSince;}
+
+        public DeltaCapable(boolean fullDetails, Date modifiedSince){
+            super(fullDetails);
+            this.modifiedSince = modifiedSince;
+        }
     }
 
-    /**
-     * Should the feed return full object details
-     *
-     * @param fullDetails true to return full details, false for links
-     */
-    public void setFullDetails(boolean fullDetails) {
-        this.fullDetails = fullDetails;
-    }
+    class QueryIterator{
 
-    /**
-     * Number of records to return per feed page
-     *
-     * @param perPage 0 or negative to use feed default
-     */
-    public void setPerPage(int perPage) {
-        this.perPage = perPage;
-    }
+        private final Iterator<String> queryIterator;
+        private final ElementsAPI.ProcessingOptions processingOptions;
 
-    /**
-     * Should all the pages in a paginated feed be processed
-     *
-     * @param processAllPages true to process all pages, false to process only the first
-     */
-    public void setProcessAllPages(boolean processAllPages) {
-        this.processAllPages = processAllPages;
+        //public QueryIterator(String... queries){ this(new HashSet<String>(Arrays.asList(queries))); }
+
+        private QueryIterator(ElementsAPI.ProcessingOptions processingOptions, Set<String> queries){
+            if(processingOptions == null) throw new NullArgumentException("processingOptions");
+            if(queries == null || queries.isEmpty()) throw new IllegalArgumentException("queries must not be null or empty");
+            this.queryIterator = queries.iterator();
+            this.processingOptions = processingOptions;
+        }
+
+        private boolean hasNextPage(ElementsFeedPagination pagination){
+            return processingOptions.getProcessAllPages() && pagination != null && pagination.getNextURL() != null;
+        }
+
+        boolean hasNext(ElementsFeedPagination pagination) {
+            return hasNextPage(pagination) || queryIterator.hasNext();
+        }
+
+        String next(ElementsFeedPagination pagination){
+            if(hasNextPage(pagination))
+                return pagination.getNextURL();
+            else if(queryIterator.hasNext())
+                return queryIterator.next();
+            throw new IllegalStateException("invalid use of QueryIterator");
+        }
     }
 }

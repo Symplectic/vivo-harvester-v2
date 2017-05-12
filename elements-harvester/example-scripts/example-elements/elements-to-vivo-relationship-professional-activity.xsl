@@ -33,4 +33,5 @@
     <xsl:include href="elements-to-vivo-relationship-professional-activity-event-administration.xsl" />
     <xsl:include href="elements-to-vivo-relationship-professional-activity-event-participation.xsl" />
     <xsl:include href="elements-to-vivo-relationship-professional-activity-membership.xsl" />
+    <xsl:include href="elements-to-vivo-relationship-professional-activity-fellowship.xsl" />
 </xsl:stylesheet>

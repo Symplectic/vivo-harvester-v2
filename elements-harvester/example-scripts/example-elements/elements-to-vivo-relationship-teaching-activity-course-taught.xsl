@@ -38,83 +38,67 @@
         <xsl:variable name="activityObj" select="svfn:fullObject(api:related/api:object[@category='teaching-activity'])" />
         <xsl:variable name="userObj" select="svfn:fullObject(api:related/api:object[@category='user'])" />
 
-        <xsl:variable name="subject" select="svfn:getRecordField($activityObj,'degree-subject')" />
-        <xsl:variable name="subjectURI"><xsl:if test="$subject/api:text"><xsl:value-of select="svfn:makeURI('award-',$subject/api:text)" /></xsl:if></xsl:variable>
-        <xsl:variable name="courseName" select="svfn:getRecordField($activityObj,'title')" />
-        <xsl:if test="$courseName/api:text">
-            <xsl:variable name="courseURI"><xsl:value-of select="svfn:makeURI('award-',$courseName/api:text)" /></xsl:variable>
+        <xsl:if test="$activityObj/* and $userObj/*">
+            <xsl:variable name="subject" select="svfn:getRecordField($activityObj,'degree-subject')" />
+            <xsl:variable name="subjectURI"><xsl:if test="$subject/api:text"><xsl:value-of select="svfn:makeURI('award-',$subject/api:text)" /></xsl:if></xsl:variable>
+            <xsl:variable name="courseName" select="svfn:getRecordField($activityObj,'title')" />
+            <xsl:if test="$courseName/api:text">
+                <xsl:variable name="courseURI"><xsl:value-of select="svfn:makeURI('award-',$courseName/api:text)" /></xsl:variable>
 
-            <xsl:variable name="userURI" select="svfn:userURI($userObj)" />
+                <xsl:variable name="userURI" select="svfn:userURI($userObj)" />
 
-            <!-- A Course-->
-            <xsl:call-template name="render_rdf_object">
-                <xsl:with-param name="objectURI" select="$courseURI" />
-                <xsl:with-param name="rdfNodes">
-                    <rdf:type rdf:resource="http://vivoweb.org/ontology/core#Course"/>
-                    <xsl:copy-of select="svfn:renderPropertyFromField($activityObj,'rdfs:label','title')" />
-                    <xsl:copy-of select="svfn:renderPropertyFromField($activityObj,'vivo:description','description')" />
-                    <xsl:copy-of select="svfn:renderPropertyFromField($activityObj,'vivo:courseCredits','number-of-credits')" />
-                    <xsl:if test="$subject/api:text"><vivo:hasSubjectArea rdf:resource="{$subjectURI}" /></xsl:if>
-                    <obo:BFO_0000055 rdf:resource="{$contextURI}" /><!-- Context object -->
-                </xsl:with-param>
-            </xsl:call-template>
-
-            <xsl:if test="$subject/api:text">
+                <!-- A Course-->
                 <xsl:call-template name="render_rdf_object">
-                    <xsl:with-param name="objectURI" select="$subjectURI" />
+                    <xsl:with-param name="objectURI" select="$courseURI" />
                     <xsl:with-param name="rdfNodes">
-                        <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept" />
-                        <xsl:copy-of select="svfn:renderPropertyFromField($activityObj,'rdfs:label','degree-subject')" />
-                        <vivo:subjectAreaOf rdf:resource="{$courseURI}" />
+                        <rdf:type rdf:resource="http://vivoweb.org/ontology/core#Course"/>
+                        <xsl:copy-of select="svfn:renderPropertyFromField($activityObj,'rdfs:label','title')" />
+                        <xsl:copy-of select="svfn:renderPropertyFromField($activityObj,'vivo:description','description')" />
+                        <xsl:copy-of select="svfn:renderPropertyFromField($activityObj,'vivo:courseCredits','number-of-credits')" />
+                        <xsl:if test="$subject/api:text"><vivo:hasSubjectArea rdf:resource="{$subjectURI}" /></xsl:if>
+                        <obo:BFO_0000055 rdf:resource="{$contextURI}" /><!-- Context object -->
                     </xsl:with-param>
                 </xsl:call-template>
-            </xsl:if>
 
-            <!-- Context Object -->
-            <xsl:variable name="startDate" select="svfn:getRecordField($activityObj,'start-date')" />
-            <xsl:variable name="finishDate" select="svfn:getRecordField($activityObj,'end-date')" />
+                <xsl:if test="$subject/api:text">
+                    <xsl:call-template name="render_rdf_object">
+                        <xsl:with-param name="objectURI" select="$subjectURI" />
+                        <xsl:with-param name="rdfNodes">
+                            <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept" />
+                            <xsl:copy-of select="svfn:renderPropertyFromField($activityObj,'rdfs:label','degree-subject')" />
+                            <vivo:subjectAreaOf rdf:resource="{$courseURI}" />
+                        </xsl:with-param>
+                    </xsl:call-template>
+                </xsl:if>
 
-            <xsl:variable name="inclusiveURI" select="concat($contextURI,'-dates')" />
-            <xsl:variable name="startURI" select="concat($contextURI,'-dates-start')" />
-            <xsl:variable name="endURI" select="concat($contextURI,'-dates-end')" />
+                <!-- Context Object -->
+                <xsl:variable name="startDate" select="svfn:getRecordField($activityObj,'start-date')" />
+                <xsl:variable name="endDate" select="svfn:getRecordField($activityObj,'end-date')" />
+                <!-- render datetime interval to intermediate variable, retrieve uri for reference purposes and then render variable contents-->
+                <xsl:variable name="dateInterval" select ="svfn:renderDateInterval($contextURI, $startDate, $endDate, '', false())" />
+                <xsl:variable name="dateIntervalURI" select="svfn:retrieveDateIntervalUri($dateInterval)" />
+                <xsl:copy-of select="$dateInterval" />
 
-
-            <xsl:call-template name="render_rdf_object">
-                <xsl:with-param name="objectURI" select="$contextURI" />
-                <xsl:with-param name="rdfNodes">
-                    <rdf:type rdf:resource="http://vivoweb.org/ontology/core#TeacherRole"/>
-                    <rdfs:label>Taught course</rdfs:label>
-                    <obo:BFO_0000054 rdf:resource="{$courseURI}" /><!-- Course taught -->
-                    <obo:RO_0000052 rdf:resource="{$userURI}" /><!-- Teacher -->
-                    <xsl:if test="$startDate/* or $finishDate/*">
-                        <vivo:dateTimeInterval rdf:resource="{$inclusiveURI}"/><!-- Years Inclusive -->
-                    </xsl:if>
-                </xsl:with-param>
-            </xsl:call-template>
-
-            <!-- Relate user to context-->
-            <xsl:call-template name="render_rdf_object">
-                <xsl:with-param name="objectURI" select="$userURI" />
-                <xsl:with-param name="rdfNodes">
-                    <obo:RO_0000053 rdf:resource="{$contextURI}"/>
-                </xsl:with-param>
-            </xsl:call-template>
-
-            <xsl:if test="$startDate/* or $finishDate/*">
                 <xsl:call-template name="render_rdf_object">
-                    <xsl:with-param name="objectURI" select="$inclusiveURI" />
+                    <xsl:with-param name="objectURI" select="$contextURI" />
                     <xsl:with-param name="rdfNodes">
-                        <rdf:type rdf:resource="http://vivoweb.org/ontology/core#DateTimeInterval"/>
-                        <xsl:if test="$startDate/*">
-                            <vivo:start rdf:resource="{$startURI}" />
-                        </xsl:if>
-                        <xsl:if test="$finishDate/*">
-                            <vivo:end rdf:resource="{$endURI}" />
+                        <rdf:type rdf:resource="http://vivoweb.org/ontology/core#TeacherRole"/>
+                        <rdfs:label>Taught course</rdfs:label>
+                        <obo:BFO_0000054 rdf:resource="{$courseURI}" /><!-- Course taught -->
+                        <obo:RO_0000052 rdf:resource="{$userURI}" /><!-- Teacher -->
+                        <xsl:if test="$dateInterval/*">
+                            <vivo:dateTimeInterval rdf:resource="{$dateIntervalURI}"/><!-- Years Inclusive -->
                         </xsl:if>
                     </xsl:with-param>
                 </xsl:call-template>
-                <xsl:copy-of select="svfn:renderDateObject(.,$startURI,$startDate)" />
-                <xsl:copy-of select="svfn:renderDateObject(.,$endURI,$finishDate)" />
+
+                <!-- Relate user to context-->
+                <xsl:call-template name="render_rdf_object">
+                    <xsl:with-param name="objectURI" select="$userURI" />
+                    <xsl:with-param name="rdfNodes">
+                        <obo:RO_0000053 rdf:resource="{$contextURI}"/>
+                    </xsl:with-param>
+                </xsl:call-template>
             </xsl:if>
         </xsl:if>
     </xsl:template>

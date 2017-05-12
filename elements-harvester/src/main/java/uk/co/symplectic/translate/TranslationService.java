@@ -8,17 +8,16 @@ package uk.co.symplectic.translate;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.w3c.dom.Node;
+import uk.co.symplectic.vivoweb.harvester.store.ElementsItemStore;
+import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItemInfo;
+import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
 
+import javax.xml.transform.Source;
 import javax.xml.transform.Templates;
-import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamSource;
-import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.util.Map;
+
 
 /**
  * Public interface to the Translation service.
@@ -32,39 +31,29 @@ public final class TranslationService {
 
     public TranslationService() {}
 
-    public void setIgnoreFileNotFound(boolean ignoreFlag) {
-        config.setIgnoreFileNotFound(ignoreFlag);
-    }
+    public TranslationServiceConfig getConfig(){ return config; }
 
-    public Templates compileSource(Node domNode) {
-        return TranslationServiceImpl.compileSource(new DOMSource(domNode));
-    }
-
-    public Templates compileSource(InputStream stream) {
-        return TranslationServiceImpl.compileSource(new StreamSource(stream));
-    }
-
-    public Templates compileSource(File file) {
+    public static Templates compileSource(File file) {
         return TranslationServiceImpl.compileSource(new StreamSource(file));
     }
 
-    public void translate(File input, File output, TemplatesHolder translationTemplates) {
-        TranslationServiceImpl.translate(config, input, output, translationTemplates, null);
+    public void translate(ElementsStoredItemInfo input, ElementsItemStore output, StorableResourceType outputType, TemplatesHolder translationTemplates) {
+        translate(input, null, output, outputType, translationTemplates, null);
     }
 
-    public void translate(File input, File output, TemplatesHolder translationTemplates, PostTranslateCallback callback) {
-        TranslationServiceImpl.translate(config, input, output, translationTemplates, callback);
+    public void translate(ElementsStoredItemInfo input, Source inputSource, ElementsItemStore output, StorableResourceType outputType, TemplatesHolder translationTemplates) {
+        translate(input, inputSource, output, outputType, translationTemplates, null);
     }
 
-    public void translate(InputStream inputStream, OutputStream outputStream, TemplatesHolder translationTemplates) {
-        TranslationServiceImpl.translate(config, inputStream, outputStream, translationTemplates, null);
+    public void translate(ElementsStoredItemInfo input, ElementsItemStore output, StorableResourceType outputType, TemplatesHolder translationTemplates, Map<String, Object> extraParams) {
+        translate(input, null, output, outputType, translationTemplates, extraParams);
     }
 
-    public void translate(InputStream inputStream, OutputStream outputStream, TemplatesHolder translationTemplates, PostTranslateCallback callback) {
-        TranslationServiceImpl.translate(config, inputStream, outputStream, translationTemplates, callback);
+    public void translate(ElementsStoredItemInfo input, Source inputSource, ElementsItemStore output, StorableResourceType outputType, TemplatesHolder translationTemplates, Map<String, Object> extraParams) {
+        TranslationServiceImpl.translate(config, input, inputSource, output, outputType, translationTemplates, extraParams);
     }
 
-    public static void shutdown() {
-        TranslationServiceImpl.shutdown();
+    public static void awaitShutdown() {
+        TranslationServiceImpl.awaitShutdown();
     }
 }

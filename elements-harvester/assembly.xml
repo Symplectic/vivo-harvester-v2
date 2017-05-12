@@ -1,5 +1,5 @@
 <!--
- | Copyright (c) 2012 Symplectic Limited. All rights reserved.
+ | Copyright (c) 2012 Symplectic Ltd. All rights reserved.
  | This Source Code Form is subject to the terms of the Mozilla Public
  | License, v. 2.0. If a copy of the MPL was not distributed with this
  | file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -15,30 +15,54 @@
     <fileSets>
         <fileSet>
             <directory>bin</directory>
-            <outputDirectory>bin</outputDirectory>
+            <outputDirectory>.</outputDirectory>
             <fileMode>755</fileMode>
+        </fileSet>
+        <fileSet>
+            <directory>init</directory>
+            <outputDirectory>init</outputDirectory>
+            <fileMode>755</fileMode>
+        </fileSet>
+        <fileSet>
+            <directory>src/main/resources</directory>
+            <outputDirectory>example-config</outputDirectory>
+            <excludes>
+                <exclude>*logback.xml</exclude>
+            </excludes>
+        </fileSet>
+        <fileSet>
+            <directory>src/main/resources</directory>
+            <outputDirectory>lib</outputDirectory>
+            <includes>
+                <include>*logback.xml</include>
+            </includes>
         </fileSet>
         <fileSet>
             <directory>example-scripts</directory>
             <outputDirectory>example-scripts</outputDirectory>
+            <excludes>
+                <!--<exclude>example-elements/*overrides.xsl</exclude>-->
+                <exclude>**/data/**</exclude>
+            </excludes>
+        </fileSet>
+        <!--<fileSet>-->
+            <!--<directory>example-scripts/example-elements</directory>-->
+            <!--<outputDirectory>example-scripts/example-elements/example-overrides</outputDirectory>-->
+            <!--<includes>-->
+                <!--<include>*overrides.xsl</include>-->
+            <!--</includes>-->
+        <!--</fileSet>-->
+        <fileSet>
+            <directory>systemd</directory>
+            <outputDirectory>systemd</outputDirectory>
         </fileSet>
     </fileSets>
     <dependencySets>
         <dependencySet>
-            <outputDirectory>/bin</outputDirectory>
+            <outputDirectory>lib</outputDirectory>
             <useProjectArtifact>true</useProjectArtifact>
             <outputFileNameMapping>${artifact.artifactId}.${artifact.extension}</outputFileNameMapping>
             <scope>runtime</scope>
-            <!--
-                Each dependency that needs to be in the final package needs to be explicitly stated here
-
-                This includes the project artifact, which must always be present.
-
-                DO NOT INCLUDE org.vivoweb:harvester - this will be in the main VIVO harvester distribution
-            -->
-            <includes>
-                <include>uk.co.symplectic:elements-vivo-harvester</include>
-            </includes>
         </dependencySet>
     </dependencySets>
 </assembly>

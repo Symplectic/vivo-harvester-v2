@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
- | Copyright (c) 2012 Symplectic Limited. All rights reserved.
+ | Copyright (c) 2012 Symplectic Ltd. All rights reserved.
  | This Source Code Form is subject to the terms of the Mozilla Public
  | License, v. 2.0. If a copy of the MPL was not distributed with this
  | file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -18,6 +18,7 @@
                 xmlns:vitro="http://vitro.mannlib.cornell.edu/ns/vitro/0.7#"
                 xmlns:api="http://www.symplectic.co.uk/publications/api"
                 xmlns:symp="http://www.symplectic.co.uk/ontology/elements/"
+                xmlns:config="http://www.symplectic.co.uk/vivo/namespaces/config"
                 exclude-result-prefixes="rdf rdfs bibo vivo foaf score ufVivo vitro api symp xs"
         >
 
@@ -27,14 +28,17 @@
     <xsl:import href="elements-to-vivo-config.xsl" />
     <xsl:import href="elements-to-vivo-datatypes.xsl" />
     <xsl:import href="elements-to-vivo-utils.xsl" />
-
     <!--
         Import XSLT for object and relationship transformations
     -->
+    <xsl:import href="elements-to-vivo-group.xsl" />
     <xsl:import href="elements-to-vivo-object.xsl" />
     <xsl:import href="elements-to-vivo-relationship.xsl" />
-
+    <xsl:import href="elements-to-vivo-user-photo.xsl" />
     <xsl:output method="xml" indent="yes" encoding="UTF-8" />
+
+    <xsl:include href="elements-to-vivo-util-overrides.xsl" />
+    <xsl:include href="elements-to-vivo-template-overrides.xsl" />
 
     <!--
         Default template - matches the root, to output an RDF document tag around any RDF objects that are output

@@ -6,18 +6,20 @@
  ******************************************************************************/
 package uk.co.symplectic.vivoweb.harvester.store;
 
-import uk.co.symplectic.elements.api.ElementsObjectCategory;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsItemType;
 
 import java.io.File;
+import java.util.Collection;
 
 public interface LayoutStrategy {
-    public File getObjectFile(File storeDir, ElementsObjectCategory category, String id);
 
-    public File getObjectExtraFile(File storeDir, ElementsObjectCategory category, String id, String type);
+    File getItemFile(File storeDir, ElementsItemId itemId, StorableResourceType resourceType);
 
-    public File getResourceFile(File storeDir, ElementsObjectCategory category, String resourceLabel, String id);
+    Collection<File> getAllExistingFilesOfType(File storeDir, StorableResourceType resourceType);
 
-    public File getRelationshipFile(File storeDir, String id);
+    Collection<File> getAllExistingFilesOfType(File storeDir, StorableResourceType resourceType, ElementsItemType.SubType subType);
 
-    public String getRootNodeForType(String type);
+    //todo: remove this!? once decide what to do with legacy layout?
+    String getRootNodeForType(String type);
 }

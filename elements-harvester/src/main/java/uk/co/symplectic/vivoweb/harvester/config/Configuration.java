@@ -1,113 +1,249 @@
-/*******************************************************************************
- * Copyright (c) 2012 Symplectic Ltd. All rights reserved.
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- ******************************************************************************/
+/*
+ * ******************************************************************************
+ *  * Copyright (c) 2012 Symplectic Ltd. All rights reserved.
+ *  * This Source Code Form is subject to the terms of the Mozilla Public
+ *  * License, v. 2.0. If a copy of the MPL was not distributed with this
+ *  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ *  *****************************************************************************
+ */
 package uk.co.symplectic.vivoweb.harvester.config;
-
 import org.apache.commons.lang.StringUtils;
-import org.vivoweb.harvester.util.InitLog;
-import org.vivoweb.harvester.util.args.ArgDef;
-import org.vivoweb.harvester.util.args.ArgList;
-import org.vivoweb.harvester.util.args.ArgParser;
-import org.vivoweb.harvester.util.args.UsageException;
-import org.w3c.dom.*;
-import org.xml.sax.SAXException;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
+import org.apache.commons.lang.text.StrBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import uk.co.symplectic.elements.api.ElementsAPIVersion;
+import uk.co.symplectic.utils.ImageUtils;
+import uk.co.symplectic.utils.configuration.ConfigKey;
+import uk.co.symplectic.utils.configuration.ConfigParser;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 public class Configuration {
-    private static final String ARG_RAW_OUTPUT_DIRECTORY = "rawOutput";
-    private static final String ARG_RDF_OUTPUT_DIRECTORY = "rdfOutput";
 
-    private static final String ARG_XSL_TEMPLATE         = "xslTemplate";
+    private static class Parser extends ConfigParser {
+        //keys
+        private ConfigKey ARG_RAW_OUTPUT_DIRECTORY = new ConfigKey("rawOutput", "data/raw-records/");
+        private ConfigKey ARG_RDF_OUTPUT_DIRECTORY = new ConfigKey("rdfOutput", "data/translated-records/");
+        private ConfigKey ARG_TDB_OUTPUT_DIRECTORY = new ConfigKey("tdbOutput", "data/tdb-output/");
+        private ConfigKey ARG_OTHER_OUTPUT_DIRECTORY = new ConfigKey("otherOutput", "data/other-data/");
 
-    private static final String ARG_ELEMENTS_API_ENDPOINT = "apiEndpoint";
-    private static final String ARG_ELEMENTS_API_SECURE   = "apiIsSecure";
-    private static final String ARG_ELEMENTS_API_VERSION  = "apiVersion";
-    private static final String ARG_ELEMENTS_API_USERNAME = "apiUsername";
-    private static final String ARG_ELEMENTS_API_PASSWORD = "apiPassword";
+        private ConfigKey ARG_XSL_TEMPLATE = new ConfigKey("xslTemplate");
 
-    private static final String ARG_CURRENT_STAFF_ONLY    = "currentStaffOnly";
-    private static final String ARG_VISIBLE_LINKS_ONLY    = "visibleLinksOnly";
+        private ConfigKey ARG_ELEMENTS_API_ENDPOINT = new ConfigKey("apiEndpoint");
+        private ConfigKey ARG_ELEMENTS_API_VERSION = new ConfigKey("apiVersion");
+        private ConfigKey ARG_ELEMENTS_API_USERNAME = new ConfigKey("apiUsername");
+        private ConfigKey ARG_ELEMENTS_API_PASSWORD = new ConfigKey("apiPassword");
+        private ConfigKey ARG_IGNORE_SSL_ERRORS = new ConfigKey("ignoreSSLErrors", "false"); //TODO: review this default
+        private ConfigKey ARG_REWRITE_MISMATCHED_URLS = new ConfigKey("rewriteMismatchedPaginationUrls", "false"); //TODO: review this default
 
-    private static final String ARG_USE_FULL_UTF8         = "useFullUTF8";
+        private ConfigKey ARG_CURRENT_STAFF_ONLY = new ConfigKey("currentStaffOnly", "true"); //TODO: review this default
+        private ConfigKey ARG_ACADEMICS_ONLY = new ConfigKey("academicsOnly", "true"); //TODO: review this default
+        private ConfigKey ARG_VISIBLE_LINKS_ONLY = new ConfigKey("visibleLinksOnly", "false"); //TODO: review this default
 
-    private static final String ARG_VIVO_IMAGE_DIR        = "vivoImageDir";
-    private static final String ARG_VIVO_BASE_URI         = "vivoBaseURI";
+        private ConfigKey ARG_USE_FULL_UTF8 = new ConfigKey("useFullUTF8", "false"); //TODO: review this default
 
-    private static final String ARG_API_QUERY_OBJECTS     = "queryObjects";
-    private static final String ARG_API_PARAMS_GROUPS     = "paramGroups";
-    private static final String ARG_API_EXCLUDE_GROUPS    = "excludeGroups";
+        private ConfigKey ARG_ELEMENTS_IMAGE_TYPE = new ConfigKey("elementsImageType", "profile");
+        private ConfigKey ARG_VIVO_IMAGE_DIR = new ConfigKey("vivoImageDir", "data/harvestedImages/");
+        private ConfigKey ARG_VIVO_IMAGE_BASE_PATH = new ConfigKey("vivoImageBasePath", "/harvestedImages/");
+        private ConfigKey ARG_VIVO_BASE_URI = new ConfigKey("vivoBaseURI", "http://vivo.mydomain.edu/individual/");
 
-    private static final String ARG_API_OBJECTS_PER_PAGE  = "objectsPerPage";
-    private static final String ARG_API_RELS_PER_PAGE     = "relationshipsPerPage";
+        private ConfigKey ARG_API_QUERY_CATEGORIES = new ConfigKey("queryObjects"); //TODO : rename this input param?
+        private ConfigKey ARG_API_PARAMS_GROUPS = new ConfigKey("paramGroups");
+        private ConfigKey ARG_API_EXCLUDE_GROUPS = new ConfigKey("excludeGroups");
 
-    private static final String ARG_API_SOCKET_TIMEOUT    = "apiSocketTimeout";
-    private static final String ARG_API_REQUEST_DELAY     = "apiRequestDelay";
+        private ConfigKey ARG_API_PARAMS_USER_GROUPS = new ConfigKey("paramUserGroups");
+        private ConfigKey ARG_API_EXCLUDE_USER_GROUPS = new ConfigKey("excludeUserGroups");
 
-    private static final String ARG_MAX_XSL_THREADS       = "maxXslThreads";
-    private static final String ARG_MAX_RESOURCE_THREADS  = "maxResourceThreads";
+        private ConfigKey ARG_API_FULL_DETAIL_PER_PAGE = new ConfigKey("fullDetailPerPage", "25");
+        private ConfigKey ARG_API_REF_DETAIL_PER_PAGE = new ConfigKey("refDetailPerPage", "100");
 
-    private static final String ARG_IGNORE_SSL_ERRORS     = "ignoreSSLErrors";
+        private ConfigKey ARG_API_SOCKET_TIMEOUT = new ConfigKey("apiSocketTimeout", "0"); //TODO: review this default
+        private ConfigKey ARG_API_REQUEST_DELAY = new ConfigKey("apiRequestDelay", "-1"); //TODO: review this default
 
-    // Maximum of 25 is mandated by 4.6 and newer APIs since we request full detail for objects
-    private static final int OBJECTS_PER_PAGE = 25;
+        private ConfigKey ARG_MAX_XSL_THREADS = new ConfigKey("maxXslThreads", "0"); //TODO: review this default
+        private ConfigKey ARG_MAX_RESOURCE_THREADS = new ConfigKey("maxResourceThreads", "0"); //TODO: review this default
 
-    // Default of 100 for optimal performance
-    private static final int RELATIONSHIPS_PER_PAGE = 100;
+        private ConfigKey ARG_MAX_FRAGMENT_FILE_SIZE = new ConfigKey("maxFragmentFileSize", "1228800"); //TODO: review this default
 
-    private static final String DEFAULT_IMAGE_DIR = "/Library/Tomcat/webapps/vivo";
-    private static final String DEFAULT_BASE_URI = "http://localhost:8080/vivo/individual/";
+        private ConfigKey ARG_ZIP_FILES = new ConfigKey("zipFiles", "false"); //TODO: review this default
 
-    private static final String DEFAULT_RAW_OUTPUT_DIR = "data/raw-records/";
-    private static final String DEFAULT_RDF_OUTPUT_DIR = "data/translated-records/";
+        //storage
+        private int maxThreadsResource = -1;
+        private int maxThreadsXsl = -1;
 
-    private static ArgParser parser = null;
-    private static ArgList argList = null;
-
-    private static class ConfigurationValues {
-        private int maxThreadsResource = 0;
-        private int maxThreadsXsl = 0;
+        private int maxFragmentFileSize = -1;
 
         private String apiEndpoint;
-        private String apiVersion;
+        private ElementsAPIVersion apiVersion;
 
         private String apiUsername;
         private String apiPassword;
+        private boolean ignoreSSLErrors = false;
+        private boolean rewriteMismatchedUrls = false;
+        private ImageUtils.PhotoType imageType = null;
 
-        private int apiSoTimeout = 0;
+        private int apiSoTimeout = -1;
         private int apiRequestDelay = -1;
 
-        private int apiObjectsPerPage  = OBJECTS_PER_PAGE;
-        private int apiRelationshipsPerPage  = RELATIONSHIPS_PER_PAGE;
+        private int fullDetailPerPage = -1;
+        private int refDetailPerPage = -1;
 
-        private String groupsToExclude;
-        private String groupsToHarvest;
-        private String objectsToHarvest;
+        private List<ElementsItemId.GroupId> groupsToExclude;
+        private List<ElementsItemId.GroupId> groupsToHarvest;
+
+        private List<ElementsItemId.GroupId> groupsOfUsersToHarvest;
+        private List<ElementsItemId.GroupId> groupsOfUsersToExclude;
+
+        private List<ElementsObjectCategory> categoriesToHarvest;
 
         private boolean currentStaffOnly = true;
+        private boolean academicsOnly = true;
         private boolean visibleLinksOnly = false;
 
         private boolean useFullUTF8 = false;
 
-        private String vivoImageDir = DEFAULT_IMAGE_DIR;
-        private String baseURI = DEFAULT_BASE_URI;
+        private String vivoImageBasePath;
+        private String vivoImageDir;
+        private String baseURI;
         private String xslTemplate;
 
-        private String rawOutputDir = DEFAULT_RAW_OUTPUT_DIR;
-        private String rdfOutputDir = DEFAULT_RDF_OUTPUT_DIR;
+        private File rawOutputDir;
+        private File rdfOutputDir;
+        private File tdbOutputDir;
+        private File otherOutputDir;
 
-        private static boolean ignoreSSLErrors = false;
-    };
+        private boolean zipFiles = false;
 
-    private static ConfigurationValues values = new ConfigurationValues();
+        //Constructor and methods
+        Parser(Properties props, List<String> errors){ super(props, errors); }
+
+        private List<ElementsObjectCategory> getCategories(ConfigKey configKey, boolean tolerateNull) {
+            String key = configKey.getName();
+            List<ElementsObjectCategory> categories = new ArrayList<ElementsObjectCategory>();
+            String value = configKey.getValue(props);
+            if (!StringUtils.isEmpty(value)) {
+                for (String category : value.split("\\s*,\\s*")) {
+                    ElementsObjectCategory cat = ElementsObjectCategory.valueOf(category);
+                    if (cat == null) {
+                        configErrors.add(MessageFormat.format("Invalid value ({0}) provided within argument {1} : {2} (every value must represent a valid Elements Category)", category, key, value));
+                    }
+                    categories.add(cat);
+                }
+            } else if(!tolerateNull) {
+                configErrors.add(MessageFormat.format("Invalid value provided within argument {0} : {1} (must supply at least one Elements Category)", key, value));
+            }
+            return categories;
+        }
+
+        private ElementsAPIVersion getApiVersion(ConfigKey configKey) {
+            String key = configKey.getName();
+            String value = configKey.getValue(props);
+            try {
+                return ElementsAPIVersion.parse(value);
+            } catch (IllegalStateException e) {
+                configErrors.add(MessageFormat.format("Invalid value provided for argument {0} : {1} (must be a valid elements api version)", key, value));
+            }
+            return null;
+        }
+
+        private ImageUtils.PhotoType getImageType(ConfigKey configKey) {
+            String key = configKey.getName();
+            String value = configKey.getValue(props);
+
+            ImageUtils.PhotoType imageType = null;
+            String testValue = StringUtils.trimToNull(value);
+            if(testValue != null) {
+                testValue = testValue.toLowerCase();
+
+                for (ImageUtils.PhotoType type : ImageUtils.PhotoType.values()) {
+                    if (type.name().toLowerCase().equals(testValue)) {
+                        imageType = type;
+                        break;
+                    }
+                }
+            }
+
+            if(imageType == null){
+                configErrors.add(MessageFormat.format("Invalid value provided for argument {0} : {1} (must be a valid elements photo type : \"original\", \"photo\", \"thummbnail\" or \"none\")", key, value));
+            }
+
+            return imageType;
+        }
+
+        void parse(){
+            values.maxThreadsResource = getInt(ARG_MAX_RESOURCE_THREADS);
+            values.maxThreadsXsl = getInt(ARG_MAX_XSL_THREADS);
+
+            values.apiEndpoint = getString(ARG_ELEMENTS_API_ENDPOINT, false);
+            values.apiVersion = getApiVersion(ARG_ELEMENTS_API_VERSION);
+
+            values.apiUsername = getString(ARG_ELEMENTS_API_USERNAME, true); //allow null as may be a plain http endpoint
+            values.apiPassword = getString(ARG_ELEMENTS_API_PASSWORD, true); //allow null as may be a plain http endpoint
+
+            values.apiSoTimeout = getInt(ARG_API_SOCKET_TIMEOUT);
+            values.apiRequestDelay = getInt(ARG_API_REQUEST_DELAY);
+
+            List<ElementsItemId.GroupId> groups = new ArrayList<ElementsItemId.GroupId>();
+            //allow null when getting integers as that means include everything
+            for (Integer groupId : getIntegers(ARG_API_PARAMS_GROUPS, true)) groups.add(ElementsItemId.createGroupId(groupId));
+            values.groupsToHarvest = groups;
+
+            groups = new ArrayList<ElementsItemId.GroupId>();
+            //allow null as that means exclude nothing
+            for (Integer groupId : getIntegers(ARG_API_EXCLUDE_GROUPS, true)) groups.add(ElementsItemId.createGroupId(groupId));
+            values.groupsToExclude = groups;
+
+            groups = new ArrayList<ElementsItemId.GroupId>();
+            //allow null as that means exclude nothing
+            for (Integer groupId : getIntegers(ARG_API_PARAMS_USER_GROUPS, true)) groups.add(ElementsItemId.createGroupId(groupId));
+            values.groupsOfUsersToHarvest = groups;
+
+            groups = new ArrayList<ElementsItemId.GroupId>();
+            //allow null as that means exclude nothing
+            for (Integer groupId : getIntegers(ARG_API_EXCLUDE_USER_GROUPS, true)) groups.add(ElementsItemId.createGroupId(groupId));
+            values.groupsOfUsersToExclude = groups;
+
+            values.categoriesToHarvest = getCategories(ARG_API_QUERY_CATEGORIES, false); //do not allow null for categories to query
+
+            values.fullDetailPerPage = getInt(ARG_API_FULL_DETAIL_PER_PAGE);
+            values.refDetailPerPage = getInt(ARG_API_REF_DETAIL_PER_PAGE);
+
+            values.currentStaffOnly = getBoolean(ARG_CURRENT_STAFF_ONLY);
+            values.academicsOnly = getBoolean(ARG_ACADEMICS_ONLY);
+            values.visibleLinksOnly = getBoolean(ARG_VISIBLE_LINKS_ONLY);
+
+            values.useFullUTF8 = getBoolean(ARG_USE_FULL_UTF8);
+
+            String baseUriString = getString(ARG_VIVO_BASE_URI, false);
+            //ensure the uri ends with a / - required by mappings.
+            if(!baseUriString.endsWith("/")) baseUriString = baseUriString + "/";
+            values.baseURI = baseUriString;
+            values.vivoImageDir = getString(ARG_VIVO_IMAGE_DIR, false);
+            values.vivoImageBasePath = getString(ARG_VIVO_IMAGE_BASE_PATH, false);
+            values.imageType = getImageType(ARG_ELEMENTS_IMAGE_TYPE);
+            values.xslTemplate = getString(ARG_XSL_TEMPLATE, false);
+
+            values.rawOutputDir = getFileDirFromConfig(ARG_RAW_OUTPUT_DIRECTORY);
+            values.rdfOutputDir = getFileDirFromConfig(ARG_RDF_OUTPUT_DIRECTORY);
+            values.tdbOutputDir = getFileDirFromConfig(ARG_TDB_OUTPUT_DIRECTORY);
+            values.otherOutputDir = getFileDirFromConfig(ARG_OTHER_OUTPUT_DIRECTORY);
+
+            values.ignoreSSLErrors = getBoolean(ARG_IGNORE_SSL_ERRORS);
+            values.rewriteMismatchedUrls = getBoolean(ARG_REWRITE_MISMATCHED_URLS);
+            values.zipFiles = getBoolean(ARG_ZIP_FILES);
+            values.maxFragmentFileSize = getInt(ARG_MAX_FRAGMENT_FILE_SIZE);
+        }
+    }
+
+    private static List<String> configErrors = new ArrayList<String>();
+    private static Parser values = null;
 
     public static Integer getMaxThreadsResource() {
         return values.maxThreadsResource;
@@ -121,7 +257,7 @@ public class Configuration {
         return values.apiEndpoint;
     }
 
-    public static String getApiVersion() {
+    public static ElementsAPIVersion getApiVersion() {
         return values.apiVersion;
     }
 
@@ -133,241 +269,147 @@ public class Configuration {
         return values.apiPassword;
     }
 
-    public static int getApiSoTimeout() {
-        return values.apiSoTimeout;
-    }
+    public static int getApiSoTimeout() { return values.apiSoTimeout; }
 
     public static int getApiRequestDelay() {
         return values.apiRequestDelay;
     }
 
-    public static int getApiObjectsPerPage() {
-        return values.apiObjectsPerPage;
+    public static int getFullDetailPerPage() {
+        return values.fullDetailPerPage;
     }
 
-    public static int getApiRelationshipsPerPage() {
-        return values.apiRelationshipsPerPage;
+    public static int getRefDetailPerPage() {
+        return values.refDetailPerPage;
     }
 
-    public static String getGroupsToExclude() {
+    public static int getMaxFragmentFileSize() {
+        return values.maxFragmentFileSize;
+    }
+
+    public static List<ElementsItemId.GroupId> getGroupsToExclude() {
         return values.groupsToExclude;
     }
 
-    public static String getGroupsToHarvest() {
+    public static List<ElementsItemId.GroupId> getGroupsToHarvest() {
         return values.groupsToHarvest;
     }
 
-    public static String getObjectsToHarvest() {
-        return values.objectsToHarvest;
+    public static List<ElementsItemId.GroupId> getGroupsOfUsersToExclude() {
+        return values.groupsOfUsersToExclude;
+    }
+
+    public static List<ElementsItemId.GroupId> getGroupsOfUsersToHarvest() {
+        return values.groupsOfUsersToHarvest;
+    }
+
+    public static List<ElementsObjectCategory> getCategoriesToHarvest() {
+        return values.categoriesToHarvest;
     }
 
     public static boolean getCurrentStaffOnly() {
         return values.currentStaffOnly;
     }
 
+    public static boolean getAcademicsOnly() {
+        return values.academicsOnly;
+    }
+
     public static boolean getVisibleLinksOnly() {
         return values.visibleLinksOnly;
     }
 
-    public static boolean getUseFullUTF8() { return values.useFullUTF8; }
+    public static boolean getUseFullUTF8() {
+        return values.useFullUTF8;
+    }
+
+    public static ImageUtils.PhotoType getImageType() {
+        return values.imageType;
+    }
 
     public static String getVivoImageDir() {
         return values.vivoImageDir;
     }
 
-    public static String getBaseURI() {
-        return values.baseURI;
+    public static String getVivoImageBasePath() {
+        return values.vivoImageBasePath;
     }
+
+    public static String getBaseURI() { return values.baseURI; }
 
     public static String getXslTemplate() {
         return values.xslTemplate;
     }
 
-    public static String getRawOutputDir() { return values.rawOutputDir; }
-    public static String getRdfOutputDir() { return values.rdfOutputDir; }
-
-    public static boolean getIgnoreSSLErrors() { return values.ignoreSSLErrors; }
-
-    public static void parse(String appName, String[] args) throws IOException, UsageException {
-        argList = null;
-        parser = new ArgParser(appName);
-        parser.addArgument(new ArgDef().setShortOption('r').setLongOpt(ARG_RAW_OUTPUT_DIRECTORY).setDescription("Raw RecordHandler config file path").withParameter(true, "CONFIG_FILE"));
-        parser.addArgument(new ArgDef().setShortOption('t').setLongOpt(ARG_RDF_OUTPUT_DIRECTORY).setDescription("Translated RecordHandler config file path").withParameter(true, "CONFIG_FILE"));
-
-        parser.addArgument(new ArgDef().setShortOption('g').setLongOpt(ARG_API_PARAMS_GROUPS).setDescription("Groups to restrict queries to").withParameter(true, "CONFIG_FILE"));
-
-        parser.addArgument(new ArgDef().setShortOption('g').setLongOpt(ARG_API_EXCLUDE_GROUPS).setDescription("Groups to exclude users from").withParameter(true, "CONFIG_FILE"));
-
-        parser.addArgument(new ArgDef().setShortOption('e').setLongOpt(ARG_ELEMENTS_API_ENDPOINT).setDescription("Elements API endpoint url").withParameter(true, "CONFIG_FILE"));
-        parser.addArgument(new ArgDef().setShortOption('s').setLongOpt(ARG_ELEMENTS_API_SECURE).setDescription("Is Elements API secure").withParameter(true, "CONFIG_FILE"));
-        parser.addArgument(new ArgDef().setShortOption('c').setLongOpt(ARG_API_QUERY_OBJECTS).setDescription("Elements API object categories").withParameter(true, "CONFIG_FILE"));
-        parser.addArgument(new ArgDef().setShortOption('v').setLongOpt(ARG_ELEMENTS_API_VERSION).setDescription("Elements API version").withParameter(true, "CONFIG_FILE"));
-
-        parser.addArgument(new ArgDef().setShortOption('u').setLongOpt(ARG_ELEMENTS_API_USERNAME).setDescription("Elements API username").withParameter(true, "CONFIG_FILE"));
-        parser.addArgument(new ArgDef().setShortOption('p').setLongOpt(ARG_ELEMENTS_API_PASSWORD).setDescription("Elements API password").withParameter(true, "CONFIG_FILE"));
-
-        parser.addArgument(new ArgDef().setLongOpt(ARG_CURRENT_STAFF_ONLY).setDescription("Current Staff Only").withParameter(true, "CONFIG_FILE"));
-        parser.addArgument(new ArgDef().setLongOpt(ARG_VISIBLE_LINKS_ONLY).setDescription("Visible Links Only").withParameter(true, "CONFIG_FILE"));
-
-        parser.addArgument(new ArgDef().setLongOpt(ARG_USE_FULL_UTF8).setDescription("Use Full UTF8").withParameter(true, "CONFIG_FILE"));
-
-        parser.addArgument(new ArgDef().setLongOpt(ARG_VIVO_IMAGE_DIR).setDescription("Vivo Image Directory").withParameter(true, "CONFIG_FILE"));
-        parser.addArgument(new ArgDef().setLongOpt(ARG_VIVO_BASE_URI).setDescription("Vivo Base URI").withParameter(true, "CONFIG_FILE"));
-
-        parser.addArgument(new ArgDef().setLongOpt(ARG_API_OBJECTS_PER_PAGE).setDescription("Objects Per Page").withParameter(true, "CONFIG_FILE"));
-        parser.addArgument(new ArgDef().setLongOpt(ARG_API_RELS_PER_PAGE).setDescription("Relationships Per Page").withParameter(true, "CONFIG_FILE"));
-
-        parser.addArgument(new ArgDef().setLongOpt(ARG_API_SOCKET_TIMEOUT).setDescription("HTTP Socket Timeout").withParameter(true, "CONFIG_FILE"));
-        parser.addArgument(new ArgDef().setLongOpt(ARG_API_REQUEST_DELAY).setDescription("API Request Delay").withParameter(true, "CONFIG_FILE"));
-
-        parser.addArgument(new ArgDef().setLongOpt(ARG_MAX_XSL_THREADS).setDescription("Maximum number of Threads to use for the XSL Translation").withParameter(true, "CONFIG_FILE"));
-        parser.addArgument(new ArgDef().setLongOpt(ARG_MAX_RESOURCE_THREADS).setDescription("Maximum number of Threads to use for the Resource (photo) downloads").withParameter(true, "CONFIG_FILE"));
-
-        parser.addArgument(new ArgDef().setLongOpt(ARG_IGNORE_SSL_ERRORS).setDescription("Ignore SSL Errors").withParameter(true, "CONFIG_FILE"));
-
-        parser.addArgument(new ArgDef().setShortOption('z').setLongOpt(ARG_XSL_TEMPLATE).setDescription("XSL Template").withParameter(true, "CONFIG_FILE"));
-
-        InitLog.initLogger(args, parser);
-        argList = parser.parse(args);
-
-        if (argList != null) {
-            values.maxThreadsResource = getInt(ARG_MAX_RESOURCE_THREADS, 0);
-            values.maxThreadsXsl      = getInt(ARG_MAX_XSL_THREADS, 0);
-
-            values.apiEndpoint = getString(ARG_ELEMENTS_API_ENDPOINT);
-            values.apiVersion = getString(ARG_ELEMENTS_API_VERSION);
-
-            values.apiUsername = getString(ARG_ELEMENTS_API_USERNAME);
-            values.apiPassword = getString(ARG_ELEMENTS_API_PASSWORD);
-
-            values.apiSoTimeout = getInt(ARG_API_SOCKET_TIMEOUT, 0);
-            values.apiRequestDelay = getInt(ARG_API_REQUEST_DELAY, -1);
-
-            values.groupsToExclude = getString(ARG_API_EXCLUDE_GROUPS);
-
-            values.groupsToHarvest = getString(ARG_API_PARAMS_GROUPS);
-            values.objectsToHarvest = getString(ARG_API_QUERY_OBJECTS);
-
-            values.apiObjectsPerPage  = getInt(ARG_API_OBJECTS_PER_PAGE, OBJECTS_PER_PAGE);
-            values.apiRelationshipsPerPage  = getInt(ARG_API_RELS_PER_PAGE, RELATIONSHIPS_PER_PAGE);
-
-            values.currentStaffOnly = getBoolean(ARG_CURRENT_STAFF_ONLY, true);
-            values.visibleLinksOnly = getBoolean(ARG_VISIBLE_LINKS_ONLY, false);
-
-            values.useFullUTF8 = getBoolean(ARG_USE_FULL_UTF8, false);
-
-            values.baseURI      = getString(ARG_VIVO_BASE_URI, DEFAULT_BASE_URI);
-            values.vivoImageDir = getString(ARG_VIVO_IMAGE_DIR, DEFAULT_IMAGE_DIR);
-            values.xslTemplate = getString(ARG_XSL_TEMPLATE);
-
-            values.rawOutputDir = getFileDirFromConfig(argList.get(ARG_RAW_OUTPUT_DIRECTORY), DEFAULT_RAW_OUTPUT_DIR);
-            values.rdfOutputDir = getFileDirFromConfig(argList.get(ARG_RDF_OUTPUT_DIRECTORY), DEFAULT_RDF_OUTPUT_DIR);
-
-            values.ignoreSSLErrors = getBoolean(ARG_IGNORE_SSL_ERRORS, false);
-        }
+    public static File getRawOutputDir() {
+        return values.rawOutputDir;
     }
 
-    private static boolean getBoolean(String key, boolean defValue) {
-        String value = argList.get(key);
-        if (defValue) {
-            if ("false".equalsIgnoreCase(value)) {
-                return false;
-            }
-
-            return true;
-        }
-
-        if ("true".equalsIgnoreCase(value)) {
-            return true;
-        }
-
-        return false;
+    public static File getRdfOutputDir() {
+        return values.rdfOutputDir;
     }
 
-    private static int getInt(String key, int defValue) {
-        try {
-            String value = argList.get(key);
-            if (value != null) {
-                return Integer.parseInt(value, 10);
+    public static File getTdbOutputDir() { return values.tdbOutputDir; }
 
-            }
-        } catch (NumberFormatException nfe) {
-            // TODO Add to error list
-        }
+    public static File getOtherOutputDir() { return values.otherOutputDir; }
 
-        return defValue;
+    public static boolean getIgnoreSSLErrors() {
+        return values.ignoreSSLErrors;
     }
 
-    private static String getString(String key) {
-        return argList.get(key);
+    public static boolean getRewriteMismatchedUrls() { return values.rewriteMismatchedUrls; }
+
+    public static boolean getZipFiles() {
+        return values.zipFiles;
     }
 
-    private static String getString(String key, String defValue) {
-        String str = argList.get(key);
-        return StringUtils.isEmpty(str) ? defValue : str;
-    }
-
+    //Has the system being successfully configured to move forwards?
     public static boolean isConfigured() {
-        return argList != null;
+        return configErrors.size() == 0;
     }
+
+    public static String getConfiguredValues(){ return values == null ? null : values.reportConfiguredValues();}
 
     public static String getUsage() {
-        if (parser != null) {
-            return parser.getUsage();
+        StrBuilder builder = new StrBuilder();
+
+        String configuredValueString = getConfiguredValues();
+        if (configuredValueString != null) {
+            builder.appendln(configuredValueString);
+            builder.appendln("");
         }
 
+        if (configErrors.size() != 0) {
+            builder.appendln("Errors detected in supplied configuration values: ");
+            for (String error : configErrors) {
+                builder.append("\t");
+                builder.appendln(error);
+            }
+        }
+
+        if (builder.length() != 0) return builder.toString();
         return "Error generating usage string";
     }
 
-    private static String getFileDirFromConfig(String filename, String defValue) {
-        String fileDir = getRawFileDirFromConfig(filename, defValue);
-
-        if (!StringUtils.isEmpty(fileDir)) {
-            if (fileDir.contains("/")) {
-                if (!fileDir.endsWith("/")) {
-                    fileDir = fileDir + "/";
-                }
-            } else if (fileDir.contains("\\")) {
-                if (!fileDir.endsWith("\\")) {
-                    fileDir = fileDir + "\\";
-                }
-            } else {
-                if (!fileDir.endsWith(File.separator)) {
-                    fileDir = fileDir + File.separator;
-                }
-            }
-        }
-
-        return fileDir;
-    }
-
-    private static String getRawFileDirFromConfig(String filename, String defValue) {
+    public static void parse(String propertiesFileName) throws IOException, ConfigParser.UsageException {
+        InputStream stream = null;
         try {
-            File file = new File(filename);
-            if (file.exists()) {
-                DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-                DocumentBuilder db = dbf.newDocumentBuilder();
-
-                Document doc = db.parse(file);
-                if (doc != null) {
-                    doc.getDocumentElement().normalize();
-                    NodeList nodes = doc.getDocumentElement().getChildNodes();
-                    for (int i = 0; i < nodes.getLength(); i++) {
-                        Node node = nodes.item(i);
-                        if (node.hasAttributes()) {
-                            Node nameAttr = node.getAttributes().getNamedItem("name");
-                            if (nameAttr != null && "fileDir".equals( nameAttr.getTextContent() )) {
-                                return node.getTextContent();
-                            }
-                        }
-                    }
-                }
+            try{
+                stream = Configuration.class.getClassLoader().getResourceAsStream(propertiesFileName);
+                Properties props = new Properties();
+                props.load(stream);
+                values = new Parser(props, configErrors);
+                values.parse();
             }
-        } catch (IOException e) {
-        } catch (ParserConfigurationException e) {
-        } catch (SAXException e) {
+            finally{
+                if(stream != null) stream.close();
+            }
+        }
+        catch(Exception e){
+            configErrors.add(MessageFormat.format("Could not load properties file: \"{0}\"", propertiesFileName));
         }
 
-        return defValue;
+        if (!isConfigured()) throw new ConfigParser.UsageException();
     }
 }
+

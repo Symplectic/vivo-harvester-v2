@@ -34,6 +34,7 @@
         <xsl:variable name="activityObj" select="svfn:fullObject(api:related/api:object[@category='activity'])" />
         <xsl:variable name="userObj" select="svfn:fullObject(api:related/api:object[@category='user'])" />
 
+        <!-- should probably only break out an actual award object for awards/honours that are prestigious/well known - implement a dictionary a la organisations? -->
         <xsl:variable name="awardName" select="svfn:getRecordField($activityObj,'title')" />
         <xsl:if test="$awardName/api:text">
             <xsl:variable name="awardURI"><xsl:value-of select="svfn:makeURI('award-',$awardName/api:text)" /></xsl:variable>
@@ -53,7 +54,7 @@
             <!-- Awarding Agent -->
             <xsl:variable name="awardedBy" select="svfn:getRecordField($activityObj,'institution')" />
             <xsl:for-each select="$awardedBy/api:addresses/api:address">
-                <xsl:variable name="orgObjects" select="svfn:organisationObjects(api:institution)" />
+                <xsl:variable name="orgObjects" select="svfn:organisationObjects(.)" />
                 <xsl:variable name="orgURI" select="svfn:organisationObjectsMainURI($orgObjects)" />
 
                 <xsl:if test="$orgObjects/*">
@@ -69,13 +70,23 @@
             </xsl:for-each>
 
             <!-- Context Object -->
+            <!-- render datetime interval to intermediate variable, retrieve uri for reference purposes and then render variable contents-->
             <xsl:variable name="awardDate" select="svfn:getRecordField($activityObj,'start-date')" />
-            <xsl:variable name="finishDate" select="svfn:getRecordField($activityObj,'end-date')" />
+            <xsl:variable name="endDate" select="svfn:getRecordField($activityObj,'end-date')" />
+            <!-- we only create a dateInterval if there is an end date in this case. -->
+            <xsl:variable name="dateInterval">
+                <xsl:if test="$endDate/*">
+                    <xsl:copy-of select="svfn:renderDateInterval($contextURI, $awardDate , $endDate, '', false())" />
+                </xsl:if>
+            </xsl:variable>
+
+            <xsl:variable name="dateIntervalURI" select="svfn:retrieveDateIntervalUri($dateInterval)" />
+            <xsl:copy-of select="$dateInterval" />
 
             <xsl:variable name="yearAwardedURI" select="concat($contextURI,'-awarded')" />
-            <xsl:variable name="inclusiveURI" select="concat($contextURI,'-inclusive')" />
-            <xsl:variable name="startURI" select="concat($contextURI,'-inclusive-start')" />
-            <xsl:variable name="endURI" select="concat($contextURI,'-inclusive-end')" />
+            <xsl:if test="$awardDate/*">
+                <xsl:copy-of select="svfn:renderDateObject($yearAwardedURI, $awardDate, '')" />
+            </xsl:if>
 
             <xsl:call-template name="render_rdf_object">
                 <xsl:with-param name="objectURI" select="$contextURI" />
@@ -86,7 +97,7 @@
                         <xsl:text> (</xsl:text>
                         <xsl:value-of select="$userObj/api:last-name,$userObj/api:first-name" separator=", " />
                         <xsl:if test="$awardDate/*">
-                            <xsl:text>  - </xsl:text>
+                            <xsl:text> - </xsl:text>
                         </xsl:if>
                         <xsl:value-of select="$awardDate/api:date/api:year" />
                         <xsl:text>)</xsl:text>
@@ -96,8 +107,8 @@
                     <vivo:relates rdf:resource="{$userURI}"/><!-- User -->
                     <xsl:if test="$awardDate/*">
                         <vivo:dateTimeValue rdf:resource="{$yearAwardedURI}"/><!-- Year Awarded -->
-                        <xsl:if test="$finishDate/*">
-                            <vivo:dateTimeInterval rdf:resource="{$inclusiveURI}"/><!-- Years Inclusive -->
+                        <xsl:if test="$dateInterval/*">
+                            <vivo:dateTimeInterval rdf:resource="{$dateIntervalURI}"/><!-- Years Inclusive -->
                         </xsl:if>
                     </xsl:if>
                 </xsl:with-param>
@@ -107,26 +118,9 @@
             <xsl:call-template name="render_rdf_object">
                 <xsl:with-param name="objectURI" select="$userURI" />
                 <xsl:with-param name="rdfNodes">
-                    <vivo:relates rdf:resource="{$contextURI}"/>
+                    <vivo:relatedBy rdf:resource="{$contextURI}"/>
                 </xsl:with-param>
             </xsl:call-template>
-
-            <xsl:if test="$awardDate/*">
-                <xsl:copy-of select="svfn:renderDateObject(.,$yearAwardedURI,$awardDate)" />
-            </xsl:if>
-
-            <xsl:if test="$finishDate/*">
-                <xsl:call-template name="render_rdf_object">
-                    <xsl:with-param name="objectURI" select="$inclusiveURI" />
-                    <xsl:with-param name="rdfNodes">
-                        <rdf:type rdf:resource="http://vivoweb.org/ontology/core#DateTimeInterval"/>
-                        <vivo:start rdf:resource="{$startURI}" />
-                        <vivo:end rdf:resource="{$endURI}" />
-                    </xsl:with-param>
-                </xsl:call-template>
-                <xsl:copy-of select="svfn:renderDateObject(.,$startURI,$awardDate)" />
-                <xsl:copy-of select="svfn:renderDateObject(.,$endURI,$finishDate)" />
-            </xsl:if>
         </xsl:if>
     </xsl:template>
 </xsl:stylesheet>

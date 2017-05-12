@@ -6,67 +6,112 @@
  ******************************************************************************/
 package uk.co.symplectic.vivoweb.harvester.translate;
 
-import org.apache.commons.lang.StringUtils;
-import uk.co.symplectic.translate.TemplatesHolder;
-import uk.co.symplectic.translate.TranslationService;
-import uk.co.symplectic.vivoweb.harvester.fetch.ElementsObjectsInRelationships;
-import uk.co.symplectic.vivoweb.harvester.fetch.ElementsRelationshipObserver;
-import uk.co.symplectic.vivoweb.harvester.store.ElementsObjectStore;
-import uk.co.symplectic.vivoweb.harvester.store.ElementsRdfStore;
-import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredRelationship;
+import org.apache.commons.lang.NullArgumentException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.xml.sax.SAXException;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsRelationshipInfo;
+import uk.co.symplectic.vivoweb.harvester.store.*;
 
-import javax.xml.transform.Templates;
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.text.MessageFormat;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
-public class ElementsRelationshipTranslateObserver implements ElementsRelationshipObserver {
-    private final TranslationService translationService = new TranslationService();
-    private TemplatesHolder templatesHolder = null;
+public class ElementsRelationshipTranslateObserver extends ElementsTranslateObserver{
 
-    private ElementsObjectStore objectStore = null;
-    private ElementsRdfStore rdfStore = null;
+    private static final Logger log = LoggerFactory.getLogger(ElementsRelationshipTranslateObserver.class);
+    private final ElementsItemFileStore rawDataStore;
+    private final Set<String> relationshipTypesNeedingObjectsForTranslation;
 
-    private boolean currentStaffOnly = true;
-    private boolean visibleLinksOnly = true;
+    public ElementsRelationshipTranslateObserver(ElementsItemFileStore rawDataStore, ElementsRdfStore rdfStore, String xslFilename, Set<String> relationshipTypesNeedingObjectsForTranslation){
+        super(rdfStore, xslFilename, StorableResourceType.RAW_RELATIONSHIP, StorableResourceType.TRANSLATED_RELATIONSHIP);
+        if(rawDataStore == null) throw new NullArgumentException("rawDataStore");
+        this.rawDataStore = rawDataStore;
+        if(relationshipTypesNeedingObjectsForTranslation != null && ! relationshipTypesNeedingObjectsForTranslation.isEmpty()){
+            this.relationshipTypesNeedingObjectsForTranslation = new HashSet<String>(relationshipTypesNeedingObjectsForTranslation);
+        }else {
+            this.relationshipTypesNeedingObjectsForTranslation = null;
+        }
 
-    public ElementsRelationshipTranslateObserver(ElementsObjectStore objectStore, ElementsRdfStore rdfStore, String xslFilename) {
-        this.objectStore = objectStore;
-        this.rdfStore = rdfStore;
-        if (!StringUtils.isEmpty(xslFilename)) {
-            templatesHolder = new TemplatesHolder(xslFilename);
-            translationService.setIgnoreFileNotFound(true);
+
+    }
+    @Override
+    protected void observeStoredRelationship(ElementsRelationshipInfo info, ElementsStoredItemInfo item) {
+        //if we don't think this is a complete relationships then the current code base can't process it effectively - no point translating it..
+        if(!info.getIsComplete()){
+            log.warn(MessageFormat.format("{0} appears to be incomplete, this may indicate new Elements object categories have been added.", info.getItemId()));
+            return;
+        }
+
+        Map<String, Object> extraXSLTParameters = new HashMap<String, Object>();
+        if(this.relationshipTypesNeedingObjectsForTranslation == null || this.relationshipTypesNeedingObjectsForTranslation.contains(info.getType())) {
+            extraXSLTParameters.put("extraObjects", getExtraObjectsDescription(info));
+        }
+        //extraXSLTParameters.put("extraObjects", getExtraObjectsDescription(info));
+        translate(item, extraXSLTParameters);
+    }
+
+    private Document getExtraObjectsDescription(ElementsRelationshipInfo info) {
+        try {
+            DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+            Document doc = docBuilder.newDocument();
+            Element mainDocRootElement = doc.createElement("extraObjects");
+            doc.appendChild(mainDocRootElement);
+            for (ElementsItemId.ObjectId id : info.getObjectIds()) {
+                BasicElementsStoredItem storedRawObject = rawDataStore.retrieveItem(id, StorableResourceType.RAW_OBJECT);
+                if(storedRawObject != null) {
+                    StoredData storedRawData = storedRawObject.getStoredData();
+                    InputStream storedItemInputStream = null;
+                    try {
+                        storedItemInputStream = storedRawData.getInputStream();
+                        Document storedObjectDoc = docBuilder.parse(storedRawData.getInputStream());
+                        Element storedObjectRootElement = storedObjectDoc.getDocumentElement();
+                        Node importedNode = doc.importNode(storedObjectRootElement, true);
+                        mainDocRootElement.appendChild(importedNode);
+                    } catch (FileNotFoundException fnfe) {
+                        //todo: decide if this is desirable or not - needed to avoid failures in relation to data categories you are not really processing at the moment.
+                        if (storedRawData instanceof StoredData.InFile) {
+                            StoredData.InFile fileStoredData = (StoredData.InFile) storedRawData;
+                            log.warn(MessageFormat.format("File {0} for extra object {1} not found when processing {2}", fileStoredData.getFile().getPath(), id, info.getItemId()));
+                        }
+                    } finally {
+                        if (storedItemInputStream != null) {
+                            storedItemInputStream.close();
+                        }
+                    }
+                }
+                else{
+                    log.warn(MessageFormat.format("Extra object {0} not found in raw-record cache when processing {1}", id, info.getItemId()));
+                }
+            }
+            return doc;
+        }
+        catch(IOException ioe){
+            throw new IllegalStateException(ioe);
+        }
+        catch(SAXException se){
+            throw new IllegalStateException(se);
+        }
+        catch (ParserConfigurationException pce) {
+            throw new IllegalStateException(pce);
         }
     }
 
-    public void setCurrentStaffOnly(boolean currentStaffOnly) {
-        this.currentStaffOnly = currentStaffOnly;
-    }
-
-    public void setVisibleLinksOnly(boolean visibleLinksOnly) {
-        this.visibleLinksOnly = visibleLinksOnly;
-    }
-
-    public void observe(ElementsStoredRelationship relationship, ElementsObjectsInRelationships objectsInRelationships) {
-        File outFile = rdfStore.getRelationshipFile(relationship.getRelationshipInfo());
-
-        /**
-         * Note that the translation service is designed to be asynchronous. Which means, when the translate() method
-         * call returns, we are not guaranteed that the translation will have completed (in fact, we can be almost certain
-         * that is WON'T have finished translating by the time that the method call returns.
-         *
-         * As a result, we can't do anything that relies on the translation having been completed by coding it after the
-         * method call. For example, cleaning up empty files output from the translation.
-         *
-         * In order to get round this, a callback object can be supplied, which will execute after the translation code
-         * has completed.
-         *
-         * In this case, we supply an object that will clean up any empty translation output.
-         */
-        ElementsRelationshipTranslationCallback callback = new ElementsRelationshipTranslationCallback(relationship, outFile, objectsInRelationships, objectStore);
-        callback.setCurrentStaffOnly(currentStaffOnly);
-        callback.setVisibleLinksOnly(visibleLinksOnly);
-        translationService.translate(relationship.getFile(), outFile, templatesHolder, callback);
+    @Override
+    protected void observeRelationshipDeletion(ElementsItemId.RelationshipId relationsipId, StorableResourceType type){
+        safelyDeleteItem(relationsipId, MessageFormat.format("Unable to delete translated-rdf for relationship {0}", relationsipId.toString()));
     }
 }

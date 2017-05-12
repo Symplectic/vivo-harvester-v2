@@ -6,91 +6,81 @@
  ******************************************************************************/
 package uk.co.symplectic.vivoweb.harvester.fetch.resources;
 
+import org.apache.commons.lang.NullArgumentException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.co.symplectic.elements.api.ElementsAPI;
 import uk.co.symplectic.utils.ExecutorServiceUtils;
+import uk.co.symplectic.utils.ImageUtils;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsUserInfo;
+import uk.co.symplectic.vivoweb.harvester.store.ElementsItemFileStore;
+import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
 
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.OutputStream;
+import java.io.ByteArrayOutputStream;
 import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.concurrent.Callable;
-import java.util.concurrent.Future;
 
 public final class ResourceFetchServiceImpl {
+
     private static final Logger log = LoggerFactory.getLogger(ResourceFetchServiceImpl.class);
 
-    private static final ExecutorServiceUtils.ExecutorServiceWrapper wrapper = ExecutorServiceUtils.newFixedThreadPool("ResourceFetchService");
+    private static final ExecutorServiceUtils.ExecutorServiceWrapper<Boolean> wrapper = ExecutorServiceUtils.newFixedThreadPool("ResourceFetchService");
 
     private ResourceFetchServiceImpl() {}
 
-    static void fetchElements(ElementsAPI api, String url, File outputFile, PostFetchCallback callback) throws MalformedURLException {
-        // Attempt to validate the URL by creating a URL object
-        // (This is just to throw a MalformedURLException - we don't need the url object)
-        URL validateUrl = new URL(url);
-
-        Future<Boolean> result = wrapper.submit(new ElementsFetchTask(api, url, outputFile, callback));
+    static void fetchUserPhoto(ElementsAPI api, ImageUtils.PhotoType photoType, ElementsUserInfo userInfo, ElementsItemFileStore objectStore) throws MalformedURLException {
+        wrapper.submit(new UserPhotoFetchTask(api, photoType, userInfo, objectStore));
     }
 
-    static void fetchExternal(String url, File outputFile, PostFetchCallback callback) throws MalformedURLException {
-        Future<Boolean> result = wrapper.submit(new ExternalFetchTask(new URL(url), outputFile, callback));
+//    static void fetchExternal(String url, File outputFile) throws MalformedURLException {
+//        wrapper.submit(new ExternalFetchTask(new URL(url), outputFile));
+//    }
+
+    static void awaitShutdown() {
+        wrapper.awaitShutdown();
     }
 
-    static class ElementsFetchTask implements Callable<Boolean> {
-        private ElementsAPI api;
-        private String url;
+    private static class UserPhotoFetchTask implements Callable<Boolean> {
+        private final ElementsAPI api;
+        private final ElementsUserInfo userInfo;
+        private final ElementsItemFileStore objectStore;
+        private final ImageUtils.PhotoType type;
 
-        private File outputFile;
+        UserPhotoFetchTask(ElementsAPI api, ImageUtils.PhotoType photoType, ElementsUserInfo userInfo, ElementsItemFileStore objectStore) {
+            if(api == null) throw new NullArgumentException("api");
+            if(userInfo == null) throw new NullArgumentException("userInfo");
+            if(objectStore == null) throw new NullArgumentException("objectStore");
 
-        private PostFetchCallback postFetchCallback;
-
-        ElementsFetchTask(ElementsAPI api, String url, File outputFile, PostFetchCallback callback) {
             this.api = api;
-            this.url = url;
-            this.outputFile = outputFile;
-            this.postFetchCallback = callback;
+            this.userInfo = userInfo;
+            this.objectStore = objectStore;
+            this.type = photoType;
         }
 
         @Override
         public Boolean call() throws Exception {
-            Boolean retCode = Boolean.TRUE;
-
-            OutputStream os = new BufferedOutputStream(new FileOutputStream(outputFile));
-            retCode = api.fetchResource(url, os);
-            os.close();
-
-            if (postFetchCallback != null) {
-                postFetchCallback.fetchSuccess(outputFile);
-            }
-
+            ByteArrayOutputStream os = new ByteArrayOutputStream();
+            Boolean retCode = api.fetchResource(userInfo.getPhotoUrl(type), os);
+            objectStore.storeItem(userInfo, StorableResourceType.RAW_USER_PHOTO, os.toByteArray());
+            //TODO: better error handling here?
             return retCode;
         }
     }
 
-    static class ExternalFetchTask implements Callable<Boolean> {
-        private URL url;
+//    private static class ExternalFetchTask implements Callable<Boolean> {
+//        private URL url;
+//        private File outputFile;
+//
+//        ExternalFetchTask(URL url, File outputFile) {
+//            this.url = url;
+//            this.outputFile = outputFile;
+//        }
+//
+//        @Override
+//        public Boolean call() throws Exception {
+//            // Not implemented yet
+//            return Boolean.TRUE;
+//        }
+//    }
 
-        private File outputFile;
-
-        private PostFetchCallback postFetchCallback;
-
-        ExternalFetchTask(URL url, File outputFile, PostFetchCallback callback) {
-            this.url = url;
-            this.outputFile = outputFile;
-            this.postFetchCallback = callback;
-        }
-
-        @Override
-        public Boolean call() throws Exception {
-            // Not implemented yet
-            return Boolean.TRUE;
-        }
-    }
-
-    static void shutdown() {
-        wrapper.shutdown();
-    }
 }

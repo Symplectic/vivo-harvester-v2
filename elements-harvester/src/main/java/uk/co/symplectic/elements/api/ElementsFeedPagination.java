@@ -6,7 +6,7 @@
  ******************************************************************************/
 package uk.co.symplectic.elements.api;
 
-class ElementsFeedPagination {
+public class ElementsFeedPagination {
     private int itemsPerPage;
     private String firstURL;
     private String lastURL;
@@ -33,23 +33,23 @@ class ElementsFeedPagination {
         return nextURL;
     }
 
-    void setItemsPerPage(int itemsPerPage) {
+    public void setItemsPerPage(int itemsPerPage) {
         this.itemsPerPage = itemsPerPage;
     }
 
-    void setFirstURL(String firstURL) {
+    public void setFirstURL(String firstURL) {
         this.firstURL = firstURL;
     }
 
-    void setLastURL(String lastURL) {
+    public void setLastURL(String lastURL) {
         this.lastURL = lastURL;
     }
 
-    void setPreviousURL(String previousURL) {
+    public void setPreviousURL(String previousURL) {
         this.previousURL = previousURL;
     }
 
-    void setNextURL(String nextURL) {
+    public void setNextURL(String nextURL) {
         this.nextURL = nextURL;
     }
 }

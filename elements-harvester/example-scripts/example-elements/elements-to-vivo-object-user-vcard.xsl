@@ -45,10 +45,11 @@
         <xsl:variable name="vcardTitleURI" select="svfn:makeURI('vcardTitle-',$userId)" />
         <xsl:variable name="vcardTitleObject" select="svfn:renderVcardTitleObject(.,$vcardTitleURI)" />
 
-        <xsl:variable name="vcardAddresses"><xsl:value-of select="svfn:getRecordFieldOrFirst(.,'addresses')" /></xsl:variable>
-        <xsl:variable name="vcardOtherEmails"><xsl:value-of select="svfn:getRecordFieldOrFirst(.,'email-addresses')" /></xsl:variable>
-        <xsl:variable name="vcardPhoneNumbers"><xsl:value-of select="svfn:getRecordFieldOrFirst(.,'phone-numbers')" /></xsl:variable>
-        <xsl:variable name="vcardWebSites"><xsl:value-of select="svfn:getRecordFieldOrFirst(.,'personal-websites')" /></xsl:variable>
+        <xsl:variable name="vcardAddresses" select="svfn:getRecordFieldOrFirst(.,'addresses')" />
+        <!-- ? how much do we want "other emails to come through ?-->
+        <xsl:variable name="vcardOtherEmails" select="svfn:getRecordFieldOrFirst(.,'email-addresses')" />
+        <xsl:variable name="vcardPhoneNumbers" select="svfn:getRecordFieldOrFirst(.,'phone-numbers')" />
+        <xsl:variable name="vcardWebSites" select="svfn:getRecordFieldOrFirst(.,'personal-websites')" />
 
         <!-- Individual to vcard link -->
         <xsl:call-template name="render_rdf_object">

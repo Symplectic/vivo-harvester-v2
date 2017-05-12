@@ -55,11 +55,20 @@
                         <rdf:type rdf:resource="http://vivoweb.org/ontology/core#NonAcademic" />
                     </xsl:otherwise>
                 </xsl:choose>
+
+                <xsl:if test="$internalClass"><rdf:type rdf:resource="{$internalClass}" /></xsl:if>
                 <!-- rdf:type rdf:resource="http://vivoweb.org/harvester/excludeEntity" / -->
                 <rdfs:label><xsl:value-of select="$lastName" />, <xsl:value-of select="$firstName" /></rdfs:label>
                 <xsl:copy-of select="svfn:renderPropertyFromFieldOrFirst(.,'vivo:overview','overview')" />
+
+                <!-- render any user labels that are relevant -->
+                <xsl:copy-of select="svfn:renderControlledSubjectLinks(., '')" />
+
             </xsl:with-param>
         </xsl:call-template>
+
+        <!-- output objects to reference any labels that we have written out -->
+        <xsl:copy-of select="svfn:renderControlledSubjectObjects(., $userURI, '')" />
 
         <!--
             Output the VCARD
@@ -95,73 +104,21 @@
                     </xsl:with-param>
                 </xsl:call-template>
 
-                <!-- Output RDF for vivo:DateTimeInterval and child vivo:DateTimeValue individuals -->
-                <xsl:variable name="startDate" select="api:start-date/api:year" />
-                <xsl:variable name="endDate" select="api:end-date/api:year" />
-                <xsl:variable name="startDateURI" select="concat($awardedDegreeURI,'-startDate')" />
-                <xsl:variable name="endDateURI" select="concat($awardedDegreeURI,'-endDate')" />
-                <xsl:variable name="dateIntervalURI">
-                    <xsl:choose>
-                        <xsl:when test="$endDate">
-                            <xsl:value-of select="concat($awardedDegreeURI,'-dateInterval-',$startDate,'-',$endDate)" />
-                        </xsl:when>
-                        <xsl:otherwise>
-                            <xsl:value-of select="concat($awardedDegreeURI,'-dateInterval-',$startDate)" />
-                        </xsl:otherwise>
-                    </xsl:choose>
-                </xsl:variable>
-
-                <xsl:if test="$startDate">
-                    <xsl:call-template name="render_rdf_object">
-                        <xsl:with-param name="objectURI" select="$startDateURI" />
-                        <xsl:with-param name="rdfNodes">
-                            <rdf:type rdf:resource="http://vivoweb.org/ontology/core#DateTimeValue" />
-                            <!-- XXX: Some Elements date values include a month, and might even include a day? -->
-                            <vivo:dateTime rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime"><xsl:value-of select="concat($startDate,'-01-01T00:00:00')" /></vivo:dateTime>
-                            <vivo:dateTimePrecision rdf:resource="http://vivoweb.org/ontology/core#yearPrecision" />
-                        </xsl:with-param>
-                    </xsl:call-template>
-                </xsl:if>
-
-                <xsl:if test="$endDate">
-                    <xsl:call-template name="render_rdf_object">
-                        <xsl:with-param name="objectURI" select="$endDateURI" />
-                        <xsl:with-param name="rdfNodes">
-                            <rdf:type rdf:resource="http://vivoweb.org/ontology/core#DateTimeValue" />
-                            <!-- XXX: Some Elements date values include a month, and might even include a day? -->
-                            <vivo:dateTime rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime"><xsl:value-of select="concat($endDate,'-01-01T00:00:00')" /></vivo:dateTime>
-                            <vivo:dateTimePrecision rdf:resource="http://vivoweb.org/ontology/core#yearPrecision" />
-                        </xsl:with-param>
-                    </xsl:call-template>
-                </xsl:if>
-
-                <xsl:if test="$startDate or $endDate">
-                    <xsl:call-template name="render_rdf_object">
-                        <xsl:with-param name="objectURI" select="$dateIntervalURI" />
-                        <xsl:with-param name="rdfNodes">
-                            <rdf:type rdf:resource="http://vivoweb.org/ontology/core#DateTimeInterval" />
-                            <xsl:if test="$startDate">
-                                <vivo:start rdf:resource="{$startDateURI}" />
-                            </xsl:if>
-                            <!-- For a degree only, add a condition to "close" the interval with the start date if end date doesn't exist to avoid the appearance of it looking current -->
-                            <xsl:choose>
-                                <xsl:when test="$endDate">
-                                    <vivo:end rdf:resource="{$endDateURI}" />
-                                </xsl:when>
-                                <xsl:otherwise>
-                                    <vivo:end rdf:resource="{$startDateURI}" />
-                                </xsl:otherwise>
-                            </xsl:choose>
-                        </xsl:with-param>
-                    </xsl:call-template>
-                </xsl:if>
+                <!-- render datetime interval to intermediate variable, retrieve uri for reference purposes and then render variable contents-->
+                <xsl:variable name="startDate" select="api:start-date" />
+                <xsl:variable name="endDate" select="api:end-date" />
+                <xsl:variable name="dateInterval" select ="svfn:renderDateInterval($awardedDegreeURI, $startDate, $endDate, 'yearPrecision', true())" />
+                <xsl:variable name="dateIntervalURI" select="svfn:retrieveDateIntervalUri($dateInterval)" />
+                <xsl:copy-of select="$dateInterval" />
 
                 <!-- Output RDF for vivo:EducationalProcess individual-->
                 <xsl:call-template name="render_rdf_object">
                     <xsl:with-param name="objectURI" select="$eduProcessURI" />
                     <xsl:with-param name="rdfNodes">
                         <rdf:type rdf:resource="http://vivoweb.org/ontology/core#EducationalProcess" />
-                        <vivo:dateTimeInterval rdf:resource="{$dateIntervalURI}" />
+                        <xsl:if test="$dateInterval/*">
+                            <vivo:dateTimeInterval rdf:resource="{$dateIntervalURI}" />
+                        </xsl:if>
                         <xsl:if test="$orgObjects/*"><obo:RO_0000057 rdf:resource="{$orgURI}" /></xsl:if>
                         <obo:RO_0000057 rdf:resource="{$userURI}" />
                         <obo:RO_0002234 rdf:resource="{$awardedDegreeURI}" />
@@ -210,51 +167,12 @@
                 <!-- Output RDF for vivo:University individual -->
                 <xsl:copy-of select="$orgObjects" />
 
-                <!-- Output RDF for vivo:DateTimeInterval and child vivo:DateTimeValue individuals -->
+                <!-- render datetime interval to intermediate variable, retrieve uri for reference purposes and then render variable contents-->
                 <xsl:variable name="startDate" select="api:start-date" />
                 <xsl:variable name="endDate" select="api:end-date" />
-                <xsl:variable name="startDateURI" select="concat($appointmentURI,'-startDate')" />
-                <xsl:variable name="endDateURI" select="concat($appointmentURI,'-endDate')" />
-                <xsl:variable name="dateIntervalURI" select="concat($appointmentURI,'-dateInterval')" />
-
-                <xsl:if test="$startDate/*">
-                    <xsl:call-template name="render_rdf_object">
-                        <xsl:with-param name="objectURI" select="$startDateURI" />
-                        <xsl:with-param name="rdfNodes">
-                            <rdf:type rdf:resource="http://vivoweb.org/ontology/core#DateTimeValue" />
-                            <!-- XXX: Some Elements date values include a month, and might even include a day? -->
-                            <vivo:dateTime rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime"><xsl:value-of select="concat($startDate/api:year,'-01-01T00:00:00')" /></vivo:dateTime>
-                            <vivo:dateTimePrecision rdf:resource="http://vivoweb.org/ontology/core#yearPrecision" />
-                        </xsl:with-param>
-                    </xsl:call-template>
-                </xsl:if>
-
-                <xsl:if test="$endDate/*">
-                    <xsl:call-template name="render_rdf_object">
-                        <xsl:with-param name="objectURI" select="$endDateURI" />
-                        <xsl:with-param name="rdfNodes">
-                            <rdf:type rdf:resource="http://vivoweb.org/ontology/core#DateTimeValue" />
-                            <!-- XXX: Some Elements date values include a month, and might even include a day? -->
-                            <vivo:dateTime rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime"><xsl:value-of select="concat($endDate/api:year,'-01-01T00:00:00')" /></vivo:dateTime>
-                            <vivo:dateTimePrecision rdf:resource="http://vivoweb.org/ontology/core#yearPrecision" />
-                        </xsl:with-param>
-                    </xsl:call-template>
-                </xsl:if>
-
-                <xsl:if test="$startDate/* or $endDate/*">
-                    <xsl:call-template name="render_rdf_object">
-                        <xsl:with-param name="objectURI" select="$dateIntervalURI" />
-                        <xsl:with-param name="rdfNodes">
-                            <rdf:type rdf:resource="http://vivoweb.org/ontology/core#DateTimeInterval" />
-                            <xsl:if test="$startDate">
-                                <vivo:start rdf:resource="{$startDateURI}" />
-                            </xsl:if>
-                            <xsl:if test="$endDate">
-                                <vivo:end rdf:resource="{$endDateURI}" />
-                            </xsl:if>
-                        </xsl:with-param>
-                    </xsl:call-template>
-                </xsl:if>
+                <xsl:variable name="dateInterval" select ="svfn:renderDateInterval($appointmentURI, $startDate, $endDate, 'yearPrecision', false())" />
+                <xsl:variable name="dateIntervalURI" select="svfn:retrieveDateIntervalUri($dateInterval)" />
+                <xsl:copy-of select="$dateInterval" />
 
                 <!-- Output RDF for vivo:Position individual -->
                 <xsl:call-template name="render_rdf_object">
@@ -267,7 +185,7 @@
                              or vivo:PrimaryPosition -->
                         <rdf:type rdf:resource="http://vivoweb.org/ontology/core#Position" />
                         <rdfs:label><xsl:value-of select="api:position" /></rdfs:label>
-                        <xsl:if test="$startDate/* or $endDate/*">
+                        <xsl:if test="$dateInterval/*">
                             <vivo:dateTimeInterval rdf:resource="{$dateIntervalURI}" />
                         </xsl:if>
                         <!--
@@ -303,55 +221,15 @@
                 <!-- XXX: Ideally these will be unique identifiers in the future that can map to unique individuals in VIVO -->
                 <xsl:variable name="orgObjects" select="svfn:organisationObjects(api:employer)" />
                 <xsl:variable name="orgURI" select="svfn:organisationObjectsMainURI($orgObjects)" />
-
                 <!-- Output RDF for foaf:Organization individual -->
                 <xsl:copy-of select="$orgObjects" />
 
-                <!-- Output RDF for vivo:DateTimeInterval and child vivo:DateTimeValue individuals -->
+                <!-- render datetime interval to intermediate variable, retrieve uri for reference purposes and then render variable contents-->
                 <xsl:variable name="startDate" select="api:start-date" />
                 <xsl:variable name="endDate" select="api:end-date" />
-                <xsl:variable name="startDateURI" select="concat($appointmentURI,'-startDate')" />
-                <xsl:variable name="endDateURI" select="concat($appointmentURI,'-endDate')" />
-                <xsl:variable name="dateIntervalURI" select="concat($appointmentURI,'-dateInterval')" />
-
-                <xsl:if test="$startDate/*">
-                    <xsl:call-template name="render_rdf_object">
-                        <xsl:with-param name="objectURI" select="$startDateURI" />
-                        <xsl:with-param name="rdfNodes">
-                            <rdf:type rdf:resource="http://vivoweb.org/ontology/core#DateTimeValue" />
-                            <!-- XXX: Some Elements date values include a month, and might even include a day? -->
-                            <vivo:dateTime rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime"><xsl:value-of select="concat($startDate/api:year,'-01-01T00:00:00')" /></vivo:dateTime>
-                            <vivo:dateTimePrecision rdf:resource="http://vivoweb.org/ontology/core#yearPrecision" />
-                        </xsl:with-param>
-                    </xsl:call-template>
-                </xsl:if>
-
-                <xsl:if test="$endDate/*">
-                    <xsl:call-template name="render_rdf_object">
-                        <xsl:with-param name="objectURI" select="$endDateURI" />
-                        <xsl:with-param name="rdfNodes">
-                            <rdf:type rdf:resource="http://vivoweb.org/ontology/core#DateTimeValue" />
-                            <!-- XXX: Some Elements date values include a month, and might even include a day? -->
-                            <vivo:dateTime rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime"><xsl:value-of select="concat($endDate/api:year,'-01-01T00:00:00')" /></vivo:dateTime>
-                            <vivo:dateTimePrecision rdf:resource="http://vivoweb.org/ontology/core#yearPrecision" />
-                        </xsl:with-param>
-                    </xsl:call-template>
-                </xsl:if>
-
-                <xsl:if test="$startDate/* or $endDate/*">
-                    <xsl:call-template name="render_rdf_object">
-                        <xsl:with-param name="objectURI" select="$dateIntervalURI" />
-                        <xsl:with-param name="rdfNodes">
-                            <rdf:type rdf:resource="http://vivoweb.org/ontology/core#DateTimeInterval" />
-                            <xsl:if test="$startDate">
-                                <vivo:start rdf:resource="{$startDateURI}" />
-                            </xsl:if>
-                            <xsl:if test="$endDate">
-                                <vivo:end rdf:resource="{$endDateURI}" />
-                            </xsl:if>
-                        </xsl:with-param>
-                    </xsl:call-template>
-                </xsl:if>
+                <xsl:variable name="dateInterval" select ="svfn:renderDateInterval($appointmentURI, $startDate, $endDate, 'yearPrecision', false())" />
+                <xsl:variable name="dateIntervalURI" select="svfn:retrieveDateIntervalUri($dateInterval)" />
+                <xsl:copy-of select="$dateInterval" />
 
                 <!-- Output RDF for vivo:NonAcademicPosition individual -->
                 <xsl:call-template name="render_rdf_object">
@@ -359,7 +237,7 @@
                     <xsl:with-param name="rdfNodes">
                         <rdf:type rdf:resource="http://vivoweb.org/ontology/core#NonAcademicPosition" />
                         <rdfs:label><xsl:value-of select="api:position" /></rdfs:label>
-                        <xsl:if test="$startDate/* or $endDate/*">
+                        <xsl:if test="$dateInterval/*">
                             <vivo:dateTimeInterval rdf:resource="{$dateIntervalURI}" />
                         </xsl:if>
                         <xsl:if test="$orgObjects/*"><vivo:relates rdf:resource="{$orgURI}" /></xsl:if>
