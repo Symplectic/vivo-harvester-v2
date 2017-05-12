@@ -18,6 +18,7 @@ import java.util.*;
 public enum ElementsItemType {
     OBJECT("object"),
     RELATIONSHIP("relationship"),
+    RELATIONSHIP_TYPE("relationship_type"),
     GROUP("group");
 
     private final String name;
@@ -70,6 +71,7 @@ public enum ElementsItemType {
     public static SubType AllObjects = new AggregateSubType(ElementsItemType.OBJECT, false);
     public static SubType AllGroups = new AggregateSubType(ElementsItemType.GROUP, true);
     public static SubType AllRelationships = new AggregateSubType(ElementsItemType.RELATIONSHIP, true);
+    public static SubType AllRelationshipTypes = new AggregateSubType(ElementsItemType.RELATIONSHIP_TYPE, true);
 
     public static class SubType{
         private final ElementsItemType mainType;
@@ -114,7 +116,7 @@ public enum ElementsItemType {
 
     private static class AggregateSubType extends SubType{
         AggregateSubType(ElementsItemType mainType, boolean registerAsConcrete){
-            super(mainType, mainType.getName(), mainType.getName() + 's', registerAsConcrete);
+            super(mainType, mainType.getName(), mainType.getPluralName(), registerAsConcrete);
         }
 
         @Override

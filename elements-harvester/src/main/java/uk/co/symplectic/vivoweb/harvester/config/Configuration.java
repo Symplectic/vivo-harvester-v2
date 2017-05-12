@@ -29,9 +29,10 @@ public class Configuration {
 
     private static class Parser extends ConfigParser {
         //keys
-        private ConfigKey ARG_RAW_OUTPUT_DIRECTORY = new ConfigKey("rawOutput", "../data/raw-records/");
-        private ConfigKey ARG_RDF_OUTPUT_DIRECTORY = new ConfigKey("rdfOutput", "../data/translated-records/");
-        private ConfigKey ARG_TDB_OUTPUT_DIRECTORY = new ConfigKey("tdbOutput", "../previous-harvest/");
+        private ConfigKey ARG_RAW_OUTPUT_DIRECTORY = new ConfigKey("rawOutput", "data/raw-records/");
+        private ConfigKey ARG_RDF_OUTPUT_DIRECTORY = new ConfigKey("rdfOutput", "data/translated-records/");
+        private ConfigKey ARG_TDB_OUTPUT_DIRECTORY = new ConfigKey("tdbOutput", "data/tdb-output/");
+        private ConfigKey ARG_OTHER_OUTPUT_DIRECTORY = new ConfigKey("otherOutput", "data/other-data/");
 
         private ConfigKey ARG_XSL_TEMPLATE = new ConfigKey("xslTemplate");
 
@@ -49,7 +50,8 @@ public class Configuration {
         private ConfigKey ARG_USE_FULL_UTF8 = new ConfigKey("useFullUTF8", "false"); //TODO: review this default
 
         private ConfigKey ARG_ELEMENTS_IMAGE_TYPE = new ConfigKey("elementsImageType", "profile");
-        private ConfigKey ARG_VIVO_IMAGE_DIR = new ConfigKey("vivoImageDir", "/data/harvestedImages/");
+        private ConfigKey ARG_VIVO_IMAGE_DIR = new ConfigKey("vivoImageDir", "data/harvestedImages/");
+        private ConfigKey ARG_VIVO_IMAGE_BASE_PATH = new ConfigKey("vivoImageBasePath", "/harvestedImages/");
         private ConfigKey ARG_VIVO_BASE_URI = new ConfigKey("vivoBaseURI", "http://vivo.mydomain.edu/individual/");
 
         private ConfigKey ARG_API_QUERY_CATEGORIES = new ConfigKey("queryObjects"); //TODO : rename this input param?
@@ -107,6 +109,7 @@ public class Configuration {
 
         private boolean useFullUTF8 = false;
 
+        private String vivoImageBasePath;
         private String vivoImageDir;
         private String baseURI;
         private String xslTemplate;
@@ -114,6 +117,7 @@ public class Configuration {
         private File rawOutputDir;
         private File rdfOutputDir;
         private File tdbOutputDir;
+        private File otherOutputDir;
 
         private boolean zipFiles = false;
 
@@ -222,12 +226,14 @@ public class Configuration {
             if(!baseUriString.endsWith("/")) baseUriString = baseUriString + "/";
             values.baseURI = baseUriString;
             values.vivoImageDir = getString(ARG_VIVO_IMAGE_DIR, false);
+            values.vivoImageBasePath = getString(ARG_VIVO_IMAGE_BASE_PATH, false);
             values.imageType = getImageType(ARG_ELEMENTS_IMAGE_TYPE);
             values.xslTemplate = getString(ARG_XSL_TEMPLATE, false);
 
             values.rawOutputDir = getFileDirFromConfig(ARG_RAW_OUTPUT_DIRECTORY);
             values.rdfOutputDir = getFileDirFromConfig(ARG_RDF_OUTPUT_DIRECTORY);
             values.tdbOutputDir = getFileDirFromConfig(ARG_TDB_OUTPUT_DIRECTORY);
+            values.otherOutputDir = getFileDirFromConfig(ARG_OTHER_OUTPUT_DIRECTORY);
 
             values.ignoreSSLErrors = getBoolean(ARG_IGNORE_SSL_ERRORS);
             values.rewriteMismatchedUrls = getBoolean(ARG_REWRITE_MISMATCHED_URLS);
@@ -325,6 +331,10 @@ public class Configuration {
         return values.vivoImageDir;
     }
 
+    public static String getVivoImageBasePath() {
+        return values.vivoImageBasePath;
+    }
+
     public static String getBaseURI() { return values.baseURI; }
 
     public static String getXslTemplate() {
@@ -340,6 +350,8 @@ public class Configuration {
     }
 
     public static File getTdbOutputDir() { return values.tdbOutputDir; }
+
+    public static File getOtherOutputDir() { return values.otherOutputDir; }
 
     public static boolean getIgnoreSSLErrors() {
         return values.ignoreSSLErrors;

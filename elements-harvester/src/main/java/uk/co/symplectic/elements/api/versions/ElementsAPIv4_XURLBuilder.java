@@ -10,8 +10,10 @@ import uk.co.symplectic.elements.api.ElementsAPIURLBuilder;
 import uk.co.symplectic.elements.api.queries.ElementsAPIFeedGroupQuery;
 import uk.co.symplectic.elements.api.queries.ElementsAPIFeedObjectQuery;
 import uk.co.symplectic.elements.api.queries.ElementsAPIFeedRelationshipQuery;
+import uk.co.symplectic.elements.api.queries.ElementsAPIFeedRelationshipTypesQuery;
 import uk.co.symplectic.utils.http.URLBuilder;
 import java.text.SimpleDateFormat;
+import java.util.List;
 import java.util.Set;
 
 public class ElementsAPIv4_XURLBuilder extends ElementsAPIURLBuilder.GenericBase {
@@ -104,6 +106,11 @@ public class ElementsAPIv4_XURLBuilder extends ElementsAPIURLBuilder.GenericBase
     public String buildRelationshipFeedQuery(String endpointUrl, ElementsAPIFeedRelationshipQuery feedQuery, int perPage) {
         URLBuilder queryUrl = buildGenericRelationshipQuery(endpointUrl, feedQuery, perPage);
 
+        List<Integer> relTypeIds = feedQuery.getRelationshipTypeIds();
+        if(relTypeIds != null && !relTypeIds.isEmpty()){
+            queryUrl.addParam("types", convertIntegerArrayToQueryString(relTypeIds));
+        }
+
         if (feedQuery.getModifiedSince() != null) {
             String modifiedSinceString = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").format(feedQuery.getModifiedSince());
             if(feedQuery.getQueryDeletedObjects())
@@ -131,6 +138,13 @@ public class ElementsAPIv4_XURLBuilder extends ElementsAPIURLBuilder.GenericBase
     public String buildGroupQuery(String endpointUrl, ElementsAPIFeedGroupQuery feedQuery){
         URLBuilder queryUrl = new URLBuilder(endpointUrl);
         queryUrl.appendPath("groups");
+        return queryUrl.toString();
+    }
+
+    @Override
+    public String buildRelationshipTypesQuery(String endpointUrl, ElementsAPIFeedRelationshipTypesQuery feedQuery){
+        URLBuilder queryUrl = new URLBuilder(endpointUrl);
+        queryUrl.appendPath("relationship/types");
         return queryUrl.toString();
     }
 }

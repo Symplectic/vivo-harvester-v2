@@ -1,0 +1,34 @@
+/*
+ * ******************************************************************************
+ *  * Copyright (c) 2012 Symplectic Ltd. All rights reserved.
+ *  * This Source Code Form is subject to the terms of the Mozilla Public
+ *  * License, v. 2.0. If a copy of the MPL was not distributed with this
+ *  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ *  *****************************************************************************
+ */
+
+/**
+ * Created by ajpc2_000 on 25/07/2016.
+ */
+
+
+package uk.co.symplectic.elements.api.queries;
+
+import uk.co.symplectic.elements.api.ElementsAPIURLBuilder;
+import uk.co.symplectic.elements.api.ElementsFeedQuery;
+
+import java.util.Collections;
+import java.util.Set;
+
+public class ElementsAPIFeedRelationshipTypesQuery extends ElementsFeedQuery {
+    public ElementsAPIFeedRelationshipTypesQuery(){
+        //relationship types resource has no concept of ref/full detail level..
+        //relationship types resource is not paginated..
+        super(false);
+    }
+
+    @Override
+    protected Set<String> getUrlStrings(String apiBaseUrl, ElementsAPIURLBuilder builder, int perPage) {
+        return Collections.singleton(builder.buildRelationshipTypesQuery(apiBaseUrl, this));
+    }
+}

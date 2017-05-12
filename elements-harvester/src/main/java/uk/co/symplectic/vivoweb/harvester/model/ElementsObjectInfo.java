@@ -21,25 +21,19 @@ import static uk.co.symplectic.elements.api.ElementsAPI.atomNS;
 
 public class ElementsObjectInfo extends ElementsItemInfo{
 
-    public abstract static class Extractor extends XMLEventProcessor.ItemExtractingFilter<ElementsItemInfo>{
+    public static class Extractor extends XMLEventProcessor.ItemExtractingFilter<ElementsItemInfo>{
 
         private static DocumentLocation fileEntryLocation = new DocumentLocation(new QName(atomNS, "entry"), new QName(apiNS, "object"));
         private static DocumentLocation feedEntryLocation = new DocumentLocation(new QName(atomNS, "feed"), new QName(atomNS, "entry"), new QName(apiNS, "object"));
         private static DocumentLocation feedDeletedEntryLocation = new DocumentLocation(new QName(atomNS, "feed"), new QName(atomNS, "entry"), new QName(apiNS, "deleted-object"));
 
-        public static class FromFeed extends Extractor {
-            public FromFeed(){ this(0); }
-            public FromFeed(int maximumAmountExpected){ super(feedEntryLocation, maximumAmountExpected); }
-        }
-
-        public static class DeletedFromFeed extends Extractor {
-            public DeletedFromFeed(){ this(0); }
-            public DeletedFromFeed(int maximumAmountExpected){ super(feedDeletedEntryLocation, maximumAmountExpected); }
-        }
-
-        public static class FromFile extends Extractor {
-            public FromFile(){ this(0); }
-            public FromFile(int maximumAmountExpected){ super(fileEntryLocation, maximumAmountExpected); }
+        public static Extractor getExtractor(ElementsItemInfo.ExtractionSource source, int maximumExpected){
+            switch(source) {
+                case FEED : return new Extractor(feedEntryLocation, maximumExpected);
+                case DELETED_FEED : return new Extractor(feedDeletedEntryLocation, maximumExpected);
+                case FILE : return new Extractor(fileEntryLocation, maximumExpected);
+                default : throw new IllegalStateException("invalid extractor source type requested");
+            }
         }
 
         private ElementsObjectInfo workspace  = null;

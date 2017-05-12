@@ -16,9 +16,18 @@ public class ElementsAPIFeedRelationshipQuery extends ElementsFeedQuery.DeltaCap
     // How many relationships to request per API request:Default of 100 used for optimal performance (see constructor chain)
     private static int defaultPerPage = 100;
 
-    public ElementsAPIFeedRelationshipQuery(boolean fullDetails, Date modifiedSince) {
+    List<Integer> relationshipTypeIds = new ArrayList<Integer>();
+
+    public ElementsAPIFeedRelationshipQuery(boolean fullDetails, Date modifiedSince, Set<ElementsItemId.RelationshipTypeId> relTypeIds) {
         super(fullDetails, modifiedSince);
+        if(relTypeIds != null) {
+            for (ElementsItemId.RelationshipTypeId id : relTypeIds) {
+                relationshipTypeIds.add(id.getId());
+            }
+        }
     }
+
+    public List<Integer> getRelationshipTypeIds(){ return relationshipTypeIds;}
 
     public boolean getQueryDeletedObjects(){ return false;}
 
@@ -28,8 +37,8 @@ public class ElementsAPIFeedRelationshipQuery extends ElementsFeedQuery.DeltaCap
     }
 
     public static class Deleted extends ElementsAPIFeedRelationshipQuery{
-        public Deleted(Date deletedSince) {
-            super(false, deletedSince);
+        public Deleted(Date deletedSince, Set<ElementsItemId.RelationshipTypeId> relTypeIds) {
+            super(false, deletedSince, relTypeIds);
         }
 
         @Override
@@ -40,7 +49,7 @@ public class ElementsAPIFeedRelationshipQuery extends ElementsFeedQuery.DeltaCap
         List<Integer> relationshipIds = new ArrayList<Integer>();
 
         public IdList(Set<ElementsItemId.RelationshipId> ids){
-            super(false, null);
+            super(false, null, null);
             if(ids == null || ids.isEmpty()) throw new IllegalArgumentException("ids must not be null or empty");
             for(ElementsItemId id : ids){
                 relationshipIds.add(id.getId());

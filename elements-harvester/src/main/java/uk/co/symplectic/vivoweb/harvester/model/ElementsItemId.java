@@ -17,6 +17,7 @@ public class ElementsItemId{
     public static ElementsItemId.ObjectId createObjectId(ElementsObjectCategory category, int id){ return new ObjectId(category, id); }
     public static ElementsItemId.GroupId createGroupId(int id){ return new GroupId(id); }
     public static ElementsItemId.RelationshipId createRelationshipId(int id){ return new RelationshipId(id); }
+    public static ElementsItemId.RelationshipTypeId createRelationshipTypeId(int id){ return new RelationshipTypeId(id); }
 
     private final ElementsItemType.SubType subType;
     public ElementsItemType.SubType getItemSubType() { return subType; }
@@ -69,6 +70,10 @@ public class ElementsItemId{
 
     public static class RelationshipId extends ElementsItemId {
         private RelationshipId(int id) { super(ElementsItemType.AllRelationships, id); }
+    }
+
+    public static class RelationshipTypeId extends ElementsItemId {
+        private RelationshipTypeId(int id) { super(ElementsItemType.AllRelationshipTypes, id); }
     }
 }
 

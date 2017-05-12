@@ -32,32 +32,18 @@ public abstract class ElementsItemInfo {
         return new ElementsRelationshipInfo(id);
     }
 
+    public static ElementsRelationshipTypeInfo createRelationshipTypeItem(int id) { return new ElementsRelationshipTypeInfo(id); }
+
     public static ElementsGroupInfo createGroupItem(int id) {
         return new ElementsGroupInfo(id);
     }
 
     public static XMLEventProcessor.ItemExtractingFilter<ElementsItemInfo> getExtractor(ElementsItemType type, ExtractionSource source, int maximumExpected) {
         switch(type){
-            case OBJECT :
-                switch(source) {
-                    case FEED : return new ElementsObjectInfo.Extractor.FromFeed(maximumExpected);
-                    case DELETED_FEED : return new ElementsObjectInfo.Extractor.DeletedFromFeed(maximumExpected);
-                    case FILE : return new ElementsObjectInfo.Extractor.FromFile(maximumExpected);
-                    default : throw new IllegalStateException("invalid extractor source type requested");
-                }
-            case RELATIONSHIP:
-                switch(source) {
-                    case FEED : return new ElementsRelationshipInfo.Extractor.FromFeed(maximumExpected);
-                    case DELETED_FEED : return new ElementsRelationshipInfo.Extractor.DeletedFromFeed(maximumExpected);
-                    case FILE : return new ElementsRelationshipInfo.Extractor.FromFile(maximumExpected);
-                    default : throw new IllegalStateException("invalid extractor source type requested");
-                }
-            case GROUP :
-                switch(source) {
-                    case FEED : return new ElementsGroupInfo.Extractor.FromFeed(maximumExpected);
-                    case FILE : return new ElementsGroupInfo.Extractor.FromFile(maximumExpected);
-                    default : throw new IllegalStateException("invalid extractor source type requested");
-                }
+            case OBJECT : return ElementsObjectInfo.Extractor.getExtractor(source, maximumExpected);
+            case RELATIONSHIP: return ElementsRelationshipInfo.Extractor.getExtractor(source, maximumExpected);
+            case GROUP : return ElementsGroupInfo.Extractor.getExtractor(source, maximumExpected);
+            case RELATIONSHIP_TYPE : return ElementsRelationshipTypeInfo.Extractor.getExtractor(source, maximumExpected);
             default : throw new IllegalStateException("invalid extractor object type requested");
         }
     }
@@ -90,6 +76,16 @@ public abstract class ElementsItemInfo {
     public ElementsRelationshipInfo asRelationshipInfo(){
         if(isRelationshipInfo()) {
             return (ElementsRelationshipInfo) this;
+        }
+        return null;
+    }
+
+    public boolean isRelationshipTypeInfo(){
+        return this instanceof ElementsRelationshipTypeInfo;
+    }
+    public ElementsRelationshipTypeInfo asRelationshipTypeInfo(){
+        if(isRelationshipTypeInfo()) {
+            return (ElementsRelationshipTypeInfo) this;
         }
         return null;
     }

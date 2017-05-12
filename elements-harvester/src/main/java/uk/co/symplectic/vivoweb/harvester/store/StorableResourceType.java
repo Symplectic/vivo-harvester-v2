@@ -29,6 +29,7 @@ public class StorableResourceType {
     final public static StorableResourceType RAW_OBJECT = new StorableResourceType(ElementsItemType.AllObjects, "raw", "xml", true);
 	final public static StorableResourceType RAW_USER_PHOTO = new StorableResourceType(ElementsObjectCategory.USER, "photo", null, false);
     final public static StorableResourceType RAW_RELATIONSHIP = new StorableResourceType(ElementsItemType.AllRelationships, "raw", "xml", true);
+    final public static StorableResourceType RAW_RELATIONSHIP_TYPES = new StorableResourceType(ElementsItemType.AllRelationshipTypes, "raw", "xml", true);
     final public static StorableResourceType RAW_GROUP = new StorableResourceType(ElementsItemType.AllGroups, "raw", "xml", true);
 
     final public static StorableResourceType TRANSLATED_OBJECT = new StorableResourceType(ElementsItemType.AllObjects, "translated", "rdf", true);

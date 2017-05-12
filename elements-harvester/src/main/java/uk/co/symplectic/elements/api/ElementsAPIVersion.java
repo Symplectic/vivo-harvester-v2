@@ -51,6 +51,7 @@ public class ElementsAPIVersion {
      */
     public static final ElementsAPIVersion VERSION_4_6    = new ElementsAPIVersion("4.6", new ElementsAPIv4_XURLBuilder(), allVersionsPaginationFilterFactory);
     public static final ElementsAPIVersion VERSION_4_9    = new ElementsAPIVersion("4.9", new ElementsAPIv4_XURLBuilder(), allVersionsPaginationFilterFactory);
+    //public static final ElementsAPIVersion VERSION_5_5    = new ElementsAPIVersion("5.5", new ElementsAPIv4_XURLBuilder(), allVersionsPaginationFilterFactory);
 
     /**
      * Utility method to return an Array containing all the Versions that are known

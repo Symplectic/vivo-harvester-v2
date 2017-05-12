@@ -9,6 +9,7 @@ package uk.co.symplectic.elements.api;
 import uk.co.symplectic.elements.api.queries.ElementsAPIFeedGroupQuery;
 import uk.co.symplectic.elements.api.queries.ElementsAPIFeedObjectQuery;
 import uk.co.symplectic.elements.api.queries.ElementsAPIFeedRelationshipQuery;
+import uk.co.symplectic.elements.api.queries.ElementsAPIFeedRelationshipTypesQuery;
 
 import java.util.Collection;
 import java.util.Set;
@@ -21,6 +22,8 @@ public interface ElementsAPIURLBuilder {
     String buildRelationshipFeedQuery(String endpointUrl, ElementsAPIFeedRelationshipQuery feedQuery, int perPage);
 
     String buildGroupQuery(String endpointUrl, ElementsAPIFeedGroupQuery feedQuery);
+
+    String buildRelationshipTypesQuery(String endpointUrl, ElementsAPIFeedRelationshipTypesQuery feedQuery);
 
     abstract class GenericBase implements ElementsAPIURLBuilder {
         protected String convertIntegerArrayToQueryString(Collection<Integer> integers){
