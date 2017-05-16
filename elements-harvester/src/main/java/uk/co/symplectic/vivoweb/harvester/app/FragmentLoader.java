@@ -67,7 +67,10 @@ public class FragmentLoader {
             File interimTdbDirectory = FLConfiguration.getTdbOutputDir();
             File storeDir = new File(interimTdbDirectory, "fragments");
 
-            String vivoUrl = FLConfiguration.getSparqlApiEndpoint();
+            String vivoUrl = StringUtils.removeEnd(FLConfiguration.getSparqlApiEndpoint(), "/");
+            if(vivoUrl.endsWith("/api")) vivoUrl = vivoUrl + "/sparqlUpdate";
+            else if(!vivoUrl.endsWith("/api/sparqlUpdate")) vivoUrl = vivoUrl + "/api/sparqlUpdate";
+
             String graphUri = FLConfiguration.getSparqlApiGraphUri();
             String username = FLConfiguration.getSparqlApiUsername();
             String password = FLConfiguration.getSparqlApiPassword();
@@ -131,7 +134,7 @@ public class FragmentLoader {
 
                                 //if there is content to send to vivo then send it
                                 if (sparqlContent != null) {
-                                    SparqlUpdateHttpClient client = new SparqlUpdateHttpClient(vivoUrl + "/api/sparqlUpdate", username, password, validGraphURI);
+                                    SparqlUpdateHttpClient client = new SparqlUpdateHttpClient(vivoUrl, username, password, validGraphURI);
                                     trySendFragment(client, sparqlContent, shouldDeleteContent);
                                 }
 
