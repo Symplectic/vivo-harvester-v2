@@ -2,7 +2,7 @@ package uk.co.symplectic.elements.api;
 
 import org.apache.commons.lang.NullArgumentException;
 import org.apache.commons.lang.StringUtils;
-import uk.co.symplectic.elements.api.versions.ElementsAPIv4_XURLBuilder;
+import uk.co.symplectic.elements.api.versions.GeneralAPIv4XOr55_URLBuilder;
 import uk.co.symplectic.elements.api.versions.GeneralPaginationExtractingFilterFactory;
 import uk.co.symplectic.utils.xml.XMLEventProcessor;
 
@@ -49,9 +49,11 @@ public class ElementsAPIVersion {
     /**
      * Instantiation of all known ElementsAPIVersion objects - one per version
      */
-    public static final ElementsAPIVersion VERSION_4_6    = new ElementsAPIVersion("4.6", new ElementsAPIv4_XURLBuilder(), allVersionsPaginationFilterFactory);
-    public static final ElementsAPIVersion VERSION_4_9    = new ElementsAPIVersion("4.9", new ElementsAPIv4_XURLBuilder(), allVersionsPaginationFilterFactory);
-    //public static final ElementsAPIVersion VERSION_5_5    = new ElementsAPIVersion("5.5", new ElementsAPIv4_XURLBuilder(), allVersionsPaginationFilterFactory);
+    public static final ElementsAPIVersion VERSION_4_6    = new ElementsAPIVersion("4.6", GeneralAPIv4XOr55_URLBuilder.get4XBuilder(), allVersionsPaginationFilterFactory);
+    public static final ElementsAPIVersion VERSION_4_9    = new ElementsAPIVersion("4.9", GeneralAPIv4XOr55_URLBuilder.get4XBuilder(), allVersionsPaginationFilterFactory);
+    //5.5 does not use order-by as it has reliabel continuation tokens in its next page links - may, however need alteration to use affected-when
+    // to maintain consistent behaviour with v4.X systems, but this is probably not actually needed.
+    public static final ElementsAPIVersion VERSION_5_5    = new ElementsAPIVersion("5.5", GeneralAPIv4XOr55_URLBuilder.get55Builder(false), allVersionsPaginationFilterFactory);
 
     /**
      * Utility method to return an Array containing all the Versions that are known
