@@ -9,6 +9,7 @@
 package uk.co.symplectic.utils.http;
 
 import org.apache.commons.lang.NullArgumentException;
+import org.apache.commons.lang.StringUtils;
 
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -59,7 +60,7 @@ public class ValidatedUrl {
             validSchemes.addAll(allowedSecureSchemes);
 
             if(!validSchemes.contains(scheme)) {
-                throw new URISyntaxException(url, MessageFormat.format("Invalid Scheme used in {0}, must be one of : {1}", this.getClass().getName(), String.join(", ", validSchemes)));
+                throw new URISyntaxException(url, MessageFormat.format("Invalid Scheme used in {0}, must be one of : {1}", this.getClass().getName(), StringUtils.join(validSchemes, ",")));
             }
 
             this.isSecure = allowedSecureSchemes.contains(scheme);
