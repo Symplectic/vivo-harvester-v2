@@ -1,9 +1,9 @@
 # Symplectic Elements Harvester for VIVO
 
-This is a significatnly updated version of the VIVO Harvester that enables the use of Symplectic Elements as a data source for VIVO.
+This is a significantly updated version of the VIVO Harvester that enables the use of Symplectic Elements as a data source for VIVO.
 This version of the connector is based on the earlier open source versions, and leverages a similar XSLT pipeline to perform the main translations.
 Nonetheless it has been significantly altered to support both delta based updates from the Elements API (to reduce load on the Elements server), 
-transfer of Elements groups and group membership information, and address a variety of performance issues.
+transfer of Elements groups and group membership information and to address a variety of performance and process complexity issues.
 
 ## Prerequisites
 
@@ -17,14 +17,14 @@ IMPORTANT: It has been found that JDK 1.7.0 (runtime build 1.7.0-b147) has a pro
 
 Typically, we use IntelliJ IDEA for development (there is a free community edition as well as the commercial release).
 Among the many nice features, is direct support for Maven projects. So, once you have installed the dependencies (above), all you need to do is open the pom.xml file from the elements-harvester directory.
-This will create a project, providing access to all of the extension code, and setting up all of the dependencies as external libraries.
+This will create a project, providing access to all of the code, and set up all of the dependencies as external libraries.
 
 ## Description
 
 The solution fundamentally consists of two components:
 
-1. The harvester (ElementsFetchAndTranslate)
-2. The fragment loader (FragmentLoader)
+1. The *Harvester* (ElementsFetchAndTranslate)
+2. The *Fragment loader* (FragmentLoader)
 
 ### Harvester
 
@@ -200,6 +200,30 @@ You should adopt a similar procedure if you deploy mapping changes that create a
 Typically you will want to schedule runs of elementsfetch.sh using cron. Typically we would reccomend running a differential update once a day.
 If you are connecting to an Elements API using an Elements API Endpoint Specifictaion prior to v5.5 we reccomend running a full re-harvest (--full) fairly regularly (e.g. once a fortnight).
 If your API is using an endpoint specification > v5.5 then technically you should not need to run a full re-harvest, but nonetheless we would reccomend doing so periodically (e.g. once every couple of months).
+
+## Performance Considerations
+
+### Disk IO
+
+The Harvester can be disk intensive. The disk is constantly been read from and written to during many operations:
+
+* Harvesting raw data.
+* Writing translated data.
+* Populating temporary triple store.
+* Writing Change sets and fragments.
+
+This is particularly true during loading of the temporary triple store where, for a typically sized institution, several gigabytes of data can be being read from the cache of translated triples and loaded into the on disk TDB triple store.
+As this process has to be performed every time the harvester is run (even on a delta update) disk IO is critical to the overal performance of the harvester.
+Therefore we very strongly reccomend that you use SSD based storage.
+
+### Memory
+
+The harvester can also be very memory intensive, this is particularly true during the diff operation where the current temporary triple store is compared to the equivalent temporary store from the previous run.
+This process can result in both copies of the triple store being loaded into ram. To accomodate this the default elementsfetch.sh script ensures that the Java Virtual Machine (JVM) being used to run the process has access to up to 10 gigabytes of ram.
+
+If your datasets ends up being significantly larger than 5gb you may end up with poor performance (paging) or crashes during the diff operation (e.g. taking longer than 5-10 minutes).
+If you experience issues of this nature then you may need to increase the amount of RAM assigned to the JVM for the FetchAndTranslate operation.
+Similarly if your dataset is much smaller than 5Gb you may be able to reduce the amount of RAM being assigned to the JVM.
 
 ## Acknowledgements
 
