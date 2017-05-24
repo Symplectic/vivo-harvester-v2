@@ -77,10 +77,14 @@ In IntelliJ IDEA, what you should do is:
 3. In the dialog, click the "+" icon at the top of the tree on the left. Choose 'Application'
 4. On the right, change the name to 'ElementsFetchAndTranslate'
 5. Set the main class to: uk.co.symplectic.vivoweb.harvester.app.ElementsFetchAndTranslate
+6. Set the VM options to: -Xms256m -Xmx10g -server -d64 -XX:+UseParallelOldGC -XX:+DisableExplicitGC -XX:+UseAdaptiveGCBoundary -XX:-UseGCOverheadLimit -XX:SurvivorRatio=16 -Xnoclassgc -XX:ParallelGCThreads=3
 7. Set working directory to: <project dir>/elements-harvester
 8. Save this configuration (click OK).
 
 When doing this you may additionally wish to set the *Program Arguments* value to make the code run with --full, --skipgroups or --reprocess.
+
+Note : The -Xms and -Xmx options configured in the VM options settings relate to the amount of ram being assigned to the Java VM. This should ideally be a large amount (see Performance Considerations section).
+       with the configuration above, the VM can consume up to 10Gb of RAM. 
 
 You should now be able to run and/or debug the Elements harvester.
 
@@ -151,6 +155,7 @@ Start by opening a command prompt / terminal. Navigate to where you cloned the V
 	mvn clean package
 	
 Once it finishes executing, a .tar.gz file will be created in the 'target' directory.
+Note : you can also run these same maven commends (clean and package) from within your IDE if you prefer.
 
 To install the Elements harvester on a server, transfer and extract the elements-harvester.tar.gz folder at the location where you wish it to be installed.
 You have free choice in this location, but we recommend installing it alongside the vivo "home" folder of the instance it will populate.
