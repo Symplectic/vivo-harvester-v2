@@ -79,6 +79,7 @@
         <xsl:variable name="arxivPdfUrl" select="svfn:getRecordField(.,'arxiv-pdf-url')" />
         <xsl:variable name="authorUrl" select="svfn:getRecordField(.,'author-url')" />
         <xsl:variable name="publisherUrl" select="svfn:getRecordField(.,'publisher-url')" />
+        <xsl:variable name="repositoryUrl" select="(api:repository-items/api:repository-item/api:public-url)[1]" />
 
         <xsl:variable name="publicationStatus" select="svfn:getRecordField(.,'publication-status')" />
 
@@ -151,7 +152,7 @@
         <xsl:copy-of select="$publicationVenueObject" />
         <xsl:copy-of select="$conferenceObject" />
 
-        <xsl:if test="$arxivPdfUrl/* or $authorUrl/* or $publisherUrl">
+        <xsl:if test="$arxivPdfUrl/* or $authorUrl/* or $publisherUrl/* or $repositoryUrl ">
             <xsl:call-template name="render_rdf_object">
                 <xsl:with-param name="objectURI" select="concat(svfn:objectURI(.),'-webpages')" />
                 <xsl:with-param name="rdfNodes">
@@ -160,6 +161,7 @@
                     <xsl:if test="$arxivPdfUrl/*"><vcard:hasURL rdf:resource="{concat(svfn:objectURI(.),'-webpages-arxiv')}" /></xsl:if>
                     <xsl:if test="$authorUrl/*"><vcard:hasURL rdf:resource="{concat(svfn:objectURI(.),'-webpages-author')}" /></xsl:if>
                     <xsl:if test="$publisherUrl/*"><vcard:hasURL rdf:resource="{concat(svfn:objectURI(.),'-webpages-publisher')}" /></xsl:if>
+                    <xsl:if test="$repositoryUrl"><vcard:hasURL rdf:resource="{concat(svfn:objectURI(.),'-webpages-repository')}" /></xsl:if>
                 </xsl:with-param>
             </xsl:call-template>
 
@@ -195,6 +197,18 @@
                     </xsl:with-param>
                 </xsl:call-template>
             </xsl:if>
+
+            <xsl:if test="$repositoryUrl">
+                <xsl:call-template name="render_rdf_object">
+                    <xsl:with-param name="objectURI" select="concat(svfn:objectURI(.),'-webpages-repository')" />
+                    <xsl:with-param name="rdfNodes">
+                        <rdf:type rdf:resource="http://www.w3.org/2006/vcard/ns#URL" />
+                        <rdfs:label>Respository Version</rdfs:label>
+                        <vcard:url><xsl:value-of select="$repositoryUrl" /></vcard:url>
+                    </xsl:with-param>
+                </xsl:call-template>
+            </xsl:if>
+
         </xsl:if>
 
         <xsl:copy-of select="svfn:renderLinksAndExternalPeople($authors, $publicationId, $publicationUri)" />
