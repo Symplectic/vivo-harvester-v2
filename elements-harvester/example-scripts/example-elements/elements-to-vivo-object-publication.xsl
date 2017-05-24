@@ -203,7 +203,7 @@
                     <xsl:with-param name="objectURI" select="concat(svfn:objectURI(.),'-webpages-repository')" />
                     <xsl:with-param name="rdfNodes">
                         <rdf:type rdf:resource="http://www.w3.org/2006/vcard/ns#URL" />
-                        <rdfs:label>Respository Version</rdfs:label>
+                        <rdfs:label>Repository Version</rdfs:label>
                         <vcard:url><xsl:value-of select="$repositoryUrl" /></vcard:url>
                     </xsl:with-param>
                 </xsl:call-template>
