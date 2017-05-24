@@ -125,15 +125,21 @@ public class ElementsGroupInfo extends ElementsItemInfo{
         }
 
         public Set<ElementsGroupInfo.GroupHierarchyWrapper> getAllChildren() {
+            return getAllChildren(null);
+        }
+
+        public Set<ElementsGroupInfo.GroupHierarchyWrapper> getAllChildren(GroupInclusionFilter filter) {
             Set<GroupHierarchyWrapper> set = new HashSet<GroupHierarchyWrapper>();
-            collectChildren(set);
+            collectChildren(set, filter);
             return Collections.unmodifiableSet(set);
         }
 
-        protected void collectChildren(Set<GroupHierarchyWrapper> returnSet){
+        protected void collectChildren(Set<GroupHierarchyWrapper> returnSet, GroupInclusionFilter filter){
             for(ElementsGroupInfo.GroupHierarchyWrapper child : children){
-                child.collectChildren(returnSet);
-                returnSet.add(child);
+                if(filter == null || filter.includeGroup(child)) {
+                    child.collectChildren(returnSet, filter);
+                    returnSet.add(child);
+                }
             }
         }
 
@@ -174,4 +180,7 @@ public class ElementsGroupInfo extends ElementsItemInfo{
         }
     }
 
+    public static abstract class GroupInclusionFilter{
+        public abstract boolean includeGroup(ElementsGroupInfo.GroupHierarchyWrapper group);
+    }
 }

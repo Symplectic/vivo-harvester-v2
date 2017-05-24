@@ -164,7 +164,7 @@ public class ElementsFetchAndTranslate {
                 setExecutorServiceMaxThreadsForPool("ResourceFetchService", Configuration.getMaxThreadsResource());
 
                 //TODO: make these configurable?
-                Set<String> relationshipTypesNeedingObjectsForTranslation = new HashSet<String>(Arrays.asList("activity-user-association", "user-teaching-association"));
+                Set<String> relationshipTypesNeedingObjectsForTranslation = Configuration.getRelTypesToReprocess();
 
                 //Set up the Elements API and a fetcher that uses it.
                 ElementsAPI elementsAPI = ElementsFetchAndTranslate.getElementsAPI();
@@ -225,9 +225,8 @@ public class ElementsFetchAndTranslate {
 
                     processObjects(objectStore, elementsFetcher, pullNewDataSinceDate);
                     //fetch relationships.
-                    //TODO: alter this processRelationships call to just do re-processing of the the relevant links when re-pulling is not necessary.. (do based on API version?)
-                    //processRelationships(objectStore, elementsFetcher, aDate, true, relationshipTypesNeedingObjectsForTranslation);
-                    processRelationships(objectStore, elementsFetcher, pullNewDataSinceDate, relationshipTypesToInclude, true,  relationshipTypesNeedingObjectsForTranslation);
+                    boolean repullRelsForVis = Configuration.getShouldRepullRelsToCorrectVisibility();
+                    processRelationships(objectStore, elementsFetcher, pullNewDataSinceDate, relationshipTypesToInclude, repullRelsForVis, relationshipTypesNeedingObjectsForTranslation);
                 }
                 else{
                     reprocessCachedItems(objectStore, StorableResourceType.RAW_OBJECT);
@@ -261,7 +260,7 @@ public class ElementsFetchAndTranslate {
                 ElementsItemKeyedCollection.ItemInfo includedGroups = CalculateIncludedGroups(groupCache);
 
                 //Wire up the group translation observer...(needs group cache to work out members Ids and included users to get the user info of those members)
-                objectStore.addItemObserver(new ElementsGroupTranslateObserver(rdfStore, xslFilename, groupCache, includedUsers));
+                objectStore.addItemObserver(new ElementsGroupTranslateObserver(rdfStore, xslFilename, groupCache, includedUsers, includedGroups));
 
                 if(currentRunClassification == StateManagement.RunClassification.REPROCESSING || (skipGroups && currentRunClassification == StateManagement.RunClassification.DELTA)) {
                     reprocessCachedItems(objectStore, StorableResourceType.RAW_GROUP);
@@ -433,7 +432,7 @@ public class ElementsFetchAndTranslate {
     }
 
     private static void processRelationships(ElementsItemFileStore objectStore, ElementsFetch elementsFetcher, Date modifiedSince, Set<ElementsItemId> relationshipTypesToInclude,
-                                             boolean repullAllRelationshipsForModifiedObjects, Set<String> relationshipTypesToReprocess) throws IOException{
+                                             boolean repullRelsToCorrectVisibility, Set<String> relationshipTypesToReprocess) throws IOException{
         if(modifiedSince == null) {
             log.debug("Clearing down relationship cache (Full pull) - this may take some time..");
             objectStore.cleardown(StorableResourceType.RAW_RELATIONSHIP);
@@ -449,72 +448,71 @@ public class ElementsFetchAndTranslate {
             Set<ElementsItemId> modifiedObjects = objectStore.getAffectedItems(StorableResourceType.RAW_OBJECT);
 
             if(modifiedObjects.size() > 0) {
-                //Note these sections below are kept separate to facilitate easy removal of repull All when API supports better behaviour
-                //if we are going to repull everything (to avoid issues with visibility not showing up correctly).
-                if (repullAllRelationshipsForModifiedObjects) {
-                    log.debug(MessageFormat.format("ElementsFetchAndTranslate: Processing relationship cache to establish which to re-pull based on the {0} objects modified this run", modifiedObjects.size()));
-                    Set<ElementsItemId> relationshipsToRepull = new HashSet<ElementsItemId>();
-                    //loop over the current state of our raw object cache (which is up to date on this thread) to establish which relationships are related to the recently modified objects
-                    int counter = 0;
-                    for (StoredData.InFile relData : objectStore.getAllExistingFilesOfType(StorableResourceType.RAW_RELATIONSHIP)) {
-                        ElementsStoredItemInfo relItem = ElementsStoredItemInfo.loadStoredResource(relData, StorableResourceType.RAW_RELATIONSHIP);
+
+                //get the set of relationships we have already updated this run, as these have already been re-pulled and therefore re-processed.
+                Set<ElementsItemId> modifiedRelationships = objectStore.getAffectedItems(StorableResourceType.RAW_RELATIONSHIP);
+                log.debug(MessageFormat.format("ElementsFetchAndTranslate: Processing relationship cache to establish which to re-pull/re-process based on the {0} objects modified this run", modifiedObjects.size()));
+                Set<ElementsItemId> relationshipsToRepull = new HashSet<ElementsItemId>();
+                Set<ElementsItemInfo> relationshipsToReprocess = new HashSet<ElementsItemInfo>();
+
+                //loop over the current state of our raw object cache (which is up to date on this thread) to establish which relationships are related to the recently modified objects
+                int counter = 0;
+                for (StoredData.InFile relData : objectStore.getAllExistingFilesOfType(StorableResourceType.RAW_RELATIONSHIP)) {
+                    ElementsStoredItemInfo relItem = ElementsStoredItemInfo.loadStoredResource(relData, StorableResourceType.RAW_RELATIONSHIP);
+
+                    //check if we have already processed the relationship this run, so then we can ignore it.
+                    if(!modifiedRelationships.contains(relItem.getItemInfo().getItemId())) {
                         //check if the object on either side is one that has been modified, if so then flag this relationship as needing re-pulling
-                        //TODO: could not do this for user objects? - or is that unsafe?
+                        //otherwise we only want to reprocess rels linked to modified non users as a hack to ensure we pick up any visibility changes...
+                        boolean shouldRepull = false;
+                        boolean shouldReprocess = false;
                         for (ElementsItemId.ObjectId objectId : relItem.getItemInfo().asRelationshipInfo().getObjectIds()) {
                             if (modifiedObjects.contains(objectId)) {
-                                //if we are dealing with a relationship type that we want to always reprocess then we want to redo it whenever either item has been altered
-                                if (relationshipTypesToReprocess.contains("all") || relationshipTypesToReprocess.contains(relItem.getItemInfo().asRelationshipInfo().getType())) {
-                                    relationshipsToRepull.add(relItem.getItemInfo().getItemId());
+                                //if the unmodified relationship contains a modified object that is not a user it may have an altered visibility flag
+                                //so we mark it for re-pulling if we are worried about that for this API version.
+                                if (repullRelsToCorrectVisibility && objectId.getItemSubType() != ElementsObjectCategory.USER) {
+                                    shouldRepull = true;
                                     break;
                                 }
-                                //otherwise we only want to reprocess rels linked to modified non users as a hack to ensure we pick up any visibility changes...
-                                else if (objectId.getItemSubType() != ElementsObjectCategory.USER) {
-                                    relationshipsToRepull.add(relItem.getItemInfo().getItemId());
-                                    break;
+                                //if the unmodified relationship contains any modified objects
+                                // and is of a type that we need to reprocess (i.e. one where the translation of the objects occurs within the relationship)
+                                //then we will need to re-translate the item. we may not need to re-pull it (e.g if that is turned off or if only the user has been changed)
+                                if(relationshipTypesToReprocess != null && !relationshipTypesToReprocess.isEmpty()) {
+                                    if (relationshipTypesToReprocess.contains("all") || relationshipTypesToReprocess.contains(relItem.getItemInfo().asRelationshipInfo().getType())) {
+                                        shouldReprocess = true;
+                                        //deliberately don't break the loop over objects in the link, as the second object could be the one that triggers a repull
+                                    }
                                 }
                             }
                         }
-                        counter++;
-                        if (counter % 10000 == 0)
-                            log.debug(MessageFormat.format("ElementsFetchAndTranslate: {0} relationships processed from cache", counter));
-                    }
 
-                    log.debug(MessageFormat.format("ElementsFetchAndTranslate: finished processing relationships from cache, {0} items processed in total", counter));
-                    //re-pull data for those relationships batched up sensibly.
-                    if (!relationshipsToRepull.isEmpty()) {
-                        ElementsFetch.RelationshipsListConfig reprocessForModifiedObjectsConfig = new ElementsFetch.RelationshipsListConfig(relationshipsToRepull);
-                        elementsFetcher.execute(reprocessForModifiedObjectsConfig, objectStore);
+                        //put link into appropriate bin, repull if requested, if not being repulled then reprocess if requested.
+                        if(shouldRepull) relationshipsToRepull.add(relItem.getItemInfo().getItemId());
+                        else if (shouldReprocess) relationshipsToReprocess.add(relItem.getItemInfo());
                     }
+                    counter++;
+                    if (counter % 1000 == 0)
+                        log.debug(MessageFormat.format("ElementsFetchAndTranslate: {0} relationships processed from cache", counter));
                 }
-                //if not repulling all relationships for modified objects and if set up to re-process certain relationship types then do that re-processing
-                else if (relationshipTypesToReprocess != null && !relationshipTypesToReprocess.isEmpty()) {
-                    log.debug("ElementsFetchAndTranslate: Processing relationship cache to establish which to re-process based on objects modified this run");
-                    Set<ElementsItemInfo> relationshipsToReprocess = new HashSet<ElementsItemInfo>();
-                    int counter = 0;
-                    for (StoredData.InFile relData : objectStore.getAllExistingFilesOfType(StorableResourceType.RAW_RELATIONSHIP)) {
-                        ElementsStoredItemInfo relItem = ElementsStoredItemInfo.loadStoredResource(relData, StorableResourceType.RAW_RELATIONSHIP);
-                        //if this relationship is of a type we may need to reprocess
-                        if (relationshipTypesToReprocess.contains("all") || relationshipTypesToReprocess.contains(relItem.getItemInfo().asRelationshipInfo().getType())) {
-                            //check if the object on either side is one that has been modified, if so then flag the relationship as needing re-processing
-                            for (ElementsItemId.ObjectId objectId : relItem.getItemInfo().asRelationshipInfo().getObjectIds()) {
-                                if (modifiedObjects.contains(objectId)) {
-                                    relationshipsToReprocess.add(relItem.getItemInfo());
-                                    break;
-                                }
-                            }
-                        }
-                        counter++;
-                        if (counter % 10000 == 0)
-                            log.debug(MessageFormat.format("ElementsFetchAndTranslate: {0} relationships processed from cache", counter));
-                    }
-                    log.debug(MessageFormat.format("ElementsFetchAndTranslate: finished processing relationships from cache, {0} items processed in total", counter));
 
-                    //re-pull data for those relationships batched up sensibly.
+                log.debug(MessageFormat.format("ElementsFetchAndTranslate: finished processing relationships from cache, {0} items processed in total", counter));
+
+
+                //re-pull data for those relationships batched up sensibly.
+                if (!relationshipsToRepull.isEmpty()) {
+                    ElementsFetch.RelationshipsListConfig repullForModifiedObjectsConfig = new ElementsFetch.RelationshipsListConfig(relationshipsToRepull);
+                    elementsFetcher.execute(repullForModifiedObjectsConfig, objectStore);
+                }
+
+                if(!relationshipsToReprocess.isEmpty()) {
+                    counter = 0;
+                    //re-process data for relationships that need to be re-processed
                     for (ElementsItemInfo relInfo : relationshipsToReprocess) {
                         objectStore.touchItem(relInfo, StorableResourceType.RAW_RELATIONSHIP);
+                        counter++;
+                        if(counter % 1000 == 0) log.info(MessageFormat.format("ElementsFetchAndTranslate: Enqueued {0} relationships for re-processing because of modified objects", counter));
                     }
-
-                    log.debug(MessageFormat.format("ElementsFetchAndTranslate: Enqueued {0} relationships for reprocessing", relationshipsToReprocess.size()));
+                    log.info(MessageFormat.format("ElementsFetchAndTranslate: Reprocessing complete, {0} relationships enqueued for re-processing in total", counter));
                 }
             }
             else {
@@ -654,7 +652,6 @@ public class ElementsFetchAndTranslate {
     }
 
     private static ElementsItemKeyedCollection.ItemInfo CalculateIncludedUsers(ElementsItemKeyedCollection.ItemInfo userInfoCache, ElementsGroupCollection groupCache){
-        //TODO : move academicsOnly into a config item.
         boolean academicsOnly = Configuration.getAcademicsOnly();
         boolean currentStaffOnly = Configuration.getCurrentStaffOnly();
 

@@ -21,9 +21,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 public class Configuration {
 
@@ -46,6 +44,8 @@ public class Configuration {
         private ConfigKey ARG_CURRENT_STAFF_ONLY = new ConfigKey("currentStaffOnly", "true"); //TODO: review this default
         private ConfigKey ARG_ACADEMICS_ONLY = new ConfigKey("academicsOnly", "true"); //TODO: review this default
         private ConfigKey ARG_VISIBLE_LINKS_ONLY = new ConfigKey("visibleLinksOnly", "false"); //TODO: review this default
+        private ConfigKey ARG_REPULL_RELS_TO_CORRECT_VISIBILITY = new ConfigKey("repullRelsToCorrectVis", "true"); //TODO: review this default
+        private ConfigKey ARG_RELATIONSHIP_TYPES_TO_REPROCESS = new ConfigKey("relTypesToReprocess", "activity-user-association, user-teaching-association"); //TODO: review this default
 
         private ConfigKey ARG_USE_FULL_UTF8 = new ConfigKey("useFullUTF8", "false"); //TODO: review this default
 
@@ -106,6 +106,8 @@ public class Configuration {
         private boolean currentStaffOnly = true;
         private boolean academicsOnly = true;
         private boolean visibleLinksOnly = false;
+        private boolean repullRelsToCorrectVisibility = true;
+        Set<String> relTypesToReprocess;
 
         private boolean useFullUTF8 = false;
 
@@ -218,6 +220,8 @@ public class Configuration {
             values.currentStaffOnly = getBoolean(ARG_CURRENT_STAFF_ONLY);
             values.academicsOnly = getBoolean(ARG_ACADEMICS_ONLY);
             values.visibleLinksOnly = getBoolean(ARG_VISIBLE_LINKS_ONLY);
+            values.repullRelsToCorrectVisibility = getBoolean(ARG_REPULL_RELS_TO_CORRECT_VISIBILITY);
+            values.relTypesToReprocess = Collections.unmodifiableSet(new HashSet<String>(getStrings(ARG_RELATIONSHIP_TYPES_TO_REPROCESS, true)));
 
             values.useFullUTF8 = getBoolean(ARG_USE_FULL_UTF8);
 
@@ -317,6 +321,14 @@ public class Configuration {
 
     public static boolean getVisibleLinksOnly() {
         return values.visibleLinksOnly;
+    }
+
+    public static boolean getShouldRepullRelsToCorrectVisibility() {
+        return values.repullRelsToCorrectVisibility;
+    }
+
+    public static Set<String> getRelTypesToReprocess() {
+        return values.relTypesToReprocess;
     }
 
     public static boolean getUseFullUTF8() {
