@@ -40,7 +40,7 @@
         <xsl:param name="default" />
 
         <xsl:choose>
-            <xsl:when test="$organization-types/config:organization-type[@name=$name]"><xsl:value-of select="$organization-types/config:organization-type[@name=$name]/@type" /></xsl:when>
+            <xsl:when test="$organization-types/config:organization-type[@name=$name]"><xsl:value-of select="($organization-types/config:organization-type[@name=$name])[1]/@type" /></xsl:when>
             <xsl:when test="contains($name,'University')"><xsl:text>http://vivoweb.org/ontology/core#University</xsl:text></xsl:when>
             <xsl:when test="contains($name,'College')"><xsl:text>http://vivoweb.org/ontology/core#College</xsl:text></xsl:when>
             <xsl:when test="contains($name,'Museum')"><xsl:text>http://vivoweb.org/ontology/core#Museum</xsl:text></xsl:when>
@@ -269,16 +269,21 @@
 
     <xsl:function name="svfn:retrieveDateIntervalUri" as="xs:string">
         <xsl:param name="vivoDateInterval" />
-        <xsl:if test="$vivoDateInterval">
-        <xsl:value-of select="$vivoDateInterval[rdf:type/@rdf:resource='http://vivoweb.org/ontology/core#DateTimeInterval'][1]/@rdf:about" />
-        </xsl:if>
+        <xsl:value-of select="svfn:retrieveUri($vivoDateInterval, 'http://vivoweb.org/ontology/core#DateTimeInterval' )" />
     </xsl:function>
 
     <xsl:function name="svfn:retrieveUri" as="xs:string">
         <xsl:param name="rdfFragment" />
         <xsl:param name="rdfType" />
         <xsl:if test="$rdfFragment">
-            <xsl:value-of select="$rdfFragment[rdf:type/@rdf:resource=$rdfType][1]/@rdf:about" />
+            <xsl:choose>
+                <xsl:when test="$rdfFragment[rdf:type/@rdf:resource=$rdfType]">
+                    <xsl:value-of select="$rdfFragment[rdf:type/@rdf:resource=$rdfType][1]/@rdf:about" />
+                </xsl:when>
+                <xsl:when test="$rdfFragment/rdf:Description[rdf:type/@rdf:resource=$rdfType]">
+                    <xsl:value-of select="$rdfFragment/rdf:Description[rdf:type/@rdf:resource=$rdfType][1]/@rdf:about" />
+                </xsl:when>
+            </xsl:choose>
         </xsl:if>
     </xsl:function>
 
