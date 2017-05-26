@@ -54,13 +54,17 @@
         <xsl:variable name="groupID" select="@id" />
         <xsl:variable name="groupURI" select="svfn:makeURI('institutional-user-group-', $groupID)" />
         <!-- work out what "VIVO type" of group we will treat this group as -->
-        <xsl:variable name="groupType">
+
+        <xsl:variable name="defaultGroupType">
             <xsl:choose>
                 <!-- perhaps should make use svfn:getOrganizationType instead? -->
                 <xsl:when test="@id = 1"><xsl:text>http://vivoweb.org/ontology/core#University</xsl:text></xsl:when>
                 <xsl:otherwise><xsl:text>http://vivoweb.org/ontology/core#AcademicDepartment</xsl:text></xsl:otherwise>
             </xsl:choose>
         </xsl:variable>
+
+        <xsl:variable name="groupType" select="svfn:getOrganizationType(api:name, $defaultGroupType)" />
+        <!--<xsl:variable name="groupType" select="$defaultGroupType" />-->
 
         <!-- render triples to describe this group -->
         <xsl:call-template name="render_rdf_object">
@@ -70,6 +74,7 @@
                 <rdf:type rdf:resource="{$groupType}"/>
                 <xsl:if test="$internalClass"><rdf:type rdf:resource="{$internalClass}" /></xsl:if>
                 <rdfs:label><xsl:value-of select="api:name"/></rdfs:label>
+                <vivo:overview><xsl:value-of select="api:group-description"/></vivo:overview>
                 <xsl:if test="api:parents/api:parent[1]">
                     <!-- will currently create crud in the vivo db for any groups that are NOT included....sigh -->
                     <obo:BFO_0000050 rdf:resource="{svfn:makeURI('institutional-user-group-', api:parents/api:parent[1]/@id)}" />
