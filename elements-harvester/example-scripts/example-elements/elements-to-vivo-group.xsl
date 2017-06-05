@@ -47,6 +47,8 @@
         <!--</xsl:element>-->
     </xsl:param>
 
+    <xsl:param name="includedParentGroupId" />
+
     <!-- Default template - output group -->
     <xsl:template match="api:user-group" >
 
@@ -75,10 +77,16 @@
                 <xsl:if test="$internalClass"><rdf:type rdf:resource="{$internalClass}" /></xsl:if>
                 <rdfs:label><xsl:value-of select="api:name"/></rdfs:label>
                 <vivo:overview><xsl:value-of select="api:group-description"/></vivo:overview>
-                <xsl:if test="api:parents/api:parent[1]">
+
+                <xsl:if test="$includedParentGroupId">
                     <!-- will currently create crud in the vivo db for any groups that are NOT included....sigh -->
-                    <obo:BFO_0000050 rdf:resource="{svfn:makeURI('institutional-user-group-', api:parents/api:parent[1]/@id)}" />
+                    <obo:BFO_0000050 rdf:resource="{svfn:makeURI('institutional-user-group-', $includedParentGroupId)}" />
                 </xsl:if>
+
+                <!--<xsl:if test="api:parents/api:parent[1]">-->
+                    <!--&lt;!&ndash; will currently create crud in the vivo db for any groups that are NOT included....sigh &ndash;&gt;-->
+                    <!--<obo:BFO_0000050 rdf:resource="{svfn:makeURI('institutional-user-group-', api:parents/api:parent[1]/@id)}" />-->
+                <!--</xsl:if>-->
             </xsl:with-param>
         </xsl:call-template>
 

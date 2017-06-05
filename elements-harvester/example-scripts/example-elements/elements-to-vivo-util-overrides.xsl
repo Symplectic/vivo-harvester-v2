@@ -68,4 +68,27 @@
         <!--<xsl:value-of select="svfn:makeURI('person', translate($selected-user-id, 'Aa', ''))" />-->
     <!--</xsl:function>-->
 
+    <!--<xsl:function name="svfn:getOrganizationType">-->
+        <!--<xsl:param name="name" />-->
+        <!--<xsl:param name="default" />-->
+
+        <!--<xsl:choose>-->
+            <!--<xsl:when test="$organization-types/config:organization-type[@name=$name]"><xsl:value-of select="($organization-types/config:organization-type[@name=$name])[1]/@type" /></xsl:when>-->
+            <!--<xsl:when test="contains($name,'University')"><xsl:text>http://vivoweb.org/ontology/core#University</xsl:text></xsl:when>-->
+            <!--<xsl:when test="contains($name,'College')"><xsl:text>http://vivoweb.org/ontology/core#College</xsl:text></xsl:when>-->
+            <!--<xsl:when test="contains($name,'Museum')"><xsl:text>http://vivoweb.org/ontology/core#Museum</xsl:text></xsl:when>-->
+            <!--<xsl:when test="contains($name,'Hospital')"><xsl:text>http://vivoweb.org/ontology/core#Hospital</xsl:text></xsl:when>-->
+            <!--<xsl:when test="contains($name,'Institute')"><xsl:text>http://vivoweb.org/ontology/core#Institute</xsl:text></xsl:when>-->
+            <!--<xsl:when test="contains($name,'School')"><xsl:text>http://vivoweb.org/ontology/core#School</xsl:text></xsl:when>-->
+            <!--<xsl:when test="contains($name,'Association')"><xsl:text>http://vivoweb.org/ontology/core#Association</xsl:text></xsl:when>-->
+            <!--<xsl:when test="contains($name,'Library')"><xsl:text>http://vivoweb.org/ontology/core#Library</xsl:text></xsl:when>-->
+            <!--<xsl:when test="contains($name,'Foundation')"><xsl:text>http://vivoweb.org/ontology/core#Foundation</xsl:text></xsl:when>-->
+            <!--<xsl:when test="contains($name,'Ltd')"><xsl:text>http://vivoweb.org/ontology/core#PrivateCompany</xsl:text></xsl:when>-->
+            <!--<xsl:when test="starts-with(fn:normalize-space($name),'SRI ') or starts-with(fn:normalize-space($name),'SRN ') or contains($name, 'Interdisciplinary Research Centre')">-->
+                <!--<xsl:text>http://vivoweb.org/ontology/core#Consortium</xsl:text>-->
+            <!--</xsl:when>-->
+            <!--<xsl:otherwise><xsl:value-of select="$default" /></xsl:otherwise>-->
+        <!--</xsl:choose>-->
+    <!--</xsl:function>-->
+
 </xsl:stylesheet>

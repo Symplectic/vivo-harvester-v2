@@ -48,7 +48,20 @@ public class ElementsGroupTranslateObserver extends ElementsTranslateObserver {
     protected void observeStoredGroup(ElementsGroupInfo info, ElementsStoredItemInfo item) {
         Map<String, Object> extraXSLTParameters = new HashMap<String, Object>();
         extraXSLTParameters.put("groupMembers", getGroupMembershipDescription(info));
+        ElementsItemId parentId = getIncludedParentGroupId(info);
+        extraXSLTParameters.put("includedParentGroupId", parentId == null ? null : Integer.toString(parentId.getId()));
         translate(item, extraXSLTParameters);
+    }
+
+    private ElementsItemId getIncludedParentGroupId(ElementsGroupInfo info){
+        ElementsGroupInfo.GroupHierarchyWrapper groupDescription = groupCache.get(info.getItemId());
+        while(groupDescription.getParent() != null){
+            ElementsGroupInfo.GroupHierarchyWrapper parentDescription = groupDescription.getParent();
+            ElementsItemId parentGroupId = parentDescription.getGroupInfo().getItemId();
+            if(includedGroups.keySet().contains(parentGroupId)) return parentGroupId;
+            groupDescription = parentDescription;
+        }
+        return null;
     }
 
     private Document getGroupMembershipDescription(ElementsGroupInfo info){

@@ -604,51 +604,81 @@ public class ElementsFetchAndTranslate {
         }
     }
 
+
     private static ElementsItemKeyedCollection.ItemInfo CalculateIncludedGroups(ElementsGroupCollection groupCache) {
         ElementsItemKeyedCollection.ItemRestrictor restrictToGroupsOnly = new ElementsItemKeyedCollection.RestrictToType(ElementsItemType.GROUP);
         ElementsItemKeyedCollection.ItemInfo includedGroups = new ElementsItemKeyedCollection.ItemInfo(restrictToGroupsOnly);
 
-        ElementsItemId.GroupId topLevelGroupId = (ElementsItemId.GroupId) groupCache.GetTopLevel().getGroupInfo().getItemId();
-        //if there are no groups configured to be harvested or if the set includes the top level then we just need everything.
-        if(Configuration.getGroupsToHarvest().isEmpty() || Configuration.getGroupsToHarvest().contains(topLevelGroupId)) {
-            for(ElementsGroupInfo.GroupHierarchyWrapper groupWrapper : groupCache.values()) {
-                ElementsGroupInfo info = groupWrapper.getGroupInfo();
-                includedGroups.put(info.getItemId(), info);
-            }
-        }
-        else {
-            for (ElementsItemId.GroupId groupId : Configuration.getGroupsToHarvest()) {
-                ElementsGroupInfo.GroupHierarchyWrapper currentGroup = groupCache.get(groupId);
-                if(currentGroup != null) {
-                    ElementsGroupInfo info = currentGroup.getGroupInfo();
-                    includedGroups.put(info.getItemId(), info);
-                    for (ElementsGroupInfo.GroupHierarchyWrapper childGroupWrapper : currentGroup.getAllChildren()) {
-                        ElementsGroupInfo childInfo = childGroupWrapper.getGroupInfo();
-                        includedGroups.put(childInfo.getItemId(), childInfo);
-                    }
-                }
-                else {
-                    log.warn(MessageFormat.format("Configured group to include ({0}) does not exist in targeted Elements system.", groupId));
-                }
-            }
-        }
-
-        for(ElementsItemId.GroupId groupId : Configuration.getGroupsToExclude()){
-            ElementsGroupInfo.GroupHierarchyWrapper currentGroup = groupCache.get(groupId);
-            if(currentGroup != null) {
-                ElementsGroupInfo info = currentGroup.getGroupInfo();
-                includedGroups.remove(info.getItemId());
-                for (ElementsGroupInfo.GroupHierarchyWrapper childGroupWrapper : currentGroup.getAllChildren()) {
-                    ElementsGroupInfo childInfo = childGroupWrapper.getGroupInfo();
-                    includedGroups.remove(childInfo.getItemId());
-                }
-            }
-            else {
-                log.warn(MessageFormat.format("Configured group to exclude ({0}) does not exist in targeted Elements system.", groupId));
-            }
-        }
+        getIncludedGroups(groupCache.GetTopLevel(), includedGroups, Configuration.getGroupsToHarvest().isEmpty() ? true : false);
 
         return includedGroups;
+    }
+
+//    private static ElementsItemKeyedCollection.ItemInfo CalculateIncludedGroups(ElementsGroupCollection groupCache) {
+//        ElementsItemKeyedCollection.ItemRestrictor restrictToGroupsOnly = new ElementsItemKeyedCollection.RestrictToType(ElementsItemType.GROUP);
+//        ElementsItemKeyedCollection.ItemInfo includedGroups = new ElementsItemKeyedCollection.ItemInfo(restrictToGroupsOnly);
+//
+//        ElementsItemId.GroupId topLevelGroupId = (ElementsItemId.GroupId) groupCache.GetTopLevel().getGroupInfo().getItemId();
+//
+//        //if there are no groups configured to be harvested or if the set includes the top level then we just need everything.
+//        if(Configuration.getGroupsToHarvest().isEmpty() || Configuration.getGroupsToHarvest().contains(topLevelGroupId)) {
+//            for(ElementsGroupInfo.GroupHierarchyWrapper groupWrapper : groupCache.values()) {
+//                ElementsGroupInfo info = groupWrapper.getGroupInfo();
+//                includedGroups.put(info.getItemId(), info);
+//            }
+//        }
+//        else {
+//            for (ElementsItemId.GroupId groupId : Configuration.getGroupsToHarvest()) {
+//                ElementsGroupInfo.GroupHierarchyWrapper currentGroup = groupCache.get(groupId);
+//                if(currentGroup != null) {
+//                    ElementsGroupInfo info = currentGroup.getGroupInfo();
+//                    includedGroups.put(info.getItemId(), info);
+//                    for (ElementsGroupInfo.GroupHierarchyWrapper childGroupWrapper : currentGroup.getAllChildren()) {
+//                        ElementsGroupInfo childInfo = childGroupWrapper.getGroupInfo();
+//                        includedGroups.put(childInfo.getItemId(), childInfo);
+//                    }
+//                }
+//                else {
+//                    log.warn(MessageFormat.format("Configured group to include ({0}) does not exist in targeted Elements system.", groupId));
+//                }
+//            }
+//        }
+//
+//        for(ElementsItemId.GroupId groupId : Configuration.getGroupsToExclude()){
+//            ElementsGroupInfo.GroupHierarchyWrapper currentGroup = groupCache.get(groupId);
+//            if(currentGroup != null) {
+//                ElementsGroupInfo info = currentGroup.getGroupInfo();
+//                includedGroups.remove(info.getItemId());
+//                for (ElementsGroupInfo.GroupHierarchyWrapper childGroupWrapper : currentGroup.getAllChildren()) {
+//                    ElementsGroupInfo childInfo = childGroupWrapper.getGroupInfo();
+//                    includedGroups.remove(childInfo.getItemId());
+//                }
+//            }
+//            else {
+//                log.warn(MessageFormat.format("Configured group to exclude ({0}) does not exist in targeted Elements system.", groupId));
+//            }
+//        }
+//
+//        return includedGroups;
+//    }
+
+    private static void getIncludedGroups(ElementsGroupInfo.GroupHierarchyWrapper group, ElementsItemKeyedCollection.ItemInfo includedGroups, boolean assumeInclude){
+        boolean shouldIncludeGroup = assumeInclude;
+        ElementsItemId.GroupId groupId = (ElementsItemId.GroupId) group.getGroupInfo().getItemId();
+
+        if(Configuration.getGroupsToHarvest().contains(groupId)){
+            shouldIncludeGroup = true;
+        } else if(Configuration.getGroupsToExclude().contains(groupId)){
+            shouldIncludeGroup = false;
+        }
+        if(shouldIncludeGroup){
+            ElementsGroupInfo groupInfo = group.getGroupInfo();
+            includedGroups.put(groupInfo.getItemId(), groupInfo);
+        }
+
+        for(ElementsGroupInfo.GroupHierarchyWrapper child : group.getChildren()){
+            getIncludedGroups(child, includedGroups, shouldIncludeGroup);
+        }
     }
 
     private static ElementsItemKeyedCollection.ItemInfo CalculateIncludedUsers(ElementsItemKeyedCollection.ItemInfo userInfoCache, ElementsGroupCollection groupCache){
