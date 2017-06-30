@@ -52,14 +52,18 @@ public class Configuration {
         private ConfigKey ARG_ELEMENTS_IMAGE_TYPE = new ConfigKey("elementsImageType", "profile");
         private ConfigKey ARG_VIVO_IMAGE_DIR = new ConfigKey("vivoImageDir", "data/harvestedImages/");
         private ConfigKey ARG_VIVO_IMAGE_BASE_PATH = new ConfigKey("vivoImageBasePath", "/harvestedImages/");
-        private ConfigKey ARG_VIVO_BASE_URI = new ConfigKey("vivoBaseURI", "http://vivo.mydomain.edu/individual/");
 
-        private ConfigKey ARG_API_QUERY_CATEGORIES = new ConfigKey("queryObjects"); //TODO : rename this input param?
-        private ConfigKey ARG_API_PARAMS_GROUPS = new ConfigKey("paramGroups");
-        private ConfigKey ARG_API_EXCLUDE_GROUPS = new ConfigKey("excludeGroups");
+        private ConfigKey ARG_QUERY_CATEGORIES = new ConfigKey("queryObjects"); //TODO : rename this input param?
+        private ConfigKey ARG_PARAMS_GROUPS = new ConfigKey("paramGroups");
+        private ConfigKey ARG_EXCLUDE_GROUPS = new ConfigKey("excludeGroups");
 
-        private ConfigKey ARG_API_PARAMS_USER_GROUPS = new ConfigKey("paramUserGroups");
-        private ConfigKey ARG_API_EXCLUDE_USER_GROUPS = new ConfigKey("excludeUserGroups");
+        private ConfigKey ARG_PARAMS_USER_GROUPS = new ConfigKey("paramUserGroups");
+        private ConfigKey ARG_EXCLUDE_USER_GROUPS = new ConfigKey("excludeUserGroups");
+
+        private ConfigKey ARG_ELLIGIBILITY_TYPE = new ConfigKey("elligibilityFilterType");
+        private ConfigKey ARG_ELLIGIBILITY_NAME = new ConfigKey("elligibilityFilterName");
+        private ConfigKey ARG_ELLIGIBILITY_INLCUDE_VALUE = new ConfigKey("elligibilityFilterInclusionValue");
+        private ConfigKey ARG_ELLIGIBILITY_EXLCUDE_VALUE = new ConfigKey("elligibilityFilterExclusionValue");
 
         private ConfigKey ARG_API_FULL_DETAIL_PER_PAGE = new ConfigKey("fullDetailPerPage", "25");
         private ConfigKey ARG_API_REF_DETAIL_PER_PAGE = new ConfigKey("refDetailPerPage", "100");
@@ -113,7 +117,6 @@ public class Configuration {
 
         private String vivoImageBasePath;
         private String vivoImageDir;
-        private String baseURI;
         private String xslTemplate;
 
         private File rawOutputDir;
@@ -122,6 +125,10 @@ public class Configuration {
         private File otherOutputDir;
 
         private boolean zipFiles = false;
+
+        private EligibilityFilter eligibilityFilter = null;
+
+        Map<String, String> xslParameters = null;
 
         //Constructor and methods
         Parser(Properties props, List<String> errors){ super(props, errors); }
@@ -179,6 +186,49 @@ public class Configuration {
             return imageType;
         }
 
+        private EligibilityFilter getEligibilityScheme() {
+
+            String schemeType = getString(ARG_ELLIGIBILITY_TYPE, true);
+            String schemeName = getString(ARG_ELLIGIBILITY_NAME, true);
+            String includeValue = getString(ARG_ELLIGIBILITY_INLCUDE_VALUE, true);
+            String excludeValue = getString(ARG_ELLIGIBILITY_EXLCUDE_VALUE, true);
+
+            boolean academicsOnly = getBoolean(ARG_ACADEMICS_ONLY);
+            boolean currentStaffOnly = getBoolean(ARG_CURRENT_STAFF_ONLY);
+
+            if(schemeType == null) {
+                return new EligibilityFilter(academicsOnly, currentStaffOnly);
+            }
+            else{
+                try {
+                    String lowerCaseSchemeType = schemeType.toLowerCase();
+                    if (lowerCaseSchemeType.equals("label-scheme"))
+                        return new EligibilityFilter.LabelSchemeFilter(schemeName, includeValue, excludeValue, academicsOnly, currentStaffOnly);
+                    if (lowerCaseSchemeType.equals("generic-field"))
+                        return new EligibilityFilter.GenericFieldFilter(schemeName, includeValue, excludeValue, academicsOnly, currentStaffOnly);
+
+                    configErrors.add(MessageFormat.format("\"{0}\" is not a valid elligibility type, valid values are label-scheme and generic-field", schemeType));
+                }
+                catch(Exception e){
+                    configErrors.add(MessageFormat.format("Error instantiating Elligibility filter : {0}", e.getMessage()));
+                }
+            }
+            return null;
+        }
+
+        private Map<String, String> getXslParameters(){
+            String xslPrefix = "xsl-param-";
+            Map<String, String> returnMap = new HashMap<String, String>();
+            for(String name : props.stringPropertyNames()){
+                if(name.startsWith(xslPrefix)){
+                    String key = name.replaceFirst(xslPrefix, "");
+                    returnMap.put(key, props.getProperty(name));
+                }
+            }
+            return returnMap;
+        }
+
+
         void parse(){
             values.maxThreadsResource = getInt(ARG_MAX_RESOURCE_THREADS);
             values.maxThreadsXsl = getInt(ARG_MAX_XSL_THREADS);
@@ -194,25 +244,25 @@ public class Configuration {
 
             List<ElementsItemId.GroupId> groups = new ArrayList<ElementsItemId.GroupId>();
             //allow null when getting integers as that means include everything
-            for (Integer groupId : getIntegers(ARG_API_PARAMS_GROUPS, true)) groups.add(ElementsItemId.createGroupId(groupId));
+            for (Integer groupId : getIntegers(ARG_PARAMS_GROUPS, true)) groups.add(ElementsItemId.createGroupId(groupId));
             values.groupsToHarvest = groups;
 
             groups = new ArrayList<ElementsItemId.GroupId>();
             //allow null as that means exclude nothing
-            for (Integer groupId : getIntegers(ARG_API_EXCLUDE_GROUPS, true)) groups.add(ElementsItemId.createGroupId(groupId));
+            for (Integer groupId : getIntegers(ARG_EXCLUDE_GROUPS, true)) groups.add(ElementsItemId.createGroupId(groupId));
             values.groupsToExclude = groups;
 
             groups = new ArrayList<ElementsItemId.GroupId>();
             //allow null as that means exclude nothing
-            for (Integer groupId : getIntegers(ARG_API_PARAMS_USER_GROUPS, true)) groups.add(ElementsItemId.createGroupId(groupId));
+            for (Integer groupId : getIntegers(ARG_PARAMS_USER_GROUPS, true)) groups.add(ElementsItemId.createGroupId(groupId));
             values.groupsOfUsersToHarvest = groups;
 
             groups = new ArrayList<ElementsItemId.GroupId>();
             //allow null as that means exclude nothing
-            for (Integer groupId : getIntegers(ARG_API_EXCLUDE_USER_GROUPS, true)) groups.add(ElementsItemId.createGroupId(groupId));
+            for (Integer groupId : getIntegers(ARG_EXCLUDE_USER_GROUPS, true)) groups.add(ElementsItemId.createGroupId(groupId));
             values.groupsOfUsersToExclude = groups;
 
-            values.categoriesToHarvest = getCategories(ARG_API_QUERY_CATEGORIES, false); //do not allow null for categories to query
+            values.categoriesToHarvest = getCategories(ARG_QUERY_CATEGORIES, false); //do not allow null for categories to query
 
             values.fullDetailPerPage = getInt(ARG_API_FULL_DETAIL_PER_PAGE);
             values.refDetailPerPage = getInt(ARG_API_REF_DETAIL_PER_PAGE);
@@ -225,10 +275,6 @@ public class Configuration {
 
             values.useFullUTF8 = getBoolean(ARG_USE_FULL_UTF8);
 
-            String baseUriString = getString(ARG_VIVO_BASE_URI, false);
-            //ensure the uri ends with a / - required by mappings.
-            if(!baseUriString.endsWith("/")) baseUriString = baseUriString + "/";
-            values.baseURI = baseUriString;
             values.vivoImageDir = getString(ARG_VIVO_IMAGE_DIR, false);
             values.vivoImageBasePath = getString(ARG_VIVO_IMAGE_BASE_PATH, false);
             values.imageType = getImageType(ARG_ELEMENTS_IMAGE_TYPE);
@@ -243,6 +289,11 @@ public class Configuration {
             values.rewriteMismatchedUrls = getBoolean(ARG_REWRITE_MISMATCHED_URLS);
             values.zipFiles = getBoolean(ARG_ZIP_FILES);
             values.maxFragmentFileSize = getInt(ARG_MAX_FRAGMENT_FILE_SIZE);
+
+            values.eligibilityFilter = getEligibilityScheme();
+
+            values.xslParameters = getXslParameters();
+
         }
     }
 
@@ -315,9 +366,11 @@ public class Configuration {
         return values.currentStaffOnly;
     }
 
-    public static boolean getAcademicsOnly() {
-        return values.academicsOnly;
-    }
+    public static boolean getAcademicsOnly() { return values.academicsOnly; }
+
+    public static EligibilityFilter getElligibilityFilter(){ return values.eligibilityFilter; }
+
+    public static Map<String, String> getXslParameters(){ return values.xslParameters; }
 
     public static boolean getVisibleLinksOnly() {
         return values.visibleLinksOnly;
@@ -346,8 +399,6 @@ public class Configuration {
     public static String getVivoImageBasePath() {
         return values.vivoImageBasePath;
     }
-
-    public static String getBaseURI() { return values.baseURI; }
 
     public static String getXslTemplate() {
         return values.xslTemplate;
@@ -424,4 +475,5 @@ public class Configuration {
         if (!isConfigured()) throw new ConfigParser.UsageException();
     }
 }
+
 

@@ -18,10 +18,7 @@ import javax.xml.stream.events.Attribute;
 import javax.xml.stream.events.EndElement;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Stack;
+import java.util.*;
 
 /**
  * Created by ajpc2_000 on 27/07/2016.
@@ -52,7 +49,7 @@ public class XMLEventProcessor {
      */
     public void addFilter(EventFilter filter) {
         if (filter != null) {
-            List<QName> key = filter.getDocumentLocation();
+            List<QName> key = filter.getFilterLocation();
             if (this.filters.get(key) == null) this.filters.put(key, new ArrayList<EventFilter>());
             this.filters.get(key).add(filter);
         }
@@ -117,7 +114,7 @@ public class XMLEventProcessor {
                 //Note: this will include the "StartElement" from a scope that has only just been activated and the EndElements from a scope that is about to close
                 for (ProcessScope scope : stack) {
                     for (EventFilter filter : scope.getFiltersInScope()) {
-                        filter.processEvent(event, proxy);
+                        filter.processOuterEvent(event, proxy);
                     }
                 }
 
@@ -212,7 +209,12 @@ public class XMLEventProcessor {
                     this.location.add(name);
                 }
             }
+
+            public List<QName> getLocationAsList(){ return Collections.unmodifiableList(location); }
         }
+
+        //a stack representing the relative location of the current filter compared to its entry point in the XML doc structure.
+        private Stack<QName> currentInnerLocation = new Stack<QName>();
 
         //The document location this filter is active at (expressed as a QName array)
         final DocumentLocation documentLocation;
@@ -224,13 +226,33 @@ public class XMLEventProcessor {
         }
 
         //Get the document Location where this filter is active (as a QName array)
-        List<QName> getDocumentLocation() {
+        List<QName> getFilterLocation() {
             return documentLocation.location;
+        }
+
+        protected boolean isAtLocation(DocumentLocation location){ return isAtLocation(location, true); }
+        protected boolean isAtLocation(DocumentLocation location, boolean relative){
+            List<QName> currentDocumentLocation = new ArrayList<QName>();
+            //if the comprison should be absolute (!relative) we want to construct the full XML pasth rto teh current node not just the relative one
+            if(!relative) currentDocumentLocation.addAll(getFilterLocation());
+
+            boolean hasSkippedFirst = false;
+            for (QName name : currentInnerLocation) {
+                if(hasSkippedFirst) currentDocumentLocation.add(name);
+                hasSkippedFirst = true;
+            }
+            return currentDocumentLocation.equals(location.getLocationAsList());
         }
 
         //default methods to do "nothing" on item start and end only override if you need to do something
         protected void itemStart(StartElement initialElement, ReaderProxy readerProxy) throws XMLStreamException { }
         protected void itemEnd(EndElement finalElement, ReaderProxy readerProxy) throws XMLStreamException { }
+
+        protected void processOuterEvent(XMLEvent event, ReaderProxy readerProxy) throws XMLStreamException{
+            if(event.isStartElement()) currentInnerLocation.push(event.asStartElement().getName());
+            processEvent(event, readerProxy);
+            if(event.isEndElement()) currentInnerLocation.pop();
+        }
 
         //abstract stub for process event - have to do something to create a concrete filter.
         protected abstract void processEvent(XMLEvent event, ReaderProxy readerProxy) throws XMLStreamException;
@@ -327,7 +349,7 @@ public class XMLEventProcessor {
         @Override
         final protected void processEvent(XMLEvent event, ReaderProxy readerProxy) throws XMLStreamException {
             preInnerProcessEvent(event, readerProxy);
-            innerFilter.processEvent(event, readerProxy);
+            innerFilter.processOuterEvent(event, readerProxy);
             postInnerProcessEvent(event, readerProxy);
         }
         protected void preInnerProcessEvent(XMLEvent event, ReaderProxy readerProxy) throws XMLStreamException {}

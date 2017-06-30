@@ -37,7 +37,12 @@ public abstract class ElementsTranslateObserver extends ElementsStoreOutputItemO
         templatesHolder = new TemplatesHolder(xslFilename);
         //TODO : migrate these Configuration access bits somehow?
         translationService.getConfig().setIgnoreFileNotFound(true);
-        translationService.getConfig().addXslParameter("baseURI", Configuration.getBaseURI());
+        //translationService.getConfig().addXslParameter("baseURI", Configuration.getBaseURI());
+        Map<String, String> params = Configuration.getXslParameters();
+        for(String paramName : params.keySet()){
+            String paramValue = params.get(paramName);
+            translationService.getConfig().addXslParameter(paramName, paramValue);
+        }
         //translationService.getConfig().addXslParameter("recordDir", Configuration.getRawOutputDir());
         translationService.getConfig().setUseFullUTF8(Configuration.getUseFullUTF8());
 

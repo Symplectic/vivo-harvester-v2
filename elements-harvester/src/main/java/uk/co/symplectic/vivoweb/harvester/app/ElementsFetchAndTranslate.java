@@ -22,6 +22,7 @@ import uk.co.symplectic.utils.http.HttpClient;
 import uk.co.symplectic.elements.api.ElementsAPIVersion;
 import uk.co.symplectic.translate.TranslationService;
 import uk.co.symplectic.utils.ExecutorServiceUtils;
+import uk.co.symplectic.vivoweb.harvester.config.EligibilityFilter;
 import uk.co.symplectic.vivoweb.harvester.config.StateManagement;
 import uk.co.symplectic.vivoweb.harvester.config.Configuration;
 import uk.co.symplectic.vivoweb.harvester.fetch.*;
@@ -170,6 +171,14 @@ public class ElementsFetchAndTranslate {
                 ElementsAPI elementsAPI = ElementsFetchAndTranslate.getElementsAPI();
                 ElementsFetch elementsFetcher = new ElementsFetch(elementsAPI);
 
+                //Configure extraction of extra data that can be used to establish if users should be included.
+                EligibilityFilter filter = Configuration.getElligibilityFilter();
+                if(filter instanceof EligibilityFilter.LabelSchemeFilter){
+                    ElementsObjectInfo.Extractor.InitialiseLabelSchemeExtraction(((EligibilityFilter.InclusionExclusionFilter) filter).getName());
+                }
+                else if(filter instanceof EligibilityFilter.GenericFieldFilter){
+                    ElementsObjectInfo.Extractor.InitialiseGenericFieldExtraction(((EligibilityFilter.InclusionExclusionFilter) filter).getName());
+                }
 
                 ElementsRdfStore rdfStore = ElementsStoreFactory.getRdfStore();
                 //Set up the objectStore (for raw Elements API data) and the rdfStore (for translated RDF XML data)
@@ -256,6 +265,7 @@ public class ElementsFetchAndTranslate {
 
                 //work out the included users
                 ElementsItemKeyedCollection.ItemInfo includedUsers = CalculateIncludedUsers(userInfoCache, groupCache);
+
                 //work out the included groups too..
                 ElementsItemKeyedCollection.ItemInfo includedGroups = CalculateIncludedGroups(groupCache);
 
@@ -682,16 +692,15 @@ public class ElementsFetchAndTranslate {
     }
 
     private static ElementsItemKeyedCollection.ItemInfo CalculateIncludedUsers(ElementsItemKeyedCollection.ItemInfo userInfoCache, ElementsGroupCollection groupCache){
-        boolean academicsOnly = Configuration.getAcademicsOnly();
-        boolean currentStaffOnly = Configuration.getCurrentStaffOnly();
+
+        EligibilityFilter filter = Configuration.getElligibilityFilter();
 
         //find the users who are definitely not going to be included based on their raw metadata
         List<ElementsItemId> invalidUsers = new ArrayList<ElementsItemId>();
         for(ElementsItemInfo objInfo : userInfoCache.values()){
             ElementsUserInfo userInfo = (ElementsUserInfo) objInfo;
-            //if user is not currentStaff then we don't want them
-            if (currentStaffOnly && !userInfo.getIsCurrentStaff()) invalidUsers.add(userInfo.getObjectId());
-            if (academicsOnly && !userInfo.getIsAcademic()) invalidUsers.add(userInfo.getObjectId());
+            //if user is not eligible then we don't want them..
+            if (!filter.isUserEligible(userInfo)) invalidUsers.add(userInfo.getObjectId());
         }
 
         //Work out which users we are planning to include (i.e who is in the included set, not in the excluded set

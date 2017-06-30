@@ -230,7 +230,7 @@ public class ElementsAPI {
                     if(rewriteMismatchedURLsInNextPage) currentQuery.useRewrittenVersion(true);
                 }
                 if (currentQuery.getUrl().equals(previousQuery.getUrl())) {
-                    throw new IllegalStateException("Error detected in the pagination response from Elements - unable to continue processing");
+                    throw new IllegalStateException("Error detected in the pagination response from Elements - unable to continue processing. Note that this can often indicate a corrupt or missing Search Index in Elements");
                 }
             }
             pagination = executeInternalQuery(currentQuery, eventFilters);

@@ -9,6 +9,10 @@ package uk.co.symplectic.vivoweb.harvester.model;
 import org.apache.commons.lang.StringUtils;
 import uk.co.symplectic.utils.ImageUtils;
 
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
 public class ElementsUserInfo extends ElementsObjectInfo {
 
     private UserExtraData additionalInfo;
@@ -60,12 +64,24 @@ public class ElementsUserInfo extends ElementsObjectInfo {
         return additionalInfo.proprietaryID;
     }
 
+    public Set<String> getLabelSchemeValues() {
+        if(!isFullyPopulated()) throw new IllegalAccessError("Cannot access labelSchemeValue if ElementsUserInfo is not fully populated");
+        return Collections.unmodifiableSet(additionalInfo.labelSchemeValues);
+    }
+
+    public String getGenericFieldValue() {
+        if(!isFullyPopulated()) throw new IllegalAccessError("Cannot access genericFieldValue if ElementsUserInfo is not fully populated");
+        return additionalInfo.genericFieldValue;
+    }
+
     public static class UserExtraData{
         private boolean isCurrentStaff = true;
         private boolean isAcademic = true;
         private String photoUrl = null;
         private String username = null;
         private String proprietaryID = null;
+        private Set<String> labelSchemeValues = new HashSet<String>();
+        private String genericFieldValue = null;
 
         public UserExtraData setIsCurrentStaff(boolean isCurrentStaff) {
             this.isCurrentStaff = isCurrentStaff;
@@ -91,6 +107,16 @@ public class ElementsUserInfo extends ElementsObjectInfo {
             return this;
         }
 
+        public UserExtraData addLabelSchemeValue(String labelSchemeValue) {
+            String trimmedValue = StringUtils.trimToNull(labelSchemeValue);
+            if(trimmedValue != null) this.labelSchemeValues.add(trimmedValue);
+            return this;
+        }
+
+        public UserExtraData setGenericFieldValue(String genericFieldValue) {
+            this.genericFieldValue = StringUtils.trimToNull(genericFieldValue);
+            return this;
+        }
     }
 
 }

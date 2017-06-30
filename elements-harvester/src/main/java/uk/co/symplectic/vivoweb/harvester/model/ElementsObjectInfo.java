@@ -6,7 +6,12 @@
  ******************************************************************************/
 package uk.co.symplectic.vivoweb.harvester.model;
 
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import uk.co.symplectic.utils.xml.XMLEventProcessor;
+import uk.co.symplectic.vivoweb.harvester.app.ElementsFetchAndTranslate;
+
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.events.Attribute;
@@ -14,12 +19,16 @@ import javax.xml.stream.events.EndElement;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
 
+import java.text.MessageFormat;
+
 import static uk.co.symplectic.elements.api.ElementsAPI.apiNS;
 import static uk.co.symplectic.elements.api.ElementsAPI.atomNS;
 
 public class ElementsObjectInfo extends ElementsItemInfo{
 
     public static class Extractor extends XMLEventProcessor.ItemExtractingFilter<ElementsItemInfo>{
+
+        final private static Logger log = LoggerFactory.getLogger(Extractor.class);
 
         private static DocumentLocation fileEntryLocation = new DocumentLocation(new QName(atomNS, "entry"), new QName(apiNS, "object"));
         private static DocumentLocation feedEntryLocation = new DocumentLocation(new QName(atomNS, "feed"), new QName(atomNS, "entry"), new QName(apiNS, "object"));
@@ -34,8 +43,25 @@ public class ElementsObjectInfo extends ElementsItemInfo{
             }
         }
 
+        public static void InitialiseGenericFieldExtraction(String aGenericFieldName){
+            String trimmedValue = StringUtils.trimToNull(aGenericFieldName);
+            if(trimmedValue == null) log.info("Generic field extraction (for inclusion calculations) is disabled.");
+            genericFieldName = trimmedValue;
+        }
+
+        public static void InitialiseLabelSchemeExtraction(String aLabelSchemeName){
+            String trimmedValue = StringUtils.trimToNull(aLabelSchemeName);
+            if(trimmedValue == null) log.info("User Label Scheme extraction (for inclusion calculations) is disabled.");
+            labelSchemeName = trimmedValue;
+        }
+
+        private static String labelSchemeName = null;
+        private static String genericFieldName = null;
+
         private ElementsObjectInfo workspace  = null;
         private ElementsUserInfo.UserExtraData additionalUserData = null;
+
+        private DocumentLocation labelLocation = new DocumentLocation(new QName(apiNS, "all-labels"), new QName(apiNS, "keywords"), new QName(apiNS, "keyword"));
 
         protected  Extractor(DocumentLocation location, int maximumAmountExpected){
             super(location, maximumAmountExpected);
@@ -78,6 +104,27 @@ public class ElementsObjectInfo extends ElementsItemInfo{
                             getAdditionalUserData().setIsAcademic(Boolean.parseBoolean(nextEvent.asCharacters().getData()));
                     } else if (name.equals(new QName(apiNS, "photo"))) {
                         getAdditionalUserData().setPhotoUrl(startElement.getAttributeByName(new QName("href")).getValue());
+                    }
+                    else if (genericFieldName != null && name.equals(new QName(apiNS, "organisation-defined-data"))) {
+                        String fieldName = startElement.getAttributeByName(new QName("field-name")).getValue();
+                        if(fieldName.equals(genericFieldName)){
+                            XMLEvent nextEvent = readerProxy.peek();
+                            if (nextEvent.isCharacters())
+                                getAdditionalUserData().setGenericFieldValue(nextEvent.asCharacters().getData());
+                        }
+                    }
+                    else if (labelSchemeName != null && name.equals(new QName(apiNS, "keyword"))) {
+                        //if we are at the label location try and extract one
+                        if (isAtLocation(labelLocation)) {
+                            String originValue = startElement.getAttributeByName(new QName("origin")).getValue();
+                            String schemeValue = startElement.getAttributeByName(new QName("scheme")).getValue();
+                            //if the label in question is both from object data and is the requested scheme we store the value
+                            if (originValue.equals("object-data") && schemeValue.equals(labelSchemeName)) {
+                                XMLEvent nextEvent = readerProxy.peek();
+                                if (nextEvent.isCharacters())
+                                    getAdditionalUserData().addLabelSchemeValue(nextEvent.asCharacters().getData());
+                            }
+                        }
                     }
                 }
             }
