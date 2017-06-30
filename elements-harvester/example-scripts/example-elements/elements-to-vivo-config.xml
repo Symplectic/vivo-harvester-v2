@@ -1,0 +1,398 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ /*******************************************************************************
+  ~  * Copyright (c) 2012 Symplectic Ltd. All rights reserved.
+  ~  * This Source Code Form is subject to the terms of the Mozilla Public
+  ~  * License, v. 2.0. If a copy of the MPL was not distributed with this
+  ~  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+  ~  ******************************************************************************/
+  -->
+
+<config:main xmlns:config="http://www.symplectic.co.uk/vivo/namespaces/config" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+
+    <!-- The default base URI you are using for VIVO identifiers : may be overridden by one passed in from the java framework -->
+    <config:defaultbaseURI>http://vivo.mydomain.edu/individual/</config:defaultbaseURI>
+
+    <!-- Harvested by statement for the URI (leave blank if not required) -->
+    <config:harvestedBy />
+
+    <!-- the class that internal users and groups should be flagged as being a member of-->
+    <config:internalClass />
+
+    <!-- whether to create an organisation object at the "department level" when creating objects to represent addresses -->
+    <config:includeDept>true</config:includeDept>
+
+    <!-- whether to use the Symplectic Vivo ontology extensions - deprecated, last used with vivo 1.5 -->
+    <config:useSympNS />
+
+    <!--
+        Configure precedence for records
+        ================================
+
+        The "for" attribute determines which object type that set of precedences applies to. "default" is used for
+        objects where the type does not have it's own configuration.
+
+        Use select-by="field" attribute to choose the field from the highest precedence record in which it occurs.
+
+        Otherwise, it will select the highest precedence record that is present, regardless of whether the desired field exists in that record.
+
+        If a record from a source not listed is present, it will generally still be used (if non of those listed are present) unless it is listed in the config:data-exclusions section.
+        to disable this set use-unlisted-sources=false.
+
+        Note that data in records being excluded (either by settings use-unlisted-source=false or by using the config:data-exclusions)
+        could still be used if the "fallback to first record" functions are used in the mappings.
+    -->
+
+    <config:record-precedences>
+        <config:record-precedences for="publication" select-by="field" use-unlisted-sources="true">
+            <config:record-precedence>pubmed</config:record-precedence>
+            <config:record-precedence>epmc</config:record-precedence>
+            <config:record-precedence>crossref</config:record-precedence>
+            <config:record-precedence>scopus</config:record-precedence>
+            <config:record-precedence>repec</config:record-precedence>
+            <config:record-precedence>arxiv</config:record-precedence>
+            <config:record-precedence>orcid</config:record-precedence>
+            <config:record-precedence>dblp</config:record-precedence>
+            <config:record-precedence>figshare</config:record-precedence>
+            <config:record-precedence>manual</config:record-precedence>
+            <config:record-precedence>c-inst-1</config:record-precedence>
+            <config:record-precedence>c-inst-2</config:record-precedence>
+        </config:record-precedences>
+        <config:record-precedences for="grant" select-by="field" use-unlisted-sources="true">
+            <config:record-precedence>dimensions</config:record-precedence>
+            <config:record-precedence>source-3</config:record-precedence>
+            <config:record-precedence>manual</config:record-precedence>
+            <config:record-precedence>c-inst-1</config:record-precedence>
+            <config:record-precedence>c-inst-2</config:record-precedence>
+        </config:record-precedences>
+        <config:record-precedences for="default" select-by="field" use-unlisted-sources="true">
+            <config:record-precedence>manual</config:record-precedence>
+            <config:record-precedence>c-inst-1</config:record-precedence>
+            <config:record-precedence>c-inst-2</config:record-precedence>
+        </config:record-precedences>
+    </config:record-precedences>
+
+    <!--
+        The "for" attribute determines which object type a set of exclusions applies to (note "default" does not apply here)
+        <record-exclusion> elements mean no data from that record in the elements value will be prevented from being transferred to vivo.
+        <field-exclusions> elements apply to the record listed in the @for-source attribute their effect is that
+                           data from the fields listed as "config:excluded-field" child elements will be prevented from being transferred to vivo.
+        Note that these exclusions can be ignored if the "fallback to first record" functions are used in the mappings
+
+    -->
+    <config:data-exclusions>
+        <config:data-exclusions for="publication">
+            <config:record-exclusion>wos</config:record-exclusion>
+            <config:field-exclusions for-source="scopus">
+                <config:excluded-field>abstract</config:excluded-field>
+            </config:field-exclusions>
+        </config:data-exclusions>
+    </config:data-exclusions>
+
+    <!--
+        Configure precedence for retrieving journal names
+        =================================================
+
+        The journal name will be extracted from the authority data by preference and if that leads to nothing then from the record data.
+        The order in which authorities should be preferred us defined in the config:journal-authority-precedences section below.
+        By default if there is data from an authority not present in the list it will be used in preference to the record data
+        To disable this set use-unlisted-source="false" on the config:journal-authority-precedences element
+
+        If no title is extracted based on the authority data then the raw record data will be inspected.
+        The order in which records should be preferred for this task is defined in the config:journal-record-precedences section below.
+        the attribute "field" on each config:journal-record-precedence specified the record field to use (defaults to "journal").
+
+        By default if the data contains a record present from a source not listed below it may still be used as if no journal title
+        is found in any of the sources listed below then the system falls back to extracting any "journal" field value according to the
+        general record-precedences defined above.
+        To disable this set use-unlisted-source="false" on the config:journal-record-precedences element
+
+    -->
+    <config:journal-precedences>
+        <config:journal-authority-precedences use-unlisted-sources='true'>
+            <config:journal-authority-precedence>era2012</config:journal-authority-precedence>
+            <config:journal-authority-precedence>snip</config:journal-authority-precedence>s
+            <config:journal-authority-precedence>era2010</config:journal-authority-precedence>
+            <config:journal-authority-precedence>science-metrix</config:journal-authority-precedence>
+            <config:journal-authority-precedence>sjr</config:journal-authority-precedence>
+            <config:journal-authority-precedence>jcr</config:journal-authority-precedence>
+            <config:journal-authority-precedence>institutional-source</config:journal-authority-precedence>
+            <config:journal-authority-precedence>sherpa-romeo</config:journal-authority-precedence>
+            <config:journal-authority-precedence>doaj</config:journal-authority-precedence>
+        </config:journal-authority-precedences>
+        <config:journal-record-precedences use-unlisted-sources='true'>
+            <config:journal-record-precedence field="journal">pubmed</config:journal-record-precedence>
+            <config:journal-record-precedence field="journal">manual</config:journal-record-precedence>
+            <config:journal-record-precedence field="journal">arxiv</config:journal-record-precedence>
+        </config:journal-record-precedences>
+    </config:journal-precedences>
+
+    <!--
+        To use Labels, as well as having the schemes defined below, you must add data to vocabularySource.n3 in vivo/home/rdf/abox/filegraph
+
+        For example for Mesh, ScienceMetrix and For label schemes you need to add this (note how the "defined-by" attribute from the label-schemes defs below is being used).
+
+        <http://www.nlm.nih.gov/mesh> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Thing> .
+        <http://www.nlm.nih.gov/mesh> <http://www.w3.org/2000/01/rdf-schema#label> "MeSH"^^<http://www.w3.org/2001/XMLSchema#string>  .
+
+        <http://www.science-metrix.com/> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Thing> .
+        <http://www.science-metrix.com/> <http://www.w3.org/2000/01/rdf-schema#label> "Science Metrix"^^<http://www.w3.org/2001/XMLSchema#string>  .
+
+        <http://www.arc.gov.au/era/for> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Thing> .
+        <http://www.arc.gov.au/era/for> <http://www.w3.org/2000/01/rdf-schema#label> "FoR"^^<http://www.w3.org/2001/XMLSchema#string>  .
+    -->
+
+    <config:label-schemes>
+        <config:label-schemes for="publication">
+            <config:label-scheme name="mesh" defined-by="http://www.nlm.nih.gov/mesh" />
+            <config:label-scheme name="science-metrix" defined-by="http://www.science-metrix.com/" />
+            <config:label-scheme name="for" defined-by="http://www.arc.gov.au/era/for" />
+            <!--<config:label-scheme name="c-seo-post-2008" defined-by="{baseURI}c-seo-post-2008"/>-->
+        </config:label-schemes>
+        <config:label-schemes for="user">
+            <config:label-scheme name="mesh" defined-by="http://www.nlm.nih.gov/mesh" />
+            <config:label-scheme name="science-metrix" defined-by="http://www.science-metrix.com/"/>
+            <config:label-scheme name="for" defined-by="http://www.arc.gov.au/era/for"/>
+            <!--<config:label-scheme name="c-availability" defined-by="{baseURI}c-availability"/>-->
+            <!--<config:label-scheme name="c-seo-post-2008" defined-by="{baseURI}c-seo-post-2008"/>-->
+        </config:label-schemes>
+    </config:label-schemes>
+
+
+    <!--
+        This section specifies the rdf:type (and vitro:mostSpecificType) statements that you require for each Elements publication type.
+
+        For each <config:publication-type /> element, the "type" attribute is the type name in Elements.
+        The statements within each <config:publication-type /> are the statements that you wish to have output.
+
+        Notes:
+
+        1. Only <rdf:type /> and <vitro:mostSpecificType /> statements are supported.
+        2. If no <vitro:mostSpecificType /> is specified, the FIRST <rdf:type /> for that publication type will be used.
+        3. The following statements are always output, so you do not need to specify them in the configuration:
+            <rdf:type rdf:resource="http://vivoweb.org/ontology/core#InformationResource"/>
+            <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+
+        Question: These are standard on entered values, do we need them?
+            <rdf:type rdf:resource="http://purl.obolibrary.org/obo/BFO_0000001"/>
+            <rdf:type rdf:resource="http://purl.obolibrary.org/obo/BFO_0000002"/>
+            <rdf:type rdf:resource="http://purl.obolibrary.org/obo/BFO_0000031"/>
+            <rdf:type rdf:resource="http://purl.obolibrary.org/obo/IAO_0000030"/>
+    -->
+    <config:publication-types>
+        <config:publication-type type="book">
+            <rdf:type rdf:resource="http://purl.org/ontology/bibo/Book" />
+        </config:publication-type>
+        <config:publication-type type="chapter">
+            <rdf:type rdf:resource="http://purl.org/ontology/bibo/Chapter"/>
+        </config:publication-type>
+        <config:publication-type type="composition">
+            <rdf:type rdf:resource="http://vivoweb.org/ontology/core#Score"/>
+        </config:publication-type>
+        <config:publication-type type="conference">
+            <rdf:type rdf:resource="http://vivoweb.org/ontology/core#ConferencePaper"/>
+        </config:publication-type>
+        <config:publication-type type="dataset">
+            <rdf:type rdf:resource="http://vivoweb.org/ontology/core#Dataset"/>
+        </config:publication-type>
+        <config:publication-type type="exhibition">
+            <rdf:type rdf:resource="http://vivoweb.org/ontology/core#Exhibit"/>
+        </config:publication-type>
+        <config:publication-type type="internet-publication">
+            <rdf:type rdf:resource="http://purl.org/ontology/bibo/Webpage"/>
+        </config:publication-type>
+        <config:publication-type type="journal-article">
+            <rdf:type rdf:resource="http://purl.org/ontology/bibo/AcademicArticle" />
+        </config:publication-type>
+        <config:publication-type type="patent">
+            <rdf:type rdf:resource="http://purl.org/ontology/bibo/Patent"/>
+        </config:publication-type>
+        <config:publication-type type="performance">
+            <rdf:type rdf:resource="http://purl.org/ontology/bibo/Performance"/>
+        </config:publication-type>
+        <config:publication-type type="poster">
+            <rdf:type rdf:resource="http://vivoweb.org/ontology/core#ConferencePoster"/>
+        </config:publication-type>
+        <config:publication-type type="report">
+            <rdf:type rdf:resource="http://purl.org/ontology/bibo/Report"/>
+        </config:publication-type>
+        <config:publication-type type="scholarly-edition">
+            <rdf:type rdf:resource="http://purl.org/ontology/bibo/Article"/>
+        </config:publication-type>
+        <config:publication-type type="software">
+            <rdf:type rdf:resource="http://vivoweb.org/ontology/core#Software"/>
+        </config:publication-type>
+        <config:publication-type type="thesis-dissertation">
+            <rdf:type rdf:resource="http://purl.org/ontology/bibo/Thesis"/>
+        </config:publication-type>
+        <config:publication-type type="z-default">
+            <rdf:type rdf:resource="http://purl.org/ontology/bibo/Article"/>
+        </config:publication-type>
+    </config:publication-types>
+
+
+    <!--
+        A place to map organization names to rdf types. Recognized types in Vivo are:
+
+    http://vivoweb.org/ontology/core#AcademicDepartment
+    http://vivoweb.org/ontology/core#Association
+    http://vivoweb.org/ontology/core#Center
+    http://vivoweb.org/ontology/core#ClinicalOrganization
+    http://vivoweb.org/ontology/core#College
+    http://vivoweb.org/ontology/core#Company
+    http://vivoweb.org/ontology/core#Consortium
+    http://vivoweb.org/ontology/core#CoreLaboratory
+    http://vivoweb.org/ontology/core#Department
+    http://vivoweb.org/ontology/core#Division
+    http://vivoweb.org/ontology/core#ExtensionUnit
+    http://vivoweb.org/ontology/core#Foundation
+    http://vivoweb.org/ontology/core#FundingOrganization
+    http://vivoweb.org/ontology/core#GovernmentAgency
+    http://vivoweb.org/ontology/core#Hospital
+    http://vivoweb.org/ontology/core#Institute
+    http://vivoweb.org/ontology/core#Laboratory
+    http://vivoweb.org/ontology/core#Library
+    http://vivoweb.org/ontology/core#Museum
+    http://vivoweb.org/ontology/core#PrivateCompany
+    http://vivoweb.org/ontology/core#Program
+    http://vivoweb.org/ontology/core#Publisher
+    http://vivoweb.org/ontology/core#ResearchOrganization
+    http://vivoweb.org/ontology/core#School
+    http://vivoweb.org/ontology/core#ServiceProvidingLaboratory
+    http://vivoweb.org/ontology/core#StudentOrganization
+    http://vivoweb.org/ontology/core#University
+    http://purl.obolibrary.org/obo/ERO_0000565 (Technology Transfer Office)
+    -->
+    <config:organization-types>
+        <config:organization-type name="A. N. Nesmeyanov Institute of Organoelement Compounds RAS"  type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="Albany College of Pharmacy"                                 type="http://vivoweb.org/ontology/core#College" />
+        <config:organization-type name="Alfred P. Sloan Foundation"                                 type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:organization-type name="American Astronomical Society"                              type="http://vivoweb.org/ontology/core#Institute" />
+        <config:organization-type name="American Institute of Physics"                              type="http://vivoweb.org/ontology/core#Consortium" />
+        <config:organization-type name="American University Observatory"                            type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="American University of Beirut"                              type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="Australian Research Council"                                type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:organization-type name="Bates College"                                              type="http://vivoweb.org/ontology/core#College" />
+        <config:organization-type name="Baylor University"                                          type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="BBSRC"                                                      type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:organization-type name="Biotech incubator Upper Austrian Research GmbH"             type="http://vivoweb.org/ontology/core#Company" />
+        <config:organization-type name="Birkbeck College"                                           type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="Boston Museum of Science"                                   type="http://vivoweb.org/ontology/core#Museum" />
+        <config:organization-type name="Boston University"                                          type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="Brown University"                                           type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="Brigham and Women's Hospital"                               type="http://vivoweb.org/ontology/core#Hospital" />
+        <config:organization-type name="California Institute of Technology"                         type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="CalTech"                                                    type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="Cambridge University"                                       type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="Cerulean Pharma"                                            type="http://vivoweb.org/ontology/core#Company" />
+        <config:organization-type name="Children's Hospital Medical Center"                         type="http://vivoweb.org/ontology/core#Hospital" />
+        <config:organization-type name="Clare College, Cambridge"                                   type="http://vivoweb.org/ontology/core#College" />
+        <config:organization-type name="Cornell University"                                         type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="Creighton University"                                       type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="Deshpande Center for Technological Innovation"              type="http://vivoweb.org/ontology/core#ResearchOrganization" />
+        <config:organization-type name="Digital Science"                                            type="http://vivoweb.org/ontology/core#Company" />
+        <config:organization-type name="Ecole Normale Superieure, Paris"                            type="http://vivoweb.org/ontology/core#ResearchOrganization" />
+        <config:organization-type name="Eli Lilly &amp; Co"                                         type="http://vivoweb.org/ontology/core#Company" />
+        <config:organization-type name="EPSRC"                                                      type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:organization-type name="FBC Ltd. Chesterford Park"                                  type="http://vivoweb.org/ontology/core#Company" />
+        <config:organization-type name="Griffith University"                                        type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="Harvard Medical School"                                     type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="Harvard Medical School, Brigham &amp; Women's Hospital"     type="http://vivoweb.org/ontology/core#Hospital" />
+        <config:organization-type name="Harvard Stem Cell Institute"                                type="http://vivoweb.org/ontology/core#Institute" />
+        <config:organization-type name="Harvard University"                                         type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="Heidelberg University"                                      type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="Howard Hughes Medical Institute"                            type="http://vivoweb.org/ontology/core#Institute" />
+        <config:organization-type name="Imperial College London"                                    type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="Indiana University-Purdue University"                       type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="Institute of Chemical Research of Catalonia"                type="http://vivoweb.org/ontology/core#School" />
+        <config:organization-type name="Institute of Organic Chemistry, PAS"                        type="http://vivoweb.org/ontology/core#Institute" />
+        <config:organization-type name="Johannes Gutenberg Universitaet"                            type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="John Templeton Foundation"                                  type="http://vivoweb.org/ontology/core#Institute" />
+        <config:organization-type name="Johns Hopkins"                                              type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="Johns Hopkins University"                                   type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="Kanel Foundation"                                           type="http://vivoweb.org/ontology/core#Foundation" />
+        <config:organization-type name="Library of Congress"                                        type="http://vivoweb.org/ontology/core#Institute" />
+        <config:organization-type name="Louisiana State University System"                          type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="Marquette University"                                       type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="Massachusetts Institute of Technology"                      type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="Massgeneral Hospital for Children"                          type="http://vivoweb.org/ontology/core#Hospital" />
+        <config:organization-type name="McGill University"                                          type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="MIT"                                                        type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="Momenta Pharmaceuticals"                                    type="http://vivoweb.org/ontology/core#Company" />
+        <config:organization-type name="Moscow Chemical Lyceum"                                     type="http://vivoweb.org/ontology/core#School" />
+        <config:organization-type name="National Cancer Institute"                                  type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:organization-type name="National Center For Complimentary &amp; Alternative Medicine"  type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:organization-type name="National Health &amp; Medical Research Council"             type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:organization-type name="National Heart, Lung, And Blood Institute"                  type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:organization-type name="National Institute Of Allergy And Infectious Diseases"      type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:organization-type name="National Institute Of Biomedical Imaging And Bioengineering"  type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:organization-type name="National Institute Of Dental &amp; Craniofacial Research"   type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:organization-type name="National Institute Of General Medical Sciences"             type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:organization-type name="National Institute of Health"                               type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:organization-type name="National Science Foundation"                                type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:organization-type name="NATO"                                                       type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:organization-type name="NERC"                                                       type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:organization-type name="Newcastle University"                                       type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="Nottingham Trent University"                                type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="NSF"                                                        type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:organization-type name="Oxford University"                                          type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="Paisley College"                                            type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="Princeton"                                                  type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="Royal Institution"                                          type="http://vivoweb.org/ontology/core#Institute" />
+        <config:organization-type name="Santa Fe Institute"                                         type="http://vivoweb.org/ontology/core#Institute" />
+        <config:organization-type name="Rensselaer Polytechnic Institute"                           type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="Santa Fe Institute"                                         type="http://vivoweb.org/ontology/core#Institute" />
+        <config:organization-type name="Silicon Valley Community Foundation"                        type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:organization-type name="Soreq NRC"                                                  type="http://vivoweb.org/ontology/core#Institute" />
+        <config:organization-type name="St John's College, Cambridge"                               type="http://vivoweb.org/ontology/core#College" />
+        <config:organization-type name="St. Catharine's College, Cambridge"                         type="http://vivoweb.org/ontology/core#College" />
+        <config:organization-type name="Symplectic"                                                 type="http://vivoweb.org/ontology/core#Company" />
+        <config:organization-type name="Symplectic Ltd"                                             type="http://vivoweb.org/ontology/core#Company" />
+        <config:organization-type name="Tel Aviv University"                                        type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="The Group School, Cambridge"                                type="http://vivoweb.org/ontology/core#School" />
+        <config:organization-type name="The Hebrew University of Jerusalem"                         type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="The Institute for Advanced Study"                           type="http://vivoweb.org/ontology/core#Institute" />
+        <config:organization-type name="The University of Chicago"                                  type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="The University of Michigan"                                 type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="UC Berkeley"                                                type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="UC Davis"                                                   type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="UCL"                                                        type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="UMR"                                                        type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:organization-type name="University College London"                                  type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="University of Bristol"                                      type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="University of California"                                   type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="University of California at Berkeley"                       type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="University of California at Davis"                          type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="University of Cambridge"                                    type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="University of Cambridge, Churchill College"                 type="http://vivoweb.org/ontology/core#College" />
+        <config:organization-type name="University of Chicago"                                      type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="University of East Anglia"                                  type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="University of Edinburgh"                                    type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="University of Hawaii Institute for Astronomy"               type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="University of Illinois at Urbana-Champaign"                 type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="University of Manchester Institute of Science and Technology"  type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="University of Minnesota"                                    type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="University of Missouri-Rolla"                               type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="University of New Mexico"                                   type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="University of North Carolina"                               type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="University of Paris VII"                                    type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="University of Pennsylvania"                                 type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="University of Rochester"                                    type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="University of Science and Technology of China"              type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="University of Southampton"                                  type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="University of Sussex"                                       type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="University of Toronto"                                      type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="University of Vienna"                                       type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="University of Western Australia"                            type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="University of Wisconsin - Madison"                          type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="US National Committee for the International Astronomical Union"  type="http://vivoweb.org/ontology/core#GovernmentAgency" />
+        <config:organization-type name="US-Israel Binational Science Foundation"                    type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:organization-type name="Vassar College"                                             type="http://vivoweb.org/ontology/core#College" />
+        <config:organization-type name="Virginia Polytechnic Institute and State University"        type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="Visterra"                                                   type="http://vivoweb.org/ontology/core#Company" />
+        <config:organization-type name="Washington University in St. Louis"                         type="http://vivoweb.org/ontology/core#University" />
+        <config:organization-type name="Wellesley College"                                          type="http://vivoweb.org/ontology/core#College" />
+        <config:organization-type name="Yale University"                                            type="http://vivoweb.org/ontology/core#University" />
+    </config:organization-types>
+
+</config:main>

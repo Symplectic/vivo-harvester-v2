@@ -34,6 +34,9 @@
          ======================================- -->
 
     <!--
+        svfn:getOrganizationType
+        ========================
+        Get mapped Org type based on configuration - if no specific mapping found try to infer.
     -->
     <xsl:function name="svfn:getOrganizationType">
         <xsl:param name="name" />
@@ -64,7 +67,7 @@
         <xsl:param name="prefix" as="xs:string" />
         <xsl:param name="id" as="xs:string" />
 
-        <xsl:value-of select="concat($baseURI,svfn:stringToURI($prefix),svfn:stringToURI($id))" />
+        <xsl:value-of select="concat($validatedBaseURI,svfn:stringToURI($prefix),svfn:stringToURI($id))" />
     </xsl:function>
 
     <!--
@@ -405,8 +408,27 @@
         <xsl:param name="object" />
         <xsl:param name="propertyName" as="xs:string" />
         <xsl:param name="fieldName" as="xs:string" />
+        <xsl:param name="default" />
 
-        <xsl:copy-of select="svfn:_renderPropertyFromField($object, $propertyName, $fieldName, svfn:getRecordFieldOrFirst($object, $fieldName))" />
+
+        <xsl:variable name="recordField" select="svfn:getRecordFieldOrFirst($object, $fieldName)" />
+        <xsl:choose>
+            <xsl:when test="$recordField">
+                <xsl:copy-of select="svfn:_renderPropertyFromField($object, $propertyName, $fieldName, $recordField)" />
+            </xsl:when>
+            <xsl:when test="$default instance of element()">
+                <xsl:copy-of select="svfn:_renderPropertyFromField($object, $propertyName, $fieldName, $default)" />
+            </xsl:when>
+            <xsl:when test="$default">
+                <xsl:variable name="dummy-field">
+                    <api:text name="{$propertyName}">
+                        <xsl:value-of select="$default" />
+                    </api:text>
+                </xsl:variable>
+                <xsl:copy-of select="svfn:_renderPropertyFromField($object, $propertyName, $fieldName, $dummy-field)" />
+            </xsl:when>
+        </xsl:choose>
+
     </xsl:function>
 
     <!--
@@ -540,7 +562,6 @@
         <xsl:param name="propertyName" as="xs:string" />
         <xsl:param name="fieldName" as="xs:string" />
         <xsl:param name="fieldNode" />
-
         <xsl:apply-templates select="$fieldNode" mode="renderForProperty">
             <xsl:with-param name="propertyName" select="$propertyName" />
             <xsl:with-param name="fieldName" select="$fieldName" />

@@ -40,11 +40,13 @@
         <xsl:variable name="dateIntervalURI" select="svfn:retrieveDateIntervalUri($dateInterval)" />
         <xsl:copy-of select="$dateInterval" />
 
+        <xsl:variable name="defaultGrantTitle" select="concat('Default title for grant:', @id)" />
+
         <xsl:call-template name="render_rdf_object">
             <xsl:with-param name="objectURI" select="$grantURI" />
             <xsl:with-param name="rdfNodes">
                 <rdf:type rdf:resource="http://vivoweb.org/ontology/core#Grant"/>
-                <xsl:copy-of select="svfn:renderPropertyFromFieldOrFirst(.,'rdfs:label','title')" />
+                <xsl:copy-of select="svfn:renderPropertyFromFieldOrFirst(.,'rdfs:label','title', $defaultGrantTitle)" />
                 <xsl:copy-of select="svfn:renderPropertyFromField(.,'bibo:abstract','abstract')" />
                 <xsl:copy-of select="svfn:renderPropertyFromField(.,'bibo:abstract','description')" />
                 <xsl:copy-of select="svfn:renderPropertyFromField(.,'vivo:sponsorAwardId','funder-reference')" />

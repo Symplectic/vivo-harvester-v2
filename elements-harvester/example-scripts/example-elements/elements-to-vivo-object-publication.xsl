@@ -102,7 +102,7 @@
             -->
             <xsl:with-param name="rdfNodes">
                 <xsl:copy-of select="svfn:getTypesForPublication(@type)" />
-                <xsl:copy-of select="svfn:renderPropertyFromFieldOrFirst(.,'rdfs:label','title')" />
+                <xsl:copy-of select="svfn:renderPropertyFromFieldOrFirst(.,'rdfs:label','title', '')" />
                 <xsl:copy-of select="svfn:renderPropertyFromField(.,'bibo:abstract','abstract')" />
                 <xsl:copy-of select="svfn:renderPropertyFromField(.,'bibo:doi','doi')" />
                 <xsl:copy-of select="svfn:renderPropertyFromField(.,'bibo:edition','edition')" />

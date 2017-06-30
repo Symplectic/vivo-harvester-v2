@@ -22,11 +22,6 @@
                 xmlns:config="http://www.symplectic.co.uk/vivo/namespaces/config"
                 exclude-result-prefixes="rdf rdfs bibo vivo foaf score ufVivo vitro api symp svfn config xs"
         >
-
-    <!-- Import general config / utils XSLT -->
-    <xsl:import href="elements-to-vivo-config.xsl" />
-    <xsl:import href="elements-to-vivo-utils.xsl" />
-
     <!--
         All of the translation is done during the Relationship translation phase, as most of what Symplectic catches on the "Activity" object is viewed as "relationship" data in VIVO.
         Keeping this as an empty placeholder to avoid ingest errors if object is not caught at this phase.
