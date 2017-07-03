@@ -240,35 +240,5 @@ final class TranslationServiceImpl {
             this.outputStore = outputStore;
             this.outputType = outputType;
         }
-
-        //TODO : remove this entirely?
-        private class TranslateTaskErrorListener implements ErrorListener {
-            TranslationServiceConfig config;
-
-            TranslateTaskErrorListener(TranslationServiceConfig config) {
-                this.config = config == null ? new TranslationServiceConfig() : config;
-            }
-
-            @Override
-            public void warning(TransformerException exception) throws TransformerException {
-                throw exception;
-            }
-
-            @Override
-            public void error(TransformerException exception) throws TransformerException {
-                Throwable cause = exception.getCause();
-                if (config.getIgnoreFileNotFound() && cause instanceof FileNotFoundException) {
-                    log.trace("Ignoring file not found in transform");
-                } else {
-                    log.error("Transformer Exception", exception);
-                    throw exception;
-                }
-            }
-
-            @Override
-            public void fatalError(TransformerException exception) throws TransformerException {
-                throw exception;
-            }
-        }
     }
 }

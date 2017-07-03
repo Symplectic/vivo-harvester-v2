@@ -22,6 +22,7 @@
                 xmlns:symp="http://www.symplectic.co.uk/ontology/elements/"
                 xmlns:svfn="http://www.symplectic.co.uk/vivo/namespaces/functions"
                 xmlns:config="http://www.symplectic.co.uk/vivo/namespaces/config"
+                xmlns:fn="http://www.w3.org/2005/xpath-functions"
                 exclude-result-prefixes="rdf rdfs bibo vivo config foaf score ufVivo vitro api svfn symp xs"
         >
 
@@ -34,7 +35,7 @@
 
     <!-- The base URI you are using for VIVO identifiers : passed in from java framework -->
     <xsl:param name="baseURI">
-        <xsl:value-of select="$loaded-config/config:defaultbaseURI" />
+        <xsl:value-of select="fn:normalize-space($loaded-config/config:defaultbaseURI)" />
     </xsl:param>
 
     <xsl:variable name="validatedBaseURI">
@@ -45,16 +46,16 @@
     </xsl:variable>
 
     <!-- Harvested by statement for the URI (set to blank if not required) -->
-    <xsl:variable name="harvestedBy" select="$loaded-config/config:harvestedBy" />
+    <xsl:variable name="harvestedBy" select="fn:normalize-space($loaded-config/config:harvestedBy)" />
 
     <!-- the internal class that internal users and groups should be flagged as -->
-    <xsl:variable name="internalClass" select="$loaded-config/config:internalClass" />
+    <xsl:variable name="internalClass" select="fn:normalize-space($loaded-config/config:internalClass)" />
 
     <!-- whether to create an organisation object at the "department level" when creating objects to represent addresses -->
-    <xsl:variable name="includeDept" select="$loaded-config/config:includeDept" />
+    <xsl:variable name="includeDept" select="fn:normalize-space($loaded-config/config:includeDept)" />
 
     <!-- whether to use the Symplectic namespace extensions - deprecated -->
-    <xsl:variable name="useSympNS" select="$loaded-config/config:useSympNS" />
+    <xsl:variable name="useSympNS" select="fn:normalize-space($loaded-config/config:useSympNS)" />
 
     <!-- DO NOT TOUCH! extra object params : i.e. how relationship templates that need the raw data about the objects in the link access that data -->
     <!-- whether to use raw files from disk to build the "extraObjects" or not -->
@@ -75,6 +76,10 @@
     <!-- testing tool for config -->
     <!--<xsl:template match="/">-->
         <!--<root>-->
+            <!--<xsl:if test="$internalClass!=''"><proof><xsl:value-of select="$internalClass" /></proof></xsl:if>-->
+
+
+
             <!--<baseURI><xsl:value-of select="$baseURI" /></baseURI>-->
             <!--<harvestedBy><xsl:value-of select="$harvestedBy" /></harvestedBy>-->
             <!--<internalClass><xsl:value-of select="$internalClass" /></internalClass>-->

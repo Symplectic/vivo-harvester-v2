@@ -12,6 +12,7 @@ import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemInfo;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemType;
 import java.io.*;
+import java.text.MessageFormat;
 import java.util.*;
 import java.util.zip.GZIPOutputStream;
 
@@ -171,6 +172,7 @@ public class ElementsItemFileStore implements ElementsItemStore.ElementsDeletabl
                     outputStream.close();
                 }
             }
+            if(!file.exists()) throw new IllegalStateException(MessageFormat.format("File '{0}' was not written successfully - check file system permissions", file.getPath()));
         }
         //if not keeping empties and the file is empty
         else if(file.exists()){

@@ -32,6 +32,7 @@
 
     <!-- Import the utility XSLT -->
     <xsl:import href="elements-to-vivo-utils.xsl" />
+    <xsl:import href="elements-to-vivo-config.xsl" />
 
     <!-- Match objects of type 'publication' -->
     <xsl:template match="api:object[@category='publication']">

@@ -60,8 +60,13 @@ public final class ResourceFetchServiceImpl {
         @Override
         public Boolean call() throws Exception {
             ByteArrayOutputStream os = new ByteArrayOutputStream();
-            Boolean retCode = api.fetchResource(userInfo.getPhotoUrl(type), os);
-            objectStore.storeItem(userInfo, StorableResourceType.RAW_USER_PHOTO, os.toByteArray());
+            String url = userInfo.getPhotoUrl(type);
+            Boolean retCode = api.fetchResource(url, os);
+            byte[] data = os.toByteArray();
+            if(data == null || data.length == 0)
+                log.warn("Failed to retrieve photo for user {0} from url {1}", userInfo.getItemId(), url);
+            else
+                objectStore.storeItem(userInfo, StorableResourceType.RAW_USER_PHOTO, data);
             //TODO: better error handling here?
             return retCode;
         }

@@ -56,7 +56,7 @@
                     </xsl:otherwise>
                 </xsl:choose>
 
-                <xsl:if test="$internalClass"><rdf:type rdf:resource="{$internalClass}" /></xsl:if>
+                <xsl:if test="$internalClass!=''"><rdf:type rdf:resource="{$internalClass}" /></xsl:if>
                 <!-- rdf:type rdf:resource="http://vivoweb.org/harvester/excludeEntity" / -->
                 <rdfs:label><xsl:value-of select="$lastName" />, <xsl:value-of select="$firstName" /></rdfs:label>
                 <xsl:copy-of select="svfn:renderPropertyFromFieldOrFirst(.,'vivo:overview','overview', '')" />
