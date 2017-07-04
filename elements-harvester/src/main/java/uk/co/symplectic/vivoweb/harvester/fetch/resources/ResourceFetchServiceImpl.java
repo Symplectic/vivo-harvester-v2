@@ -18,6 +18,7 @@ import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
 
 import java.io.ByteArrayOutputStream;
 import java.net.MalformedURLException;
+import java.text.MessageFormat;
 import java.util.concurrent.Callable;
 
 public final class ResourceFetchServiceImpl {
@@ -64,7 +65,7 @@ public final class ResourceFetchServiceImpl {
             Boolean retCode = api.fetchResource(url, os);
             byte[] data = os.toByteArray();
             if(data == null || data.length == 0)
-                log.warn("Failed to retrieve photo for user {0} from url {1}", userInfo.getItemId(), url);
+                log.warn(MessageFormat.format("Failed to retrieve photo for {0} from url {1}", userInfo.getItemId(), url));
             else
                 objectStore.storeItem(userInfo, StorableResourceType.RAW_USER_PHOTO, data);
             //TODO: better error handling here?

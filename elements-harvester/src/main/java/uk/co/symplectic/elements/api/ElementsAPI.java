@@ -130,17 +130,19 @@ public class ElementsAPI {
     private final String password;
 
     //TODO: move to processing defaults?
-    private final boolean rewriteMismatchedURLsInNextPage;
+    private final boolean rewriteMismatchedURLs;
     private int maxRetries = 5;
     private int retryDelayMillis = 500;
 
     private final ProcessingDefaults defaults;
 
+    private boolean issuedWarningAboutMismatchedFetchUrls = false;
+
     public ElementsAPI(ElementsAPIVersion version, String url){
         this(version, url, null, null, false, null);
     }
 
-    public ElementsAPI(ElementsAPIVersion version, String url, String username, String password, boolean rewriteMismatchedURLsInNextPage, ProcessingDefaults defaults) {
+    public ElementsAPI(ElementsAPIVersion version, String url, String username, String password, boolean rewriteMismatchedURLs, ProcessingDefaults defaults) {
         if(version == null){
             log.error("provided version must not be null on construction");
             throw new NullArgumentException("version");
@@ -168,7 +170,7 @@ public class ElementsAPI {
             this.password = null;
         }
 
-        this.rewriteMismatchedURLsInNextPage = rewriteMismatchedURLsInNextPage;
+        this.rewriteMismatchedURLs = rewriteMismatchedURLs;
         this.defaults = defaults == null ? ProcessingDefaults.DEFAULTS : defaults;
     }
 
@@ -227,7 +229,7 @@ public class ElementsAPI {
                         log.warn("There is probably a mismatch between the configured API URL in this program and the API baseURI configured in Elements");
                     }
                     //if we want to rewrite any mismatched urls to use the original base url from our query
-                    if(rewriteMismatchedURLsInNextPage) currentQuery.useRewrittenVersion(true);
+                    if(rewriteMismatchedURLs) currentQuery.useRewrittenVersion(true);
                 }
                 if (currentQuery.getUrl().equals(previousQuery.getUrl())) {
                     throw new IllegalStateException("Error detected in the pagination response from Elements - unable to continue processing. Note that this can often indicate a corrupt or missing Search Index in Elements");
@@ -251,7 +253,16 @@ public class ElementsAPI {
     public boolean fetchResource(String resourceURL, OutputStream outputStream) {
         HttpClient.ApiResponse apiResponse = null;
         try {
-            HttpClient apiClient = new HttpClient(resourceURL, username, password);
+            ValidatedUrl validatedUrl = new ValidatedUrl(resourceURL, url);
+            if(validatedUrl.isMismatched()){
+                if(!issuedWarningAboutMismatchedFetchUrls) {
+                    log.warn(MessageFormat.format("Requested fetch URL \"{0}\" has a different host to the configured base URL: {1}", resourceURL, url));
+                    log.warn("There is probably a mismatch between the configured API URL in this program and the API baseURI configured in Elements");
+                    issuedWarningAboutMismatchedFetchUrls = true;
+                }
+                if(rewriteMismatchedURLs) validatedUrl.useRewrittenVersion(true);
+            }
+            HttpClient apiClient = new HttpClient(validatedUrl, username, password);
             apiResponse = apiClient.executeGetRequest();
             IOUtils.copy(apiResponse.getResponseStream(), outputStream);
         }

@@ -172,7 +172,6 @@ public class ElementsItemFileStore implements ElementsItemStore.ElementsDeletabl
                     outputStream.close();
                 }
             }
-            if(!file.exists()) throw new IllegalStateException(MessageFormat.format("File '{0}' was not written successfully - check file system permissions", file.getPath()));
         }
         //if not keeping empties and the file is empty
         else if(file.exists()){
