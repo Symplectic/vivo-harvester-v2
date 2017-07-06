@@ -49,7 +49,9 @@
     <xsl:variable name="harvestedBy" select="fn:normalize-space($loaded-config/config:harvestedBy)" />
 
     <!-- the internal class that internal users and groups should be flagged as -->
-    <xsl:variable name="internalClass" select="fn:normalize-space($loaded-config/config:internalClass)" />
+    <xsl:param name="internalClass">
+        <xsl:value-of select="fn:normalize-space($loaded-config/config:internalClass)" />
+    </xsl:param>
 
     <!-- whether to create an organisation object at the "department level" when creating objects to represent addresses -->
     <xsl:variable name="includeDept" select="fn:normalize-space($loaded-config/config:includeDept)" />
