@@ -72,7 +72,6 @@ public class ElementsFetchAndTranslate {
     public static void main(String[] args) {
         Throwable caught = null;
 
-        //todo: move state file location to config?
         StateManagement stateManager = new StateManagement(new File("state.txt"));
         //assume default state (initial run of number 0 with no previous errors) until we have read the state file (or failed to...)
         StateManagement.State state = new StateManagement.State();
@@ -155,7 +154,7 @@ public class ElementsFetchAndTranslate {
             File currentTdbStore = new File(interimTdbDirectory, currentRunType == StateManagement.StateType.EVEN ? "0" : "1");
             File previousTdbStore = new File(interimTdbDirectory, currentRunType == StateManagement.StateType.ODD ? "0" : "1");
 
-            log.debug("ElementsFetchAndTranslate: Start");
+            log.info("ElementsFetchAndTranslate: Start");
 
 
             if(updateLocalTDB) {
@@ -164,7 +163,6 @@ public class ElementsFetchAndTranslate {
                 setExecutorServiceMaxThreadsForPool("TranslationService", Configuration.getMaxThreadsXsl());
                 setExecutorServiceMaxThreadsForPool("ResourceFetchService", Configuration.getMaxThreadsResource());
 
-                //TODO: make these configurable?
                 Set<String> relationshipTypesNeedingObjectsForTranslation = Configuration.getRelTypesToReprocess();
 
                 //Set up the Elements API and a fetcher that uses it.
@@ -277,7 +275,7 @@ public class ElementsFetchAndTranslate {
                 }
                 else{
                     //fetch the groups and translate them
-                    log.debug("Clearing down old group cache");
+                    log.info("Clearing down old group cache");
                     objectStore.cleardown(StorableResourceType.RAW_GROUP);
                     elementsFetcher.execute(new ElementsFetch.GroupConfig(), objectStore);
                 }
@@ -291,7 +289,7 @@ public class ElementsFetchAndTranslate {
                 //Hook a monitor up to work out which objects and relationships we want to send to vivo
                 // when building a triple store to represent the current state after this connector run.
                 //write out a list of translated rdf files that ought to be included
-                log.debug("ElementsFetchAndTranslate: Processing cached relationships to establish which items to include in final output");
+                log.info("ElementsFetchAndTranslate: Processing cached relationships to establish which items to include in final output");
                 //TODO: test performance against spinning rust...
 
                 boolean visibleLinksOnly = Configuration.getVisibleLinksOnly();
@@ -303,11 +301,11 @@ public class ElementsFetchAndTranslate {
                     monitor.observe(relItem);
                     counter++;
                     if (counter % 10000 == 0)
-                        log.debug(MessageFormat.format("ElementsFetchAndTranslate: {0} relationships processed from cache", counter));
+                        log.info(MessageFormat.format("ElementsFetchAndTranslate: {0} relationships processed from cache", counter));
                 }
-                log.debug(MessageFormat.format("ElementsFetchAndTranslate: finished processing relationships from cache, {0} items processed in total", counter));
+                log.info(MessageFormat.format("ElementsFetchAndTranslate: finished processing relationships from cache, {0} items processed in total", counter));
 
-                log.debug("ElementsFetchAndTranslate: Calculating output files related to included objects");
+                log.info("ElementsFetchAndTranslate: Calculating output files related to included objects");
                 List<StoredData.InFile> filesToProcess = new ArrayList<StoredData.InFile>();
                 BufferedWriter writer = null;
                 try {
@@ -328,30 +326,31 @@ public class ElementsFetchAndTranslate {
                 } finally {
                     if (writer != null) writer.close();
                 }
-                log.debug("ElementsFetchAndTranslate: Finished calculating output files related to included objects");
+                log.info("ElementsFetchAndTranslate: Finished calculating output files related to included objects");
                 //end of changes towards making include monitoring a separate step in the process
 
                 currentTdbStore.mkdirs();
                 previousTdbStore.mkdirs();
 
+                log.info(MessageFormat.format("ElementsFetchAndTranslate: Clearing down triplestore \"{0}\"", currentTdbStore.getAbsolutePath()));
                 //clear the current store ahead of re-loading
                 FileUtils.deleteDirectory(currentTdbStore);
                 //TODO: ensure that comparison store is nulled out too if we are starting with no state....?
 
-                log.debug(MessageFormat.format("ElementsFetchAndTranslate: Transferring output data to triplestore \"{0}\"", currentTdbStore.getAbsolutePath()));
+                log.info(MessageFormat.format("ElementsFetchAndTranslate: Transferring output data to triplestore \"{0}\"", currentTdbStore.getAbsolutePath()));
                 TDBConnect currentJC = new TDBConnect(currentTdbStore);
                 //JenaConnect jc = new TDBJenaConnect(currentStore.getAbsolutePath(), "http://vitro.mannlib.cornell.edu/default/vitro-kb-2");
                 TDBLoadUtility.load(currentJC, filesToProcess.iterator());
-                log.debug("ElementsFetchAndTranslate: Finished transferring data to triplestore");
+                log.info("ElementsFetchAndTranslate: Finished transferring data to triplestore");
             }
 
-            log.debug("ElementsFetchAndTranslate: Calculating additions based on comparison to previous run");
+            log.info("ElementsFetchAndTranslate: Calculating additions based on comparison to previous run");
             TDBConnect currentJC = new TDBConnect(currentTdbStore);
             TDBConnect previousJC = new TDBConnect(previousTdbStore);
             File additionsFile = new File(interimTdbDirectory, additionsFileName);
             ModelOutput additionsOutput = new ModelOutput.FileOutput(additionsFile);
             DiffUtility.diff(currentJC, previousJC, additionsOutput);
-            log.debug("ElementsFetchAndTranslate: Calculating subtractions based on comparison to previous run");
+            log.info("ElementsFetchAndTranslate: Calculating subtractions based on comparison to previous run");
 
             File subtractionsFile = new File(interimTdbDirectory, subtractionsFileName);
             ModelOutput subtractionsOutput = new ModelOutput.FileOutput(subtractionsFile);
@@ -388,7 +387,7 @@ public class ElementsFetchAndTranslate {
         finally {
             //unless our logging is not working then log that we are exiting.
             if (caught == null || !(caught instanceof LoggingUtils.LoggingInitialisationException)) {
-                log.debug("ElementsFetch: End");
+                log.info("ElementsFetch: End");
             }
 
             if (caught != null) {
@@ -413,7 +412,7 @@ public class ElementsFetchAndTranslate {
         if(!categories.contains(ElementsObjectCategory.USER)) categories.add(0, ElementsObjectCategory.USER);
 
         if(modifiedSince == null) {
-            log.debug("Clearing down object cache (Full pull) - this may take some time..");
+            log.info("Clearing down object cache (Full pull) - this may take some time..");
             objectStore.cleardown(StorableResourceType.RAW_OBJECT);
         }
 
@@ -444,7 +443,7 @@ public class ElementsFetchAndTranslate {
     private static void processRelationships(ElementsItemFileStore objectStore, ElementsFetch elementsFetcher, Date modifiedSince, Set<ElementsItemId> relationshipTypesToInclude,
                                              boolean repullRelsToCorrectVisibility, Set<String> relationshipTypesToReprocess) throws IOException{
         if(modifiedSince == null) {
-            log.debug("Clearing down relationship cache (Full pull) - this may take some time..");
+            log.info("Clearing down relationship cache (Full pull) - this may take some time..");
             objectStore.cleardown(StorableResourceType.RAW_RELATIONSHIP);
         }
 
@@ -461,7 +460,7 @@ public class ElementsFetchAndTranslate {
 
                 //get the set of relationships we have already updated this run, as these have already been re-pulled and therefore re-processed.
                 Set<ElementsItemId> modifiedRelationships = objectStore.getAffectedItems(StorableResourceType.RAW_RELATIONSHIP);
-                log.debug(MessageFormat.format("ElementsFetchAndTranslate: Processing relationship cache to establish which to re-pull/re-process based on the {0} objects modified this run", modifiedObjects.size()));
+                log.info(MessageFormat.format("ElementsFetchAndTranslate: Processing relationship cache to establish which to re-pull/re-process based on the {0} objects modified this run", modifiedObjects.size()));
                 Set<ElementsItemId> relationshipsToRepull = new HashSet<ElementsItemId>();
                 Set<ElementsItemInfo> relationshipsToReprocess = new HashSet<ElementsItemInfo>();
 
@@ -502,10 +501,10 @@ public class ElementsFetchAndTranslate {
                     }
                     counter++;
                     if (counter % 1000 == 0)
-                        log.debug(MessageFormat.format("ElementsFetchAndTranslate: {0} relationships processed from cache", counter));
+                        log.info(MessageFormat.format("ElementsFetchAndTranslate: {0} relationships processed from cache", counter));
                 }
 
-                log.debug(MessageFormat.format("ElementsFetchAndTranslate: finished processing relationships from cache, {0} items processed in total", counter));
+                log.info(MessageFormat.format("ElementsFetchAndTranslate: finished processing relationships from cache, {0} items processed in total", counter));
 
 
                 //re-pull data for those relationships batched up sensibly.
@@ -526,7 +525,7 @@ public class ElementsFetchAndTranslate {
                 }
             }
             else {
-                log.debug("ElementsFetchAndTranslate: No objects modified this run so no need to repull/reprocess any relationships");
+                log.info("ElementsFetchAndTranslate: No objects modified this run so no need to repull/reprocess any relationships");
             }
         }
     }

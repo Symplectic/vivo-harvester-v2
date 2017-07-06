@@ -11,17 +11,17 @@ package uk.co.symplectic.utils.xml;
 
 import org.apache.commons.lang.NullArgumentException;
 
+import javax.xml.namespace.NamespaceContext;
 import javax.xml.namespace.QName;
+import javax.xml.stream.Location;
 import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.events.Attribute;
-import javax.xml.stream.events.EndElement;
-import javax.xml.stream.events.StartElement;
-import javax.xml.stream.events.XMLEvent;
+import javax.xml.stream.events.*;
+import java.io.Writer;
+import java.text.MessageFormat;
 import java.util.*;
 
 /**
- * Created by ajpc2_000 on 27/07/2016.
  * Processor class for dealing with XMLEventStreams.
  * Filters registered either on construction or using the addFilter method are invoked if the document location specified in the filter is encountered.
  * Filters then receive all events from the stream until that location scope is exited.
@@ -84,6 +84,13 @@ public class XMLEventProcessor {
             //MAIN LOOP this is the only thing that should ever advance the reader stream.
             while (reader.hasNext()) {
                 XMLEvent event = reader.nextEvent();
+                WrappedXmlEvent wrappedEvent = new WrappedXmlEvent(event, proxy);
+
+                //work out the new scope's document location based on the existing scope stack and the name of the element we just encountered
+                List<QName> currentDocumentLocation = new ArrayList<QName>();
+                for (ProcessScope scope : stack) {
+                    currentDocumentLocation.add(scope.getName());
+                }
 
                 //if we have encountered a StartElement we have a new scope
                 if (event.isStartElement()) {
@@ -91,11 +98,7 @@ public class XMLEventProcessor {
                     //get the new scope's name
                     QName eventQName = eventAsStartElement.getName();
 
-                    //work out the new scope's document location based on the existing scope stack and the name of the element we just encountered
-                    List<QName> currentDocumentLocation = new ArrayList<QName>();
-                    for (ProcessScope scope : stack) {
-                        currentDocumentLocation.add(scope.getName());
-                    }
+                    //update the current location
                     currentDocumentLocation.add(eventQName);
 
                     //retrieve any filters associated with the new scope's document location  and create a ProcessScope object to track the new scope.
@@ -103,7 +106,7 @@ public class XMLEventProcessor {
 
                     //Inform all the filters activated in our new scope that we are about to start sending them events
                     for (EventFilter filter : newScope.getFiltersInScope()) {
-                        filter.itemStart(eventAsStartElement, proxy);
+                        filter.itemStart(wrappedEvent);
                     }
 
                     //put the ProcessScope object representing our new scope into the tracking stack
@@ -114,7 +117,8 @@ public class XMLEventProcessor {
                 //Note: this will include the "StartElement" from a scope that has only just been activated and the EndElements from a scope that is about to close
                 for (ProcessScope scope : stack) {
                     for (EventFilter filter : scope.getFiltersInScope()) {
-                        filter.processOuterEvent(event, proxy);
+                        List<QName> relativeLocation = currentDocumentLocation.subList(filter.getFilterLocation().size(), currentDocumentLocation.size());
+                        filter.processEvent(wrappedEvent, relativeLocation);
                     }
                 }
 
@@ -136,7 +140,7 @@ public class XMLEventProcessor {
 
                     //Inform all the filters in the scope we are about to exit that we are about to stop sending them events.
                     for (EventFilter filter : currentScope.getFiltersInScope()) {
-                        filter.itemEnd(eventAsEndElement, proxy);
+                        filter.itemEnd(wrappedEvent);
                     }
 
                     //remove the current scope from the tracking stack.
@@ -166,6 +170,88 @@ public class XMLEventProcessor {
 
         QName getName() { return name; }
         List<EventFilter> getFiltersInScope() { return filtersInScope; }
+    }
+
+    public static class WrappedXmlEvent{
+        private final XMLEvent innerEvent;
+        private final ReaderProxy reader;
+
+        public WrappedXmlEvent(XMLEvent event, ReaderProxy reader){
+            if(event == null) throw new NullArgumentException("event");
+            if(reader == null) throw new NullArgumentException("reader");
+            this.innerEvent = event;
+            this.reader = reader;
+        }
+
+        public XMLEvent getRawEvent(){ return innerEvent; }
+        private XMLEvent getNextEvent() throws XMLStreamException { return reader.peek(); }
+
+        public boolean isRelevantForExtraction(){
+            return innerEvent.isStartElement();
+        }
+
+        //if the wrapped event is a start or end Element we respond with the name, otherwise we respond with null
+        public QName getName(){
+            if(innerEvent.isStartElement()) return innerEvent.asStartElement().getName();
+            if(innerEvent.isEndElement()) return innerEvent.asEndElement().getName();
+            return null;
+        }
+
+        public boolean hasAttribute(QName name){
+            if(innerEvent.isStartElement()){
+                Attribute att = innerEvent.asStartElement().getAttributeByName(name);
+                return att != null;
+            }
+            return false;
+        }
+
+        public boolean hasAttribute(String name){
+            return hasAttribute(new QName(name));
+        }
+
+        public String getAttribute(QName name){
+            if(innerEvent.isStartElement()){
+                Attribute att = innerEvent.asStartElement().getAttributeByName(name);
+                return att.getValue();
+            }
+            throw new IllegalStateException(MessageFormat.format("Missing attribute ({0}) attempting extraction at [{1}]", name.toString(), getName().toString()));
+        }
+
+        public String getAttribute(String name) {
+            return getAttribute(new QName(name));
+        }
+
+        //This is naive extraction logic. It should really be calculated across the entire "scope" of the current Element.
+        //this works for all our use cases though...
+        public boolean hasValue() throws XMLStreamException{
+            if(innerEvent.isStartElement()){
+                XMLEvent nextEvent = getNextEvent();
+                if (nextEvent != null && nextEvent.isCharacters()){
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        //This is naive extraction logic. It should really be calculated across the entire "scope" of the current Element.
+        //this works for all our use cases though...
+        private String innerGetValue(boolean required) throws XMLStreamException{
+            if(innerEvent.isStartElement()){
+                XMLEvent nextEvent = getNextEvent();
+                if (nextEvent != null && nextEvent.isCharacters()){
+                    return nextEvent.asCharacters().getData();
+                }
+            }
+            if(required) throw new IllegalStateException(MessageFormat.format("Missing value attempting extraction at [{0}]", getName().toString()));
+            return null;
+        }
+
+        public String getValueOrNull() throws XMLStreamException {
+            return innerGetValue(false);
+        }
+        public String getRequiredValue() throws XMLStreamException {
+            return innerGetValue(true);
+        }
     }
 
     /*
@@ -209,12 +295,27 @@ public class XMLEventProcessor {
                     this.location.add(name);
                 }
             }
-
             public List<QName> getLocationAsList(){ return Collections.unmodifiableList(location); }
-        }
 
-        //a stack representing the relative location of the current filter compared to its entry point in the XML doc structure.
-        private Stack<QName> currentInnerLocation = new Stack<QName>();
+            @Override
+            public final boolean equals(Object objectToTest) {
+                if (objectToTest == this) {
+                    return true;
+                }
+
+                if (objectToTest == null || !(objectToTest instanceof DocumentLocation)) {
+                    return false;
+                }
+
+                DocumentLocation otherLocation = (DocumentLocation) objectToTest;
+                return this.getLocationAsList().equals(otherLocation.getLocationAsList());
+            }
+
+            public boolean matches(List<QName> objectToTest){
+                if (objectToTest == null) return false;
+                return this.getLocationAsList().equals(objectToTest);
+            }
+        }
 
         //The document location this filter is active at (expressed as a QName array)
         final DocumentLocation documentLocation;
@@ -230,32 +331,11 @@ public class XMLEventProcessor {
             return documentLocation.location;
         }
 
-        protected boolean isAtLocation(DocumentLocation location){ return isAtLocation(location, true); }
-        protected boolean isAtLocation(DocumentLocation location, boolean relative){
-            List<QName> currentDocumentLocation = new ArrayList<QName>();
-            //if the comprison should be absolute (!relative) we want to construct the full XML pasth rto teh current node not just the relative one
-            if(!relative) currentDocumentLocation.addAll(getFilterLocation());
-
-            boolean hasSkippedFirst = false;
-            for (QName name : currentInnerLocation) {
-                if(hasSkippedFirst) currentDocumentLocation.add(name);
-                hasSkippedFirst = true;
-            }
-            return currentDocumentLocation.equals(location.getLocationAsList());
-        }
-
         //default methods to do "nothing" on item start and end only override if you need to do something
-        protected void itemStart(StartElement initialElement, ReaderProxy readerProxy) throws XMLStreamException { }
-        protected void itemEnd(EndElement finalElement, ReaderProxy readerProxy) throws XMLStreamException { }
-
-        protected void processOuterEvent(XMLEvent event, ReaderProxy readerProxy) throws XMLStreamException{
-            if(event.isStartElement()) currentInnerLocation.push(event.asStartElement().getName());
-            processEvent(event, readerProxy);
-            if(event.isEndElement()) currentInnerLocation.pop();
-        }
-
+        protected void itemStart(WrappedXmlEvent initialEvent) throws XMLStreamException { }
+        protected void itemEnd(WrappedXmlEvent finalEvent) throws XMLStreamException { }
         //abstract stub for process event - have to do something to create a concrete filter.
-        protected abstract void processEvent(XMLEvent event, ReaderProxy readerProxy) throws XMLStreamException;
+        protected abstract void processEvent(WrappedXmlEvent event, List<QName> relativeLocation) throws XMLStreamException;
     }
 
     public static class ItemCountingFilter extends EventFilter{
@@ -266,12 +346,12 @@ public class XMLEventProcessor {
         public ItemCountingFilter(DocumentLocation location) { super(location); }
 
         @Override
-        protected void itemStart(StartElement initialElement, ReaderProxy readerProxy) throws XMLStreamException {
+        protected void itemStart(WrappedXmlEvent initialEvent) throws XMLStreamException {
             itemCount++;
         }
 
         @Override
-        protected void processEvent(XMLEvent event, ReaderProxy readerProxy) throws XMLStreamException {}
+        protected void processEvent(WrappedXmlEvent event, List<QName> relativeLocation) throws XMLStreamException {}
     }
 
     public abstract static class ItemExtractingFilter<T> extends EventFilter{
@@ -297,26 +377,26 @@ public class XMLEventProcessor {
         }
 
         @Override
-        final protected void itemStart(StartElement initialElement, ReaderProxy readerProxy) throws XMLStreamException {
+        final protected void itemStart(WrappedXmlEvent initialEvent) throws XMLStreamException {
             if(maximumAmountExpected > 0 && countOfExtractedItems >= maximumAmountExpected) throw new IllegalStateException("More items detected in XML than expected");
             itemReady = false;
             extractionAttempted = true;
-            initialiseItemExtraction(initialElement, readerProxy);
+            initialiseItemExtraction(initialEvent);
         }
 
-        protected abstract void initialiseItemExtraction(StartElement initialElement, ReaderProxy readerProxy) throws XMLStreamException;
+        protected abstract void initialiseItemExtraction(WrappedXmlEvent initialEvent) throws XMLStreamException;
 
         @Override
-        final protected void itemEnd(EndElement finalElement, ReaderProxy readerProxy) throws XMLStreamException {
+        final protected void itemEnd(WrappedXmlEvent finalEvent) throws XMLStreamException {
             previouslyExtractedItem = extractedItem;
-            extractedItem = finaliseItemExtraction(finalElement, readerProxy);
+            extractedItem = finaliseItemExtraction(finalEvent);
             //careful with == we really do want to check if is the same reference here..
             if(previouslyExtractedItem == extractedItem) throw new IllegalStateException("Must create a new object for each extracted item when implementing an extractor");
             countOfExtractedItems++;
             itemReady = true;
         }
 
-        abstract protected T finaliseItemExtraction(EndElement finalElement, ReaderProxy readerProxy);
+        abstract protected T finaliseItemExtraction(WrappedXmlEvent finalEvent);
     }
 
     public abstract static class EventFilterWrapper<T extends EventFilter> extends EventFilter {
@@ -329,30 +409,30 @@ public class XMLEventProcessor {
         }
 
         @Override
-        final protected void itemStart(StartElement initialElement, ReaderProxy readerProxy) throws XMLStreamException {
-            preInnerItemStart(initialElement, readerProxy);
-            innerFilter.itemStart(initialElement, readerProxy);
-            postInnerItemStart(initialElement, readerProxy);
+        final protected void itemStart(WrappedXmlEvent initialEvent) throws XMLStreamException {
+            preInnerItemStart(initialEvent);
+            innerFilter.itemStart(initialEvent);
+            postInnerItemStart(initialEvent);
         }
-        protected void preInnerItemStart(StartElement initialElement, ReaderProxy readerProxy) throws XMLStreamException {}
-        protected void postInnerItemStart(StartElement initialElement, ReaderProxy readerProxy) throws XMLStreamException {}
+        protected void preInnerItemStart(WrappedXmlEvent initialEvent) throws XMLStreamException {}
+        protected void postInnerItemStart(WrappedXmlEvent initialEvent) throws XMLStreamException {}
 
         @Override
-        final protected void itemEnd(EndElement finalElement, ReaderProxy readerProxy) throws XMLStreamException {
-            preInnerItemEnd(finalElement, readerProxy);
-            innerFilter.itemEnd(finalElement, readerProxy);
-            postInnerItemEnd(finalElement, readerProxy);
+        final protected void itemEnd(WrappedXmlEvent finalEvent) throws XMLStreamException {
+            preInnerItemEnd(finalEvent);
+            innerFilter.itemEnd(finalEvent);
+            postInnerItemEnd(finalEvent);
         }
-        protected void preInnerItemEnd(EndElement finalElement, ReaderProxy readerProxy) throws XMLStreamException {}
-        protected void postInnerItemEnd(EndElement finalElement, ReaderProxy readerProxy) throws XMLStreamException {}
+        protected void preInnerItemEnd(WrappedXmlEvent finalEvent) throws XMLStreamException {}
+        protected void postInnerItemEnd(WrappedXmlEvent finalEvent) throws XMLStreamException {}
 
         @Override
-        final protected void processEvent(XMLEvent event, ReaderProxy readerProxy) throws XMLStreamException {
-            preInnerProcessEvent(event, readerProxy);
-            innerFilter.processOuterEvent(event, readerProxy);
-            postInnerProcessEvent(event, readerProxy);
+        final protected void processEvent(WrappedXmlEvent event, List<QName> relativeLocation) throws XMLStreamException {
+            preInnerProcessEvent(event, relativeLocation);
+            innerFilter.processEvent(event, relativeLocation);
+            postInnerProcessEvent(event, relativeLocation);
         }
-        protected void preInnerProcessEvent(XMLEvent event, ReaderProxy readerProxy) throws XMLStreamException {}
-        protected void postInnerProcessEvent(XMLEvent event, ReaderProxy readerProxy) throws XMLStreamException {}
+        protected void preInnerProcessEvent(WrappedXmlEvent event, List<QName> relativeLocation) throws XMLStreamException {}
+        protected void postInnerProcessEvent(WrappedXmlEvent event, List<QName> relativeLocation) throws XMLStreamException {}
     }
 }

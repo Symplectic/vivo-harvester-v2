@@ -43,24 +43,23 @@ public class ElementsRelationshipInfo extends ElementsItemInfo{
         }
 
         @Override
-        protected void initialiseItemExtraction(StartElement initialElement, XMLEventProcessor.ReaderProxy readerProxy) throws XMLStreamException {
-            String id = initialElement.getAttributeByName(new QName("id")).getValue();
-            workspace = ElementsItemInfo.createRelationshipItem(Integer.parseInt(id));
+        protected void initialiseItemExtraction(XMLEventProcessor.WrappedXmlEvent initialEvent) throws XMLStreamException {
+            int id = Integer.parseInt(initialEvent.getAttribute("id"));
+            workspace = ElementsItemInfo.createRelationshipItem(id);
         }
 
         @Override
-        protected void processEvent(XMLEvent event, XMLEventProcessor.ReaderProxy readerProxy) throws XMLStreamException {
-            if (event.isStartElement()) {
-                StartElement startElement = event.asStartElement();
-                QName name = startElement.getName();
+        protected void processEvent(XMLEventProcessor.WrappedXmlEvent event, List<QName> relativeLocation) throws XMLStreamException {
+            if (event.isRelevantForExtraction()) {
+                QName name = event.getName();
                 //only pull type id for "relationship" not "deleted-relationship" where it is not present.
                 if(name.equals(new QName(apiNS, "relationship"))){
-                    workspace.setType(startElement.getAttributeByName(new QName("type")).getValue());
+                    workspace.setType(event.getAttribute("type"));
                 }
                 else if (name.equals(new QName(apiNS, "object"))) {
                     try {
-                        ElementsObjectCategory objectCategory = ElementsObjectCategory.valueOf(startElement.getAttributeByName(new QName("category")).getValue());
-                        int objectID = Integer.parseInt(startElement.getAttributeByName(new QName("id")).getValue());
+                        ElementsObjectCategory objectCategory = ElementsObjectCategory.valueOf(event.getAttribute("category"));
+                        int objectID = Integer.parseInt(event.getAttribute("id"));
                         workspace.addObjectId(ElementsItemId.createObjectId(objectCategory, objectID));
                     }
                     catch(IndexOutOfBoundsException e){
@@ -69,15 +68,14 @@ public class ElementsRelationshipInfo extends ElementsItemInfo{
                     }
                 }
                 else if(name.equals(new QName(apiNS, "is-visible"))){
-                    XMLEvent nextEvent = readerProxy.peek();
-                    if (nextEvent.isCharacters())
-                        workspace.setIsVisible(Boolean.parseBoolean(nextEvent.asCharacters().getData()));
+                    //needs to have a value... true or false.. so no has check
+                    workspace.setIsVisible(Boolean.parseBoolean(event.getRequiredValue()));
                 }
             }
         }
 
         @Override
-        protected ElementsRelationshipInfo finaliseItemExtraction(EndElement finalElement, XMLEventProcessor.ReaderProxy readerProxy){
+        protected ElementsRelationshipInfo finaliseItemExtraction(XMLEventProcessor.WrappedXmlEvent finalEvent){
             return workspace;
         }
     }

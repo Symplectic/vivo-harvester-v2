@@ -1,4 +1,4 @@
-package uk.co.symplectic.vivoweb.harvester.fetch;/*
+/*
  * ******************************************************************************
  *  * Copyright (c) 2012 Symplectic Ltd. All rights reserved.
  *  * This Source Code Form is subject to the terms of the Mozilla Public
@@ -6,6 +6,8 @@ package uk.co.symplectic.vivoweb.harvester.fetch;/*
  *  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  *  *****************************************************************************
  */
+
+package uk.co.symplectic.vivoweb.harvester.fetch;
 
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemType;

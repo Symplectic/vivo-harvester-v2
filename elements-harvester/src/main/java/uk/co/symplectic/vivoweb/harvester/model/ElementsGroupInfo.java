@@ -18,6 +18,7 @@ import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import static uk.co.symplectic.elements.api.ElementsAPI.apiNS;
@@ -44,35 +45,30 @@ public class ElementsGroupInfo extends ElementsItemInfo{
         }
 
         @Override
-        protected void initialiseItemExtraction(StartElement initialElement, XMLEventProcessor.ReaderProxy readerProxy) throws XMLStreamException {
-            String id = initialElement.getAttributeByName(new QName("id")).getValue();
-            workspace = ElementsItemInfo.createGroupItem(Integer.parseInt(id));
+        protected void initialiseItemExtraction(XMLEventProcessor.WrappedXmlEvent initialEvent) throws XMLStreamException {
+            workspace = ElementsItemInfo.createGroupItem(Integer.parseInt(initialEvent.getAttribute("id")));
         }
 
         @Override
-        protected void processEvent(XMLEvent event, XMLEventProcessor.ReaderProxy readerProxy) throws XMLStreamException {
-            if (event.isStartElement()) {
-                StartElement startElement = event.asStartElement();
-                QName name = startElement.getName();
+        protected void processEvent(XMLEventProcessor.WrappedXmlEvent event, List<QName> relativeLocation) throws XMLStreamException {
+            if (event.isRelevantForExtraction()) {
+                QName name = event.getName();
                 if (name.equals(new QName(apiNS, "name"))) {
-                    XMLEvent nextEvent = readerProxy.peek();
-                    if (nextEvent.isCharacters()) {
-                        workspace.setName((nextEvent.asCharacters().getData()));
-                    }
+                    workspace.setName(event.getValueOrNull());
                 }
                 else if(name.equals(new QName(apiNS, "parent"))){
-                    String parentId = startElement.getAttributeByName(new QName("id")).getValue();
-                    workspace.setParentId(new Integer(parentId));
+                    //expect the id to be present if element is - so no "has" check
+                    workspace.setParentId(new Integer(event.getAttribute("id")));
                 }
                 else if(name.equals(new QName(apiNS, "explicit-group-members"))){
-                    String url = startElement.getAttributeByName(new QName("href")).getValue();
-                    workspace.setMembershipFeedUrl(url);
+                    //expect the href to be present if element is - so no "has" check
+                    workspace.setMembershipFeedUrl(event.getAttribute("href"));
                 }
             }
         }
 
         @Override
-        protected ElementsGroupInfo finaliseItemExtraction(EndElement finalElement, XMLEventProcessor.ReaderProxy readerProxy) {
+        protected ElementsGroupInfo finaliseItemExtraction(XMLEventProcessor.WrappedXmlEvent finalEvent) {
             return workspace;
         }
     }
@@ -93,7 +89,7 @@ public class ElementsGroupInfo extends ElementsItemInfo{
     public void setMembershipFeedUrl(String value){ membershipFeedUrl = value; }
 
     public ElementsItemId.GroupId getParentId() { return parentId; }
-    public void setParentId(Integer parentId) { this.parentId = ElementsItemId.createGroupId(parentId); }
+    public void setParentId(Integer parentId) { this.parentId = parentId == null ? null : ElementsItemId.createGroupId(parentId); }
 
     public static class GroupHierarchyWrapper{
 

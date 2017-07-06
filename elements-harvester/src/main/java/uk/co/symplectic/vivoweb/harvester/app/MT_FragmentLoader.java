@@ -210,7 +210,7 @@ public class MT_FragmentLoader {
             caught = e;
         } finally {
             if (caught == null || !(caught instanceof LoggingUtils.LoggingInitialisationException)) {
-                log.debug("MT_FragmentLoader: End");
+                log.info("MT_FragmentLoader: End");
             }
             if (caught != null) {
                 System.exit(1);

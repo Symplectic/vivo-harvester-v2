@@ -44,19 +44,18 @@ public class ElementsRelationshipTypeInfo extends ElementsItemInfo{
         }
 
         @Override
-        protected void initialiseItemExtraction(StartElement initialElement, XMLEventProcessor.ReaderProxy readerProxy) throws XMLStreamException {
-            String id = initialElement.getAttributeByName(new QName("id")).getValue();
-            workspace = ElementsItemInfo.createRelationshipTypeItem(Integer.parseInt(id));
+        protected void initialiseItemExtraction(XMLEventProcessor.WrappedXmlEvent initialEvent) throws XMLStreamException {
+            int id = Integer.parseInt(initialEvent.getAttribute("id"));
+            workspace = ElementsItemInfo.createRelationshipTypeItem(id);
         }
 
         @Override
-        protected void processEvent(XMLEvent event, XMLEventProcessor.ReaderProxy readerProxy) throws XMLStreamException {
-            if (event.isStartElement()) {
-                StartElement startElement = event.asStartElement();
-                QName name = startElement.getName();
+        protected void processEvent(XMLEventProcessor.WrappedXmlEvent event, List<QName> relativeLocation) throws XMLStreamException {
+            if (event.isRelevantForExtraction()) {
+                QName name = event.getName();
                 if (name.equals(new QName(apiNS, "from-object"))) {
                     try {
-                        ElementsObjectCategory objectCategory = ElementsObjectCategory.valueOf(startElement.getAttributeByName(new QName("category")).getValue());
+                        ElementsObjectCategory objectCategory = ElementsObjectCategory.valueOf(event.getAttribute("category"));
                         workspace.setFromCategory(objectCategory);
                     }
                     catch(IndexOutOfBoundsException e){
@@ -66,7 +65,7 @@ public class ElementsRelationshipTypeInfo extends ElementsItemInfo{
                 }
                 else if(name.equals(new QName(apiNS, "to-object"))){
                     try {
-                        ElementsObjectCategory objectCategory = ElementsObjectCategory.valueOf(startElement.getAttributeByName(new QName("category")).getValue());
+                        ElementsObjectCategory objectCategory = ElementsObjectCategory.valueOf(event.getAttribute("category"));
                         workspace.setToCategory(objectCategory);
                     }
                     catch(IndexOutOfBoundsException e){
@@ -78,7 +77,7 @@ public class ElementsRelationshipTypeInfo extends ElementsItemInfo{
         }
 
         @Override
-        protected ElementsRelationshipTypeInfo finaliseItemExtraction(EndElement finalElement, XMLEventProcessor.ReaderProxy readerProxy){
+        protected ElementsRelationshipTypeInfo finaliseItemExtraction(XMLEventProcessor.WrappedXmlEvent finalElement){
             return workspace;
         }
     }

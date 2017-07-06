@@ -56,7 +56,8 @@ public class ElementsFetch {
             this.itemDescriptor = trimmedDescriptor == null ? "items" : itemDescriptor;
         }
 
-        protected void postInnerItemStart(StartElement initialElement, XMLEventProcessor.ReaderProxy readerProxy) throws XMLStreamException {
+        @Override
+        protected void postInnerItemStart(XMLEventProcessor.WrappedXmlEvent initialEvent) throws XMLStreamException {
             XMLOutputFactory factory = StAXUtils.getXMLOutputFactory();
             dataStream = new ByteArrayOutputStream();
             writer = factory.createXMLEventWriter(dataStream, "utf-8");
@@ -64,11 +65,13 @@ public class ElementsFetch {
             if(rootElement != null) writer.add(eventFactory.createStartElement(rootElement, null, null));
         }
 
-        protected void postInnerProcessEvent(XMLEvent event, XMLEventProcessor.ReaderProxy readerProxy) throws XMLStreamException {
-            writer.add(event);
+        @Override
+        protected void postInnerProcessEvent(XMLEventProcessor.WrappedXmlEvent event, List<QName> relativeLocation) throws XMLStreamException {
+            writer.add(event.getRawEvent());
         }
 
-        protected void postInnerItemEnd(EndElement finalElement, XMLEventProcessor.ReaderProxy readerProxy) throws XMLStreamException {
+        @Override
+        protected void postInnerItemEnd(XMLEventProcessor.WrappedXmlEvent finalEvent) throws XMLStreamException {
             if(rootElement != null) writer.add(eventFactory.createEndElement(rootElement, null));
             writer.add(eventFactory.createEndDocument());
             writer.close();

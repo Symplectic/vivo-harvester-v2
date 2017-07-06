@@ -20,6 +20,7 @@ import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
 
 import java.text.MessageFormat;
+import java.util.List;
 
 import static uk.co.symplectic.elements.api.ElementsAPI.apiNS;
 import static uk.co.symplectic.elements.api.ElementsAPI.atomNS;
@@ -73,56 +74,42 @@ public class ElementsObjectInfo extends ElementsItemInfo{
         }
 
         @Override
-        protected void initialiseItemExtraction(StartElement initialElement, XMLEventProcessor.ReaderProxy readerProxy) throws XMLStreamException{
-            ElementsObjectCategory objectCategory = ElementsObjectCategory.valueOf(initialElement.getAttributeByName(new QName("category")).getValue());
-            int objectId = Integer.parseInt(initialElement.getAttributeByName(new QName("id")).getValue());
+        protected void initialiseItemExtraction(XMLEventProcessor.WrappedXmlEvent initialEvent) throws XMLStreamException{
+            ElementsObjectCategory objectCategory = ElementsObjectCategory.valueOf(initialEvent.getAttribute("category"));
+            int objectId = Integer.parseInt(initialEvent.getAttribute("id"));
             workspace = ElementsItemInfo.createObjectItem(objectCategory, objectId);
             //reset additional Data..
             additionalUserData = null;
             if(workspace.getItemId().getItemSubType() == ElementsObjectCategory.USER ) {
-                getAdditionalUserData().setUsername(initialElement.getAttributeByName(new QName("username")).getValue());
-                Attribute pidAtt = initialElement.getAttributeByName(new QName("proprietary-id"));
-                if(pidAtt != null){
-                    getAdditionalUserData().setProprietaryID(pidAtt.getValue());
-                }
+                getAdditionalUserData().setUsername(initialEvent.getAttribute("username"));
+                if(initialEvent.hasAttribute("proprietary-id"))
+                    getAdditionalUserData().setProprietaryID(initialEvent.getAttribute("proprietary-id"));
             }
         }
 
         @Override
-        protected void processEvent(XMLEvent event, XMLEventProcessor.ReaderProxy readerProxy) throws XMLStreamException {
+        protected void processEvent(XMLEventProcessor.WrappedXmlEvent event, List<QName> relativeLocation) throws XMLStreamException {
             if (workspace.getItemId().getItemSubType() == ElementsObjectCategory.USER) {
-                if (event.isStartElement()) {
-                    StartElement startElement = event.asStartElement();
-                    QName name = startElement.getName();
+                if (event.isRelevantForExtraction()) {
+                    QName name = event.getName();
                     if (name.equals(new QName(apiNS, "is-current-staff"))) {
-                        XMLEvent nextEvent = readerProxy.peek();
-                        if (nextEvent.isCharacters())
-                            getAdditionalUserData().setIsCurrentStaff(Boolean.parseBoolean(nextEvent.asCharacters().getData()));
+                        //I really want there to be a value here..
+                        getAdditionalUserData().setIsCurrentStaff(Boolean.parseBoolean(event.getRequiredValue()));
                     } else if (name.equals(new QName(apiNS, "is-academic"))) {
-                        XMLEvent nextEvent = readerProxy.peek();
-                        if (nextEvent.isCharacters())
-                            getAdditionalUserData().setIsAcademic(Boolean.parseBoolean(nextEvent.asCharacters().getData()));
+                        getAdditionalUserData().setIsAcademic(Boolean.parseBoolean(event.getRequiredValue()));
                     } else if (name.equals(new QName(apiNS, "photo"))) {
-                        getAdditionalUserData().setPhotoUrl(startElement.getAttributeByName(new QName("href")).getValue());
+                        getAdditionalUserData().setPhotoUrl(event.getAttribute("href"));
                     }
                     else if (genericFieldName != null && name.equals(new QName(apiNS, "organisation-defined-data"))) {
-                        String fieldName = startElement.getAttributeByName(new QName("field-name")).getValue();
-                        if(fieldName.equals(genericFieldName)){
-                            XMLEvent nextEvent = readerProxy.peek();
-                            if (nextEvent.isCharacters())
-                                getAdditionalUserData().setGenericFieldValue(nextEvent.asCharacters().getData());
+                        if(event.hasAttribute("field-name") && genericFieldName.equals(event.getAttribute("field-name"))){
+                            getAdditionalUserData().setGenericFieldValue(event.getValueOrNull());
                         }
                     }
-                    else if (labelSchemeName != null && name.equals(new QName(apiNS, "keyword"))) {
+                    else if (labelSchemeName != null && labelLocation.matches(relativeLocation)) {
                         //if we are at the label location try and extract one
-                        if (isAtLocation(labelLocation)) {
-                            String originValue = startElement.getAttributeByName(new QName("origin")).getValue();
-                            String schemeValue = startElement.getAttributeByName(new QName("scheme")).getValue();
-                            //if the label in question is both from object data and is the requested scheme we store the value
-                            if (originValue.equals("object-data") && schemeValue.equals(labelSchemeName)) {
-                                XMLEvent nextEvent = readerProxy.peek();
-                                if (nextEvent.isCharacters())
-                                    getAdditionalUserData().addLabelSchemeValue(nextEvent.asCharacters().getData());
+                        if(event.hasAttribute("origin") && event.hasAttribute("scheme")){
+                            if("object-data".equals(event.getAttribute("origin")) && labelSchemeName.equals(event.getAttribute("scheme"))) {
+                                getAdditionalUserData().addLabelSchemeValue(event.getValueOrNull());
                             }
                         }
                     }
@@ -131,7 +118,7 @@ public class ElementsObjectInfo extends ElementsItemInfo{
         }
 
         @Override
-        protected ElementsObjectInfo finaliseItemExtraction(EndElement finalElement, XMLEventProcessor.ReaderProxy readerProxy){
+        protected ElementsObjectInfo finaliseItemExtraction(XMLEventProcessor.WrappedXmlEvent finalEvent){
             if (workspace instanceof ElementsUserInfo) {
                 ElementsUserInfo userInfo = (ElementsUserInfo) workspace;
                 userInfo.addExtraData(additionalUserData);

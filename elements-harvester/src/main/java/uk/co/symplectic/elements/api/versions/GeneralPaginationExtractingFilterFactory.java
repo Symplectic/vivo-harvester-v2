@@ -1,5 +1,10 @@
-/**
- * Created by ajpc2_000 on 29/07/2016.
+/*
+ * ******************************************************************************
+ *  * Copyright (c) 2012 Symplectic Ltd. All rights reserved.
+ *  * This Source Code Form is subject to the terms of the Mozilla Public
+ *  * License, v. 2.0. If a copy of the MPL was not distributed with this
+ *  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ *  *****************************************************************************
  */
 
 package uk.co.symplectic.elements.api.versions;
@@ -16,6 +21,7 @@ import javax.xml.stream.events.Attribute;
 import javax.xml.stream.events.EndElement;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
+import java.util.List;
 
 public class GeneralPaginationExtractingFilterFactory extends PaginationExtractingFilterFactory {
 
@@ -31,24 +37,23 @@ public class GeneralPaginationExtractingFilterFactory extends PaginationExtracti
         }
 
         @Override
-        protected void initialiseItemExtraction(StartElement initialElement, XMLEventProcessor.ReaderProxy readerProxy) throws XMLStreamException {
+        protected void initialiseItemExtraction(XMLEventProcessor.WrappedXmlEvent initialEvent) throws XMLStreamException {
             workspace = new ElementsFeedPagination();
         }
 
         @Override
-        protected void processEvent(XMLEvent event, XMLEventProcessor.ReaderProxy readerProxy) {
-            if (event.isStartElement()) {
-                StartElement startElement = event.asStartElement();
-                if (startElement.getName().equals(new QName(apiNS, "pagination"))) {
-                    Attribute ippAtt = startElement.getAttributeByName(new QName("items-per-page"));
-                    if (ippAtt != null) workspace.setItemsPerPage(Integer.parseInt(ippAtt.getValue()));
+        protected void processEvent(XMLEventProcessor.WrappedXmlEvent event, List<QName> relativeLocation) {
+            if (event.isRelevantForExtraction()) {
+                QName name = event.getName();
+                if (name.equals(new QName(apiNS, "pagination"))) {
+                    if(event.hasAttribute("items-per-page")) {
+                        workspace.setItemsPerPage(Integer.parseInt(event.getAttribute("items-per-page")));
+                    }
                 }
-                if (startElement.getName().equals(new QName(apiNS, "page"))) {
-                    Attribute posAtt = startElement.getAttributeByName(new QName("position"));
-                    Attribute hrefAtt = startElement.getAttributeByName(new QName("href"));
-                    if (posAtt != null && hrefAtt != null) {
-                        String posValue = posAtt.getValue();
-                        String hrefValue = hrefAtt.getValue();
+                if (name.equals(new QName(apiNS, "page"))) {
+                    if (event.hasAttribute("position") && event.hasAttribute("href")) {
+                        String posValue = event.getAttribute("position");
+                        String hrefValue = event.getAttribute("href");
                         if ("first".equals(posValue)) workspace.setFirstURL(hrefValue);
                         else if ("previous".equals(posValue)) workspace.setPreviousURL(hrefValue);
                         else if ("next".equals(posValue)){
@@ -65,7 +70,7 @@ public class GeneralPaginationExtractingFilterFactory extends PaginationExtracti
         }
 
         @Override
-        protected ElementsFeedPagination finaliseItemExtraction(EndElement finalElement, XMLEventProcessor.ReaderProxy proxy){
+        protected ElementsFeedPagination finaliseItemExtraction(XMLEventProcessor.WrappedXmlEvent finalEvent){
             return workspace;
         }
     }
