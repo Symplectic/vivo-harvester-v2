@@ -12,6 +12,10 @@ package uk.co.symplectic.utils.triplestore;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
 
+/**
+ * Simple static class offering a single method to diff two TDB triple stores (basic jena functionality) and output the diff to
+ * the specified ModelOutput(s) (typically representing a file ModelOutput.FileOutput, but can also be another TDB store (ModelOutput.TDBOutput)
+ */
 public class DiffUtility {
         static public void diff(TDBConnect input1, TDBConnect input2, ModelOutput... outputs) {
         if(outputs.length == 0) throw new IllegalArgumentException("outputs must not be empty when performing a triple store diff");

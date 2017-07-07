@@ -20,6 +20,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * Class representing a Url that has been validated as having correct syntax, being of a type that is allowed by the Elements API (generally not specifically)
+ * Also offers an ability to compare the url to a comparison url.
+ * Once validated exposes whether the request is secure or not, whether it "matches" the comparison url and offers
+ * the ability to rewrite the "host" portion of the url if it is mismatched.
+ */
 public class ValidatedUrl {
     private static final List<String> allowedInsecureSchemes = Collections.singletonList("http");
     private static final List<String> allowedSecureSchemes = Collections.singletonList("https");

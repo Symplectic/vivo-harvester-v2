@@ -18,6 +18,10 @@ import java.io.File;
 import java.text.MessageFormat;
 import java.util.HashMap;
 
+/**
+ * Class to represent the concept of a Jena TDB triple store in a particular location.
+ * This is a cut down version of the Vivo Harvester's JenaConnect logic.
+ */
 public class TDBConnect {
 
     private static HashMap<String, Dataset> dirDatasets = new HashMap<String, Dataset>();

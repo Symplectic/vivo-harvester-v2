@@ -42,6 +42,9 @@ import java.text.MessageFormat;
 import java.util.Date;
 import java.util.List;
 
+/**
+ * Simple HTTPClient class based on apache's http components and core.
+ */
 public class HttpClient {
     final private String username;
     final private String password;

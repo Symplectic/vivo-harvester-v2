@@ -15,6 +15,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 
+/**
+ * Simple utility class designed to ease instantiation of the logback based logging framework.
+ * It offers one method (initialise) that will attempt to initialise the loggers using the named file,
+ * falling back to look for files named logback-test.xml and logback.xml in the application's classpath.
+ */
 public class LoggingUtils {
 
     public static class LoggingInitialisationException extends Exception{

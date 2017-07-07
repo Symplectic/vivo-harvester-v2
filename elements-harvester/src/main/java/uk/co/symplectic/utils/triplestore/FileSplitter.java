@@ -21,6 +21,12 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Class designed to take an input file of RDF content and split it into small fragments of a specified size
+ * The concrete subclasses N3Splitter and NTriplesSplitter are at the bottom of the file.
+ * NOTE: currently only the NTriplesSplitter is reliable as the N3 format can have the same subject that has many thousands of predicate/object pairs
+ * when this happens the N3 file will not split nicely into chunks of the requested size given the current code.
+ */
 public abstract class FileSplitter {
 
     //template for how dates will be converted in this class, note how matches the regexes //note Z is for timezone..

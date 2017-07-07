@@ -61,13 +61,13 @@ public class ElementsFetchAndTranslate {
      * Main entry method for ElementsFetchAndTranslate
      * valid args defined by Configuration class
      *
-     * The Purpose of process is to update a local cache of Elements data to the current time.
-     * The data in this cache is translated (to the Vivo ontology) using the configured XSLT scripts.
-     * The process then calculates what data is to be sent to vivo given the current configuration
-     * it then populates a TDB triple store with that data.
-     * This temporary triple store is  compared to the equivalent output from the previous run and difference files created.
-     * These additions and subtractions files are then split into fragments.
-     * These fragments can then be loaded into a live vivo using a FragmentLoader monitor process.
+     * The Purpose of process is to update a local cache (ElementsRawDataStore) of Elements data to the current time.
+     * The data in this cache is translated (to the Vivo ontology) using the configured XSLT scripts and stored in a secondary cache (ElementsRDFStore)
+     * The process then calculates what data is to be sent to vivo given the current configuration (ElementsVivoIncludeMonitor)
+     * and then populates a TDB triple store with that data (TDBLoadUtility).
+     * This temporary triple store is  compared to the equivalent output from the previous run and difference files created (DiffUtility)
+     * These additions and subtractions files are then split into fragments (NTriplesSplitter)
+     * These fragments can then be loaded into a live Vivo using a FragmentLoader monitor process.
      *
      * @param args commandline arguments
      */
@@ -386,6 +386,12 @@ public class ElementsFetchAndTranslate {
             caught = e;
             log.error("Unhandled Exception occurred during processing - terminating application", e);
         }
+        catch(OutOfMemoryError e){
+            caught = e;
+            log.error("Out Of Memory you will need to assign more memory to the JVM - terminating application", e);
+            log.warn("Cannot continue - Note state may be out of sync with data stores.");
+            System.exit(1);
+        }
         finally {
             //unless our logging is not working then log that we are exiting.
             if (caught == null || !(caught instanceof LoggingUtils.LoggingInitialisationException)) {
@@ -406,6 +412,15 @@ public class ElementsFetchAndTranslate {
         }
     }
 
+    /**
+     * Method to loop through each configured category of objects to be fetched from Elements and bring the local cache
+     * of raw data (objectStore) up to date with changes in Elements.
+     * @param objectStore the local cache of raw data.
+     * @param elementsFetcher an ElementsFetch helper class designed to facilitate fetching data from the Elements API.
+     * @param modifiedSince the date time that the cache was last updated, process will run a "delta" if this is
+     *                      supplied, and a "full" if it is null.
+     * @throws IOException
+     */
     private static void processObjects(ElementsItemFileStore objectStore, ElementsFetch elementsFetcher, Date modifiedSince) throws IOException{
         //fetch all configured categories - ensure that users ARE fetched regardless of configuration
         //TODO: decide if not having users in configured categories should result in different behaviour in the monitor
@@ -422,7 +437,14 @@ public class ElementsFetchAndTranslate {
         elementsFetcher.execute(objConfig, objectStore);
     }
 
-
+    /**
+     * Method to "reprocess" any items of a particular type in the local cache of raw data (objectStore).
+     * This method will "touch" all the items in the raw cache, which will invoke any observers hooked onto the store,
+     * it will therefore trigger the items to be re-translated using the currently configured XSLT mapping scripts
+     * if the typical translate observers are in use.
+     * @param objectStore the local cache of raw data.
+     * @param type The type of data to reprocess.
+     */
     private static void reprocessCachedItems(ElementsItemFileStore objectStore, StorableResourceType type){
         String typeNameForLog = type.getKeyItemType().getName();
         String pluralTypeNameForLog = type.getKeyItemType().getPluralName();
@@ -442,6 +464,23 @@ public class ElementsFetchAndTranslate {
         log.info(MessageFormat.format("Reprocessing complete, {0} {1} enqueued for re-processing in total", counter, pluralTypeNameForLog));
     }
 
+
+    /**
+     * Method to loop through all Elements relationships, of the types specified in relationshipTypesToInclude,
+     * and bring the local cache of raw data (objectStore) up to date with changes in Elements.
+     * If the
+     * @param objectStore the local cache of raw data.
+     * @param elementsFetcher an ElementsFetch helper class designed to facilitate fetching data from the Elements API.
+     * @param modifiedSince the date time that the cache was last updated, process will run a "delta" if this is
+     *                      supplied, and a "full" if it is null.
+     * @param relationshipTypesToInclude the types of Elements relationship type (int) to be processed.
+     * @param repullRelsToCorrectVisibility whether unmodified relationships that involve objects modified since "modifiedSince".
+     *                                      should be updated to ensure that visibility is correctly updated in Vivo.
+     * @param relationshipTypesToReprocess Any types of relationship (string) that should be reprocessed regardless of
+     *                                     visibility concerns if the linked objects are changed
+     *                                     e.g. when the translation of objects occurs when the relationship is processed.
+     * @throws IOException
+     */
     private static void processRelationships(ElementsItemFileStore objectStore, ElementsFetch elementsFetcher, Date modifiedSince, Set<ElementsItemId> relationshipTypesToInclude,
                                              boolean repullRelsToCorrectVisibility, Set<String> relationshipTypesToReprocess) throws IOException{
         if(modifiedSince == null) {
@@ -532,6 +571,15 @@ public class ElementsFetchAndTranslate {
         }
     }
 
+    /**
+     * Helper method to load the previously persisted cache of of user group membership in the source Elements system.
+     * Note that any new users that have been created in the source system since the cache of of user group membership
+     * was created will not have the correct group memberships until a non group-skipping update is completed.
+     * Any New users will sinply appear as members of the top level "organisation" group if it is transferred to Vivo.
+     * @param objectStore the local cache of raw data.
+     * @param systemUsers Set of ElementsItemId's representing all the users in the source Elements system.
+     * @return ElementsGroupCollection
+     */
     private static ElementsGroupCollection createGroupCache(ElementsItemFileStore objectStore, Set<ElementsItemId> systemUsers){
         try {
             log.info("Recreating Groups information from cache");
@@ -579,7 +627,12 @@ public class ElementsFetchAndTranslate {
         }
     }
 
-
+    /**
+     * Helper method to write out an XML file cache representing the harvester's current understanding of
+     * user group membership from the source Elements system
+     * @param groupCache an ElementsGroupCollection representing the current understanding of users and groups.
+     * @return ElementsGroupCollection
+     */
     private static void createGroupMembershipDocument(ElementsGroupCollection groupCache){
         try {
             DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
@@ -616,6 +669,11 @@ public class ElementsFetchAndTranslate {
     }
 
 
+    /**
+     * Helper method to work out which Element's user groups are going to be sent to Vivo based on the current configuration.
+     * @param groupCache the current
+     * @return ElementsItemKeyedCollection.ItemInfo containing Groups to be included in Vivo.
+     */
     private static ElementsItemKeyedCollection.ItemInfo CalculateIncludedGroups(ElementsGroupCollection groupCache) {
         ElementsItemKeyedCollection.ItemRestrictor restrictToGroupsOnly = new ElementsItemKeyedCollection.RestrictToType(ElementsItemType.GROUP);
         ElementsItemKeyedCollection.ItemInfo includedGroups = new ElementsItemKeyedCollection.ItemInfo(restrictToGroupsOnly);
@@ -625,54 +683,12 @@ public class ElementsFetchAndTranslate {
         return includedGroups;
     }
 
-//    private static ElementsItemKeyedCollection.ItemInfo CalculateIncludedGroups(ElementsGroupCollection groupCache) {
-//        ElementsItemKeyedCollection.ItemRestrictor restrictToGroupsOnly = new ElementsItemKeyedCollection.RestrictToType(ElementsItemType.GROUP);
-//        ElementsItemKeyedCollection.ItemInfo includedGroups = new ElementsItemKeyedCollection.ItemInfo(restrictToGroupsOnly);
-//
-//        ElementsItemId.GroupId topLevelGroupId = (ElementsItemId.GroupId) groupCache.GetTopLevel().getGroupInfo().getItemId();
-//
-//        //if there are no groups configured to be harvested or if the set includes the top level then we just need everything.
-//        if(Configuration.getGroupsToHarvest().isEmpty() || Configuration.getGroupsToHarvest().contains(topLevelGroupId)) {
-//            for(ElementsGroupInfo.GroupHierarchyWrapper groupWrapper : groupCache.values()) {
-//                ElementsGroupInfo info = groupWrapper.getGroupInfo();
-//                includedGroups.put(info.getItemId(), info);
-//            }
-//        }
-//        else {
-//            for (ElementsItemId.GroupId groupId : Configuration.getGroupsToHarvest()) {
-//                ElementsGroupInfo.GroupHierarchyWrapper currentGroup = groupCache.get(groupId);
-//                if(currentGroup != null) {
-//                    ElementsGroupInfo info = currentGroup.getGroupInfo();
-//                    includedGroups.put(info.getItemId(), info);
-//                    for (ElementsGroupInfo.GroupHierarchyWrapper childGroupWrapper : currentGroup.getAllChildren()) {
-//                        ElementsGroupInfo childInfo = childGroupWrapper.getGroupInfo();
-//                        includedGroups.put(childInfo.getItemId(), childInfo);
-//                    }
-//                }
-//                else {
-//                    log.warn(MessageFormat.format("Configured group to include ({0}) does not exist in targeted Elements system.", groupId));
-//                }
-//            }
-//        }
-//
-//        for(ElementsItemId.GroupId groupId : Configuration.getGroupsToExclude()){
-//            ElementsGroupInfo.GroupHierarchyWrapper currentGroup = groupCache.get(groupId);
-//            if(currentGroup != null) {
-//                ElementsGroupInfo info = currentGroup.getGroupInfo();
-//                includedGroups.remove(info.getItemId());
-//                for (ElementsGroupInfo.GroupHierarchyWrapper childGroupWrapper : currentGroup.getAllChildren()) {
-//                    ElementsGroupInfo childInfo = childGroupWrapper.getGroupInfo();
-//                    includedGroups.remove(childInfo.getItemId());
-//                }
-//            }
-//            else {
-//                log.warn(MessageFormat.format("Configured group to exclude ({0}) does not exist in targeted Elements system.", groupId));
-//            }
-//        }
-//
-//        return includedGroups;
-//    }
-
+    /**
+     * internal helper to walk the GroupHierarchyWrapper tree and work out which groups to include.
+     * @param group current node in the tree being processed.
+     * @param includedGroups the set of included groups.
+     * @param assumeInclude whether we are currently including or excluding discovered nodes.
+     */
     private static void getIncludedGroups(ElementsGroupInfo.GroupHierarchyWrapper group, ElementsItemKeyedCollection.ItemInfo includedGroups, boolean assumeInclude){
         boolean shouldIncludeGroup = assumeInclude;
         ElementsItemId.GroupId groupId = (ElementsItemId.GroupId) group.getGroupInfo().getItemId();
@@ -692,6 +708,15 @@ public class ElementsFetchAndTranslate {
         }
     }
 
+    /**
+     * Method to calculate which Elements users should be included in the output sent to Vivo
+     * This is based on the configured ElligibilityFilters (current, academic, and custom generic fiels/label scheme)
+     * And secondartily on the configured usergroups to include and or exclude.
+     * @param userInfoCache Cache of data about all Elements users.
+     * @param groupCache The cache of information about our current understanding of user group memberships.
+     *                   (which might be based on an out of date cache if this is a --skipgroups run)
+     * @return
+     */
     private static ElementsItemKeyedCollection.ItemInfo CalculateIncludedUsers(ElementsItemKeyedCollection.ItemInfo userInfoCache, ElementsGroupCollection groupCache){
 
         EligibilityFilter filter = Configuration.getElligibilityFilter();
@@ -743,6 +768,10 @@ public class ElementsFetchAndTranslate {
         return includedUsers;
     }
 
+    /**
+     * Helper method to retrieve a correctly configured ElementsAPI object.
+     * @return
+     */
     private static ElementsAPI getElementsAPI() {
         String apiEndpoint = Configuration.getApiEndpoint();
         ElementsAPIVersion apiVersion = Configuration.getApiVersion();
@@ -772,6 +801,11 @@ public class ElementsFetchAndTranslate {
 
     }
 
+    /**
+     * Helper method to retrieve a File object given a path.
+     * @param path
+     * @return
+     */
     private static File getDirectoryFromPath(String path) {
         File file = null;
         if (!StringUtils.isEmpty(path)) {
@@ -787,6 +821,13 @@ public class ElementsFetchAndTranslate {
         return file;
     }
 
+    /**
+     * Helper method to configure the number of threads for any Exevutor services (asynchronous task execution engines).
+     * We use these for the TranslationService (that performs XSLt translations)
+     * and the FetchService (that fetches extra data from the Elements API, e.g. photos).
+     * @param poolName
+     * @param maxThreads
+     */
     private static void setExecutorServiceMaxThreadsForPool(String poolName, int maxThreads) {
         if (maxThreads > 0) {
             ExecutorServiceUtils.setMaxProcessorsForPool(poolName, maxThreads);

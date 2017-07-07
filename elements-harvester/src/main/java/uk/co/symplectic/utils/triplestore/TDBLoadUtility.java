@@ -27,6 +27,11 @@ import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.Iterator;
 
+/**
+ * static class exposing  a single public method (load) that performas a bulk load of triples from the specified files
+ * into the specified TDB TRiple store (represented by the TDBConnect object).
+ * Note this is based heavily on the jena TDB BulkLoader code
+ */
 public class TDBLoadUtility {
 
     private static final Logger log = LoggerFactory.getLogger(TDBLoadUtility.class);

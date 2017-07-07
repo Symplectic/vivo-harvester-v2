@@ -81,6 +81,12 @@ abstract public class ElementsFeedQuery {
         }
     }
 
+    /**
+     * Class that abstracts over the concept of a feedQuert returning potentially multiple query urls, each of which
+     * may have (generally) mutliple pages to be processed.
+     * exposes a hasNext and a next operation in line with typical Java iterator patterns
+     * both of these accept an ElementsFeedPagination object which should have been extracted from the previous query in the loop.
+     */
     class QueryIterator{
 
         private final Iterator<String> queryIterator;

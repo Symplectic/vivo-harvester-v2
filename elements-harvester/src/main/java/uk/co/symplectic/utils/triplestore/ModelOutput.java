@@ -21,6 +21,10 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 
+/**
+ * Class to represent the destination of a Jena Model being "outputted" somewherem, either to t File (FileOutput) or
+ * to a TDB triple store (TripleStoreOutput).
+ */
 public abstract class ModelOutput {
 
     private static final Logger log = LoggerFactory.getLogger(ModelOutput.class);
