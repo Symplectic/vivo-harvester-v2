@@ -18,9 +18,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-/**
- * Created by ajpc2_000 on 09/05/2017.
- */
 public class StateManagement {
     public enum StateType{
         ODD,

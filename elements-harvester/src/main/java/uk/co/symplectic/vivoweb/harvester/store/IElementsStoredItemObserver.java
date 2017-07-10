@@ -7,9 +7,6 @@
  * ******************************************************************************
  */
 
-/**
- * Created by ajpc2_000 on 02/08/2016.
- */
 package uk.co.symplectic.vivoweb.harvester.store;
 
 import org.apache.commons.lang.NullArgumentException;

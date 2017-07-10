@@ -12,9 +12,6 @@ package uk.co.symplectic.vivoweb.harvester.store;
 import org.apache.commons.lang.NullArgumentException;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 
-/**
- * Created by ajpc2_000 on 08/11/2016.
- */
 public class BasicElementsStoredItem {
     protected ElementsItemId itemId;
     private final StorableResourceType resourceType;

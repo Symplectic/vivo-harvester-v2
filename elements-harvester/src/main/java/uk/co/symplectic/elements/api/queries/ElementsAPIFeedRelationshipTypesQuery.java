@@ -7,11 +7,6 @@
  * ******************************************************************************
  */
 
-/**
- * Created by ajpc2_000 on 25/07/2016.
- */
-
-
 package uk.co.symplectic.elements.api.queries;
 
 import uk.co.symplectic.elements.api.ElementsAPIURLBuilder;

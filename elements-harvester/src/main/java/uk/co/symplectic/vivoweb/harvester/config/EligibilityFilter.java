@@ -17,9 +17,6 @@ import uk.co.symplectic.vivoweb.harvester.model.ElementsUserInfo;
 import java.util.Collections;
 import java.util.Set;
 
-/**
- * Created by ajpc2_000 on 22/06/2017.
- */
 public class EligibilityFilter {
     private final boolean academicsOnly;
     private final boolean currentStaffOnly;
