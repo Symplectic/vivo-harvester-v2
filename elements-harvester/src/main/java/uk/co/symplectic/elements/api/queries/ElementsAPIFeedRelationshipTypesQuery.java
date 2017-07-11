@@ -16,6 +16,10 @@ import uk.co.symplectic.vivoweb.harvester.model.ElementsItemType;
 import java.util.Collections;
 import java.util.Set;
 
+/**
+ * Query representing retrieving data about the "types" of relationships that exist between different categories of objects
+ * within Elements, e.g. "authorship" between users and publications.
+ */
 public class ElementsAPIFeedRelationshipTypesQuery extends ElementsFeedQuery {
     public ElementsAPIFeedRelationshipTypesQuery(){
         //relationship types resource has no concept of ref/full detail level..

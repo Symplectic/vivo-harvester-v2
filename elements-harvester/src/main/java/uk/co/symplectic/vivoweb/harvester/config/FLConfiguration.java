@@ -21,6 +21,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
+/**
+ * Configuration class for the Fragment Loader application"
+ */
 public class FLConfiguration {
     private static class Parser extends ConfigParser {
         //keys

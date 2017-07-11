@@ -15,6 +15,11 @@ import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
 
+/**
+ * Class representing two things:
+ * 1) a "key" within a Properties object that has a name and optionally a default value.
+ * 2) The set of all "keys" that have been constructed (held statically)
+ */
 public class ConfigKey{
 
     static Set<ConfigKey> keys = new HashSet<ConfigKey>();
@@ -37,6 +42,12 @@ public class ConfigKey{
         addKey(this);
     }
 
+    /**
+     * The getValue method extracts the value associated with this ConfigKey from the passed in Properties object
+     * it will return the default (if this ConfigKey has one) if the Properties file has no value for this ConfigKey.
+     * @param props
+     * @return
+     */
     public String getValue(Properties props){
         String value = props == null ? null : StringUtils.trimToNull(props.getProperty(name));
         return value == null ? defaultValue : value;

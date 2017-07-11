@@ -23,8 +23,16 @@ import java.io.InputStream;
 import java.text.MessageFormat;
 import java.util.*;
 
+/**
+ * Class representing the configuration of the ElementsFetchAndTranslate process.
+ */
 public class Configuration {
 
+    /**
+     * Custom parser extending ConfigParser that knows about the ConfigKeys that can exist in the .properties file
+     * exposes a parse method that parses the Properties object passed in the constructor appropriately and populates
+     * fields within the Parser object
+     */
     private static class Parser extends ConfigParser {
         //keys
         private ConfigKey ARG_RAW_OUTPUT_DIRECTORY = new ConfigKey("rawOutput", "data/raw-records/");
@@ -78,7 +86,7 @@ public class Configuration {
 
         private ConfigKey ARG_ZIP_FILES = new ConfigKey("zipFiles", "false"); //TODO: review this default
 
-        //storage
+        //isntance fields for storage of values parsed from the Properties
         private int maxThreadsResource = -1;
         private int maxThreadsXsl = -1;
 
@@ -107,8 +115,6 @@ public class Configuration {
 
         private List<ElementsObjectCategory> categoriesToHarvest;
 
-        private boolean currentStaffOnly = true;
-        private boolean academicsOnly = true;
         private boolean visibleLinksOnly = false;
         private boolean repullRelsToCorrectVisibility = true;
         Set<String> relTypesToReprocess;
@@ -133,6 +139,13 @@ public class Configuration {
         //Constructor and methods
         Parser(Properties props, List<String> errors){ super(props, errors); }
 
+        /**
+         * Custom parsing utility function to extract a set of ElementsObjectCategory objects from a ConfigKey
+         * ("," delimited set of string values e.g. publications, activities, etc.
+         * @param configKey
+         * @param tolerateNull
+         * @return
+         */
         private List<ElementsObjectCategory> getCategories(ConfigKey configKey, boolean tolerateNull) {
             String key = configKey.getName();
             List<ElementsObjectCategory> categories = new ArrayList<ElementsObjectCategory>();
@@ -151,6 +164,11 @@ public class Configuration {
             return categories;
         }
 
+        /**
+         * Custom parsing utility function to extract an ElementsAPIVersion object from the named configKey
+         * @param configKey
+         * @return
+         */
         private ElementsAPIVersion getApiVersion(ConfigKey configKey) {
             String key = configKey.getName();
             String value = configKey.getValue(props);
@@ -162,6 +180,11 @@ public class Configuration {
             return null;
         }
 
+        /**
+         * Custom parsing utility function to extract an ImageUtils.PhotoType object from the named configKey
+         * @param configKey
+         * @return
+         */
         private ImageUtils.PhotoType getImageType(ConfigKey configKey) {
             String key = configKey.getName();
             String value = configKey.getValue(props);
@@ -186,6 +209,11 @@ public class Configuration {
             return imageType;
         }
 
+        /**
+         * Custom parsing utility function to extract an EligibilityFilter object from a specific hard coded set of
+         * configKeys
+         * @return
+         */
         private EligibilityFilter getEligibilityScheme() {
 
             String schemeType = getString(ARG_ELLIGIBILITY_TYPE, true);
@@ -216,6 +244,12 @@ public class Configuration {
             return null;
         }
 
+        /**
+         * Custom parsing utility function to extract any property values with a specific naming convention
+         * (starting with "xsl-param-") as parameters to be passed to the XSLT translation layer.
+         * configKeys
+         * @return
+         */
         private Map<String, String> getXslParameters(){
             String xslPrefix = "xsl-param-";
             Map<String, String> returnMap = new HashMap<String, String>();
@@ -228,7 +262,11 @@ public class Configuration {
             return returnMap;
         }
 
-
+        /**
+         * main parse function that uses the parsing utility functions to extract data from the Properties object passed
+         * in the constructor and populate the appropraite instance fields.
+         * Note the parsing utility functions will populate the "error-list" if there are problems here.
+         */
         void parse(){
             values.maxThreadsResource = getInt(ARG_MAX_RESOURCE_THREADS);
             values.maxThreadsXsl = getInt(ARG_MAX_XSL_THREADS);
@@ -267,8 +305,6 @@ public class Configuration {
             values.fullDetailPerPage = getInt(ARG_API_FULL_DETAIL_PER_PAGE);
             values.refDetailPerPage = getInt(ARG_API_REF_DETAIL_PER_PAGE);
 
-            values.currentStaffOnly = getBoolean(ARG_CURRENT_STAFF_ONLY);
-            values.academicsOnly = getBoolean(ARG_ACADEMICS_ONLY);
             values.visibleLinksOnly = getBoolean(ARG_VISIBLE_LINKS_ONLY);
             values.repullRelsToCorrectVisibility = getBoolean(ARG_REPULL_RELS_TO_CORRECT_VISIBILITY);
             values.relTypesToReprocess = Collections.unmodifiableSet(new HashSet<String>(getStrings(ARG_RELATIONSHIP_TYPES_TO_REPROCESS, true)));
@@ -297,9 +333,18 @@ public class Configuration {
         }
     }
 
+    /**
+     * Any errors encounted during parsing of the properties file.
+     */
     private static List<String> configErrors = new ArrayList<String>();
+
+    /**
+     * The parser that was used to parse the config file.
+     * null until the Configuration.parse static function is invoked.
+     */
     private static Parser values = null;
 
+    //getter methods to expose the parsed values from within the parser.
     public static Integer getMaxThreadsResource() {
         return values.maxThreadsResource;
     }
@@ -362,12 +407,6 @@ public class Configuration {
         return values.categoriesToHarvest;
     }
 
-    public static boolean getCurrentStaffOnly() {
-        return values.currentStaffOnly;
-    }
-
-    public static boolean getAcademicsOnly() { return values.academicsOnly; }
-
     public static EligibilityFilter getElligibilityFilter(){ return values.eligibilityFilter; }
 
     public static Map<String, String> getXslParameters(){ return values.xslParameters; }
@@ -426,13 +465,22 @@ public class Configuration {
         return values.zipFiles;
     }
 
-    //Has the system being successfully configured to move forwards?
+    /**
+     *Has the system being successfully configured?
+     */
     public static boolean isConfigured() {
         return configErrors.size() == 0;
     }
 
+    /**
+     * Get a string report of the values that are in use.
+     */
     public static String getConfiguredValues(){ return values == null ? null : values.reportConfiguredValues();}
 
+    /**
+     * Get a "usage" report for printing to the command line.
+     * @return
+     */
     public static String getUsage() {
         StrBuilder builder = new StrBuilder();
 
@@ -454,6 +502,12 @@ public class Configuration {
         return "Error generating usage string";
     }
 
+    /**
+     * main methods called to initialise the Configuration class, passing in the filename of the .properties file to parse.
+     * @param propertiesFileName
+     * @throws IOException
+     * @throws ConfigParser.UsageException
+     */
     public static void parse(String propertiesFileName) throws IOException, ConfigParser.UsageException {
         InputStream stream = null;
         try {

@@ -16,6 +16,9 @@ import uk.co.symplectic.vivoweb.harvester.model.ElementsItemType;
 import java.util.Collections;
 import java.util.Set;
 
+/**
+ * Query representing the idea of retrieving information about user groups from within Elements.
+ */
 public class ElementsAPIFeedGroupQuery extends ElementsFeedQuery {
     public ElementsAPIFeedGroupQuery(){
         //groups resource has no concept of ref/full detail level..

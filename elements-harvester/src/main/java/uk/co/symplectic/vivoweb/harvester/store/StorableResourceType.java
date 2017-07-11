@@ -20,21 +20,6 @@ import java.text.MessageFormat;
 
 public class StorableResourceType {
 
-    //Static part of class - for storage
-//    private static Map<ElementsItemType, List<StorableResourceType>> availableResources = new HashMap<ElementsItemType, List<StorableResourceType>>();
-//
-//    public static List<StorableResourceType> getResourcesForType(ElementsItemType type) {
-//        return Collections.unmodifiableList(innerGetResourcesForType(type));
-//    }
-//
-//    private static List<StorableResourceType> innerGetResourcesForType(ElementsItemType type) {
-//        if (type == null) throw new NullArgumentException("type");
-//        if (!availableResources.containsKey(type)) {
-//            availableResources.put(type, new ArrayList<StorableResourceType>());
-//        }
-//        return availableResources.get(type);
-//    }
-
     final public static StorableResourceType RAW_OBJECT = new StorableResourceType(ElementsItemType.AllObjects, "raw", "xml", true);
 	final public static StorableResourceType RAW_USER_PHOTO = new StorableResourceType(ElementsObjectCategory.USER, "photo", null, false);
     final public static StorableResourceType RAW_RELATIONSHIP = new StorableResourceType(ElementsItemType.AllRelationships, "raw", "xml", true);
@@ -80,24 +65,6 @@ public class StorableResourceType {
     public boolean isAppropriateForItem(ElementsItemId id){ return keySubItemType.matches(id.getItemSubType()); }
 
     public boolean shouldZip() { return shouldZip; }
-
-//    private static class UserRelatedResourceType extends StorableResourceType {
-//        UserRelatedResourceType(String name, String fileExtension, boolean shouldZip) {
-//            super(ElementsItemType.OBJECT, name, fileExtension, shouldZip);
-//        }
-//
-//        @Override
-//        public boolean isAppropriateForItem(ElementsItemId id) {
-//            //return super.isAppropriateForItem(id) && id instanceof ElementsItemId.ObjectId && ((ElementsItemId.ObjectId) id).getCategory() == ElementsObjectCategory.USER;
-//            //must be an object id if is appropriate for object item type...
-//            return super.isAppropriateForItem(id) && id.getItemSubType() == ElementsObjectCategory.USER;
-//        }
-//
-//        @Override
-//        public String toString(){
-//            return MessageFormat.format("{0}-{1}", getName(), "user");
-//        }
-//    }
 
 }
 

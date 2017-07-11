@@ -44,39 +44,64 @@ import java.util.List;
 
 /**
  * Simple HTTPClient class based on apache's http components and core.
+ * Usage pattern is to instantiate a new object against a particular url (potentially with authentication creds.
+ * The instance then exposes methods to execute get and post requests, which return an APIResponse object.
+ *
+ * Class has static components that allow you to configure the behaviour of the instances that are generated and ensure
+ * consistency across instances (e.g. ensuring that requests aren't too frequent, etc).
  */
 public class HttpClient {
-    final private String username;
-    final private String password;
-    final private String url;
+    //static configuration for all instances
 
-    private String getUsername(){return username;}
-    private String getPassword(){return password;}
-    private String getUrl(){return url;}
-
+    //default settings for timeouts (socket and connection).
     private static final int defaultSoTimeout = 5 * 60 * 1000; // 5 minutes, in milliseconds
     private static final int defaultConnectionTimeout = 30000; // 30 seconds
 
+    //placeholder for the defaultRequestConfig object used by the underlying apache libraries.
     private static RequestConfig defaultRequestConfig;
+
+    //placeholder for the PoolingHttpClientConnectionManager used by the underlying apaceh libraries.
     private static PoolingHttpClientConnectionManager connectionManager;
 
+    //default minimum time between requests  = 1 quarter second
+    private static int intervalInMSecs = 250;
+    /**
+     * Setter method to configure the minimum delay between successive requests made by HttpClient instances.
+     * @param millis
+     */
     public static synchronized void setRequestDelay(int millis) {
         intervalInMSecs = millis;
     }
 
+    //internal variable tracked to ensure that requests aren't too frequent.
     private static Date lastRequest = null;
-    private static int intervalInMSecs = 250;
 
+
+    /**
+     * Static constructor
+     * ensures that connectionManager is set up with a default max connection pool of 20
+     * and that the defaultRequestConfig is set up with the default timeouts values.
+     */
     static{
         connectionManager = new PoolingHttpClientConnectionManager();
         connectionManager.setMaxTotal(20);
         defaultRequestConfig = RequestConfig.custom().setConnectTimeout(defaultConnectionTimeout).setSocketTimeout(defaultSoTimeout).build();
     }
 
+
+    /**
+     * setter method to configure the socket timeout for all client instances
+     * (alters the underlying static defaultRequestConfig)
+     * @param millis
+     */
     public static synchronized void setSocketTimeout(int millis) {
         defaultRequestConfig = RequestConfig.copy(defaultRequestConfig).setSocketTimeout(millis).build();
     }
 
+    /**
+     * Method to make the all HTTPClient instances ignore mismatched SSL certs (e.g. self signed ones).
+     * (alters the underlying static connectionManager)
+     */
     public static synchronized void ignoreSslErrors() {
         try {
             SSLContextBuilder builder = new SSLContextBuilder();
@@ -102,7 +127,7 @@ public class HttpClient {
     private static synchronized RequestConfig getDefaultRequestConfig(){return defaultRequestConfig;}
 
     /**
-     * Delay method - ensure that requests are not sent too frequently to the Elements API,
+     * Delay method - instances ensures that requests are not sent too frequently to the Elements API,
      * by calling this method prior to executing the HttpClient request.
      */
     private static synchronized void regulateRequestFrequency() {
@@ -120,14 +145,42 @@ public class HttpClient {
         }
     }
 
+    //HTTPClient Instance fields (credentials, url, etc)
+    final private String username;
+    final private String password;
+    final private String url;
+
+    private String getUsername(){return username;}
+    private String getPassword(){return password;}
+    private String getUrl(){return url;}
+
+    /**
+     * Constructor for an HTTPClient instance, requiring no credentials (e.g plain HTTP)
+     * @param url
+     * @throws URISyntaxException
+     */
     public HttpClient(String url) throws URISyntaxException {
         this(url, null, null);
     }
 
+    /**
+     * Constructor for an HTTPClient instance
+     * @param url String representing the URL to be GETted or POSTted
+     * @param username creds for accessing the URL
+     * @param password creds for accessing the URL
+     * @throws URISyntaxException
+     */
     public HttpClient(String url, String username, String password) throws URISyntaxException {
         this(new ValidatedUrl(url), username, password);
     }
 
+    /**
+     * Constructor for an HTTPClient instance
+     * @param url ValidatedUrl representing the URL to be GETted or POSTted
+     * @param username creds for accessing the URL
+     * @param password creds for accessing the URL
+     * @throws URISyntaxException
+     */
     public HttpClient(ValidatedUrl url, String username, String password) {
         if(url == null) throw new NullArgumentException("url");
         this.url = url.getUrl();
@@ -154,6 +207,11 @@ public class HttpClient {
     }
 
 
+    /**
+     * Method to execute a get request against the URL specified in this instance's constructor
+     * @return an APIResponse object corresponding to the request body
+     * @throws IOException Failure reading the request stream
+     */
     public ApiResponse executeGetRequest() throws IOException {
 
         //note we deliberately don't close these to keep the connection manager alive - this is a bit hacky...
@@ -168,7 +226,7 @@ public class HttpClient {
 
         ApiResponse responseToReturn = new ApiResponse(response);
 
-        ///convert non 200 responses into exceptions.
+        ///convert non 200 responses into exceptions - this is ok for our purposes.
         int responseCode = response.getStatusLine().getStatusCode();
         if(responseCode != HttpStatus.SC_OK){
             String codeDescription = EnglishReasonPhraseCatalog.INSTANCE.getReason(responseCode, null);
@@ -180,9 +238,9 @@ public class HttpClient {
     }
 
     /**
-     * Execute a get request,
+     * Method to execute a get request against the URL specified in this instance's constructor
      * @param maxRetries Number of times to retry the request
-     * @return InputStream corresponding to the request body
+     * @return an APIResponse object corresponding to the request body
      * @throws IOException Failure reading the request stream
      */
     public ApiResponse executeGetRequest(int maxRetries) throws IOException {
@@ -203,6 +261,13 @@ public class HttpClient {
         throw lastError;
     }
 
+    /**
+     * Method to execute a post request against the URL specified in this instance's constructor
+     * passing in the passed in nameValuePairs as a multipart form.
+     * @param nameValuePairs
+     * @return and APIResponse object representing the reponse.
+     * @throws IOException
+     */
     public ApiResponse executePost(List<NameValuePair> nameValuePairs) throws IOException {
         //note we deliberately don't close these to keep the connection manager alive - this is a bit hacky...
         CloseableHttpClient httpclient  = getNewApacheClient();
@@ -265,6 +330,10 @@ public class HttpClient {
         }
     }
 
+    /**
+     * Exception to be raised if the response indicates failure of the requested operation
+     * (Currently just if not HTTP OK)
+     */
     public static class InvalidResponseException extends IOException{
         final int responseCode;
         public int getResponseCode(){ return responseCode; }

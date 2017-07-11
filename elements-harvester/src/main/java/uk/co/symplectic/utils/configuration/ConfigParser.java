@@ -14,8 +14,11 @@ import java.io.File;
 import java.text.MessageFormat;
 import java.util.*;
 
-
-//Class to be extended to create a relevant parser for your tool.
+/**
+Class representing the idea of a a utility for parsing config out of .properties files based on configured ConfigKeys.
+ provides a set of utility functions designed to extract typed data based on ConfigKeys.
+This abstract class should be extended to create a relevant parser for your tool.
+ */
 public abstract class ConfigParser {
 
     public static class UsageException extends Exception {
@@ -31,6 +34,12 @@ public abstract class ConfigParser {
     protected Properties props;
     protected List<String> configErrors;
 
+    /**
+     * Constructor for a parser that accepts the properties file being processed and an errorList
+     * where any issues encountered by the parsing utility functions will be listed.
+     * @param input
+     * @param errorList
+     */
     public ConfigParser(Properties input, List<String> errorList) {
         if (input == null) throw new NullArgumentException("input");
         if (errorList == null) throw new NullArgumentException("errorList");
@@ -39,6 +48,10 @@ public abstract class ConfigParser {
         this.configErrors = errorList;
     }
 
+    /**
+     * returns a report about all the configured values being used for all the ConfigKeys that exist in this app.
+     * @return
+     */
     public String reportConfiguredValues(){
         if(props == null) return null;
         StringBuilder configuredValuesBuilder = new StringBuilder("config file args: ");
@@ -51,6 +64,14 @@ public abstract class ConfigParser {
         return configuredValuesBuilder.toString();
     }
 
+    //parsing utility functions
+
+    /**
+     * method to extract a set of Strings from the named configKey (delimited by ",")
+     * @param configKey
+     * @param tolerateNull whether parsing no value is acceptable.
+     * @return
+     */
     protected List<String> getStrings(ConfigKey configKey, boolean tolerateNull) {
         String key = configKey.getName();
         List<String> detectedValues = new ArrayList<String>();
@@ -69,6 +90,12 @@ public abstract class ConfigParser {
         return detectedValues;
     }
 
+    /**
+     * method to extract a set of Integers from the named configKey (delimited by ",")
+     * @param configKey
+     * @param tolerateNull whether parsing no value is acceptable
+     * @return
+     */
     protected List<Integer> getIntegers(ConfigKey configKey, boolean tolerateNull) {
         List<Integer> integers = new ArrayList<Integer>();
         String key = configKey.getName();
@@ -88,6 +115,12 @@ public abstract class ConfigParser {
         return integers;
     }
 
+    /**
+     * method to extract a boolean from the named configKey.
+     * retrieving null is not acceptable and will reult in an error being logged in the list.
+     * @param configKey
+     * @return
+     */
     protected boolean getBoolean(ConfigKey configKey) {
         String key = configKey.getName();
         String value = configKey.getValue(props);
@@ -102,7 +135,12 @@ public abstract class ConfigParser {
         }
     }
 
-
+    /**
+     * method to extract an integer from the named configKey.
+     * retrieving null is not acceptable and will reult in an error being logged in the list.
+     * @param configKey
+     * @return
+     */
     protected int getInt(ConfigKey configKey) {
         String key = configKey.getName();
         String value = configKey.getValue(props);
@@ -117,6 +155,12 @@ public abstract class ConfigParser {
         return -1;
     }
 
+    /**
+     * method to extract a string from the named configKey.
+     * @param configKey
+     * @param tolerateNull whether parsing no value is acceptable
+     * @return
+     */
     protected String getString(ConfigKey configKey, boolean tolerateNull) {
         String key = configKey.getName();
         String value = configKey.getValue(props);
@@ -129,10 +173,20 @@ public abstract class ConfigParser {
     }
 
 
+    /**
+     * method to extract a File object representing a directory from the named configKey.
+     * @param configKey
+     * @return
+     */
     protected File getFileDirFromConfig(ConfigKey configKey) {
         return new File(normaliseDirectoryFormat(getString(configKey, false)));
     }
 
+    /**
+     * helper method to try and ensure that directory paths are correctly formatted.
+     * @param directoryName
+     * @return
+     */
     protected String normaliseDirectoryFormat(String directoryName) {
         if (directoryName.contains("/")) {
             if (!directoryName.endsWith("/")) {

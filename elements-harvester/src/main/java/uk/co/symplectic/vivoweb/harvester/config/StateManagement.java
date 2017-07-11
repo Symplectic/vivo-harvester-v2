@@ -18,6 +18,9 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+/**
+ * Class to handle management of the "state.txt" file that represents what state the harvester is currently in.
+ */
 public class StateManagement {
     public enum StateType{
         ODD,

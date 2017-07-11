@@ -22,6 +22,4 @@ public interface LayoutStrategy {
 
     Collection<File> getAllExistingFilesOfType(File storeDir, StorableResourceType resourceType, ElementsItemType.SubType subType);
 
-    //todo: remove this!? once decide what to do with legacy layout?
-    String getRootNodeForType(String type);
 }

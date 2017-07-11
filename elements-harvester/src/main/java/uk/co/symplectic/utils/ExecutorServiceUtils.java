@@ -14,6 +14,12 @@ import java.text.MessageFormat;
 import java.util.*;
 import java.util.concurrent.*;
 
+/**
+ * Set of utilities representing the idea of a multithreaded "task" executor that processes runnable objects in parallel.
+ * The class ExecutorServiceUtils provides static functions for instantiating xecutorServiceWrapper objects
+ * which do the real work.
+ *
+ */
 public final class ExecutorServiceUtils {
     private static final Map<String, Integer> maxProcessorsPerPool = new HashMap<String, Integer>();
 
@@ -53,6 +59,10 @@ public final class ExecutorServiceUtils {
     }
 
 
+    /**
+     * Inner class that exists to be hooked into the Runtime's shutdown event when a new ExecutorServiceWrapper is
+     * created. Its task is simply to bring the wrapper to a halt, gracefully if possible, by waiting for it to complete.
+     */
     private static class ShutdownHook extends Thread {
         private ExecutorServiceWrapper wrapper;
 

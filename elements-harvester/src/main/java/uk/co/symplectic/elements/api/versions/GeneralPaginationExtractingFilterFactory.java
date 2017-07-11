@@ -23,8 +23,17 @@ import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
 import java.util.List;
 
+/**
+ * The GeneralPaginationExtractingFilterFactory extends the PaginationExtractingFilterFactory abstract class which
+ * represnts the ability to create a new XML filter, that can extract an ElementsFeedPagination from an API response,
+ * whenever the API needs one (i.e. per request to ensure no potential for the same filter receiving events from different responses).
+ * Currently this one class can be used against all API schema response versions so it is "General"
+ */
 public class GeneralPaginationExtractingFilterFactory extends PaginationExtractingFilterFactory {
 
+    /**
+     * A class representing a GeneralPaginationExtractingFilter that can (currently) be used against all API versions
+     */
     static class GeneralPaginationExtractingFilter extends ElementsAPIVersion.PaginationExtractingFilter {
 
         private static final String apiNS = ElementsAPI.apiNS;

@@ -16,6 +16,10 @@ import uk.co.symplectic.elements.api.queries.ElementsAPIFeedRelationshipTypesQue
 import java.util.Collection;
 import java.util.Set;
 
+/**
+ * An interface representing the concept of being able to build a specific URL (representing the first page) starting
+ * from an ElementsFeedQuery of a specific type and any other pertinent details.
+ */
 public interface ElementsAPIURLBuilder {
     String buildObjectFeedQuery(String endpointUrl, ElementsAPIFeedObjectQuery feedQuery, int perPage);
 
@@ -27,6 +31,10 @@ public interface ElementsAPIURLBuilder {
 
     String buildRelationshipTypesQuery(String endpointUrl, ElementsAPIFeedRelationshipTypesQuery feedQuery);
 
+    /**
+     * An abstract intermediate class providing a useful helper method to convert integer arrays into an
+     * API friendly comma delimited string.
+     */
     abstract class GenericBase implements ElementsAPIURLBuilder {
         protected String convertIntegerArrayToQueryString(Collection<Integer> integers){
             //StringUtils.join(integers, ","); simpler? - could potentially remove GenericBase then

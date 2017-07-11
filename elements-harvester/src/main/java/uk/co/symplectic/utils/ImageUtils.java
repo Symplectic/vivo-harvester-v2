@@ -15,6 +15,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 
+/**
+ * Class of simply image manipulation utilities (read, write and resizing tools)
+ */
 public final class ImageUtils {
 
     public static enum PhotoType{

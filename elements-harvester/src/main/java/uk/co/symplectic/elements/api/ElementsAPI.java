@@ -31,15 +31,26 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * Main Elements API Client class
+ * Main Elements API Client class.
+ * represents an Elements API and exposes the ability to execute queries or fetch resources.
+ * Contains a few static classes that represent how queries should be processed.
  */
 public class ElementsAPI {
 
+    /**
+     * Small immutable class to represent options relating to how an API query should be processed
+     */
     public static class ProcessingOptions{
         private final boolean processAllPages;
         private final int perPage;
         //private final Integer page;
 
+        /**
+         * Constructor to specify this set of options
+         * @param processAllPages whether queries should make multiple request to the Elements API to retrieve all
+         *                        available data relating to the query, or should just return the first page of results.
+         * @param perPage how many results should be returned on each page by the API.
+         */
         public ProcessingOptions(boolean processAllPages, int perPage) {
             this.processAllPages = processAllPages;
             this.perPage = perPage;
@@ -62,14 +73,26 @@ public class ElementsAPI {
         }
     }
 
+    /**
+     * Immutable class to represent the "default" processing options that should be used if none are explicitly provided
+     * when a query is executed by the ElementsAPI class.
+     *
+     * Note that different defaults can exist for different types of query.
+     */
     public static class ProcessingDefaults{
 
+        /**
+         * The "Default" set of ProcessingDefaults - used by the ElementsAPI class if no defaults are provided on construction.
+         * fetch all pages of queries, fetch 25 results per page for "full" detail queries, fetch 100 results per page for
+         * "ref" detail queries.
+         */
         public static ProcessingDefaults DEFAULTS = new ProcessingDefaults(true, 25, 100);
 
         private final ProcessingOptions fullDetailOptions;
         private final ProcessingOptions refDetailOptions;
 
         /**
+         * Constructor to set up processing defaults
          * @param processAllPages to indicate whether all the pages be processed
          * @param perPageFull An integer > 0, the amount to fetch per-page for full detail queries
          * @param perPageRef An integer > 0, the amount to fetch per-page for ref detail queries
@@ -79,6 +102,15 @@ public class ElementsAPI {
             this.refDetailOptions = new ProcessingOptions(processAllPages, perPageRef);
         }
 
+        /**
+         * Method to get hold of the ProcessingOptions that should be used based on the current query.
+         * If there are no "override options the appropriate defaults will be returned.
+         * If there are override options, then the override options will be returned.
+         * @param query the query being run
+         * @param overrideOptions any "override" options that have been supplied
+         *                        appropriate defaults will be returned if this is null
+         * @return
+         */
         public ProcessingOptions getProcessingOptions(ElementsFeedQuery query, ProcessingOptions overrideOptions){
             if(overrideOptions != null) return overrideOptions;
             //otherwise
@@ -87,11 +119,18 @@ public class ElementsAPI {
     }
 
 
-
-    //Useful API Namespaces -
+    //Useful API Namespaces
+    /**
+      The namespace of the Elements API native XML
+     */
     public static final String apiNS = "http://www.symplectic.co.uk/publications/api";
+
+    /**
+     The namespace of the atom document that is interspersed with the Elements API xml in API responses.
+     */
     public static final String atomNS = "http://www.w3.org/2005/Atom";
 
+    //timing utility functions and fields- very basic - not very realistic results.
     private static long timeSpentInNetwork = 0;
     private static long timeSpentInProcessing = 0;
     private static void resetTimers(){
@@ -99,6 +138,12 @@ public class ElementsAPI {
         timeSpentInProcessing = 0;
     }
 
+    /**
+     * The APIResponseFilter class represents a Filter that will be used to parse the xml documents retrieved from the
+     * Elements API when a query is being executed.
+     * It is a simple wrapper for an XMLEventProcessor.EventFilter that supports the concept of being valid for
+     * certain APIVersions.
+     */
     public static class APIResponseFilter{
         private final XMLEventProcessor.EventFilter filter;
         private final List<ElementsAPIVersion> supportedVersions = new ArrayList<ElementsAPIVersion>();
@@ -140,10 +185,26 @@ public class ElementsAPI {
 
     private boolean issuedWarningAboutMismatchedFetchUrls = false;
 
+    /**
+     * Chained constructor - to ease creation of a default ElementsAPI
+     * @param version
+     * @param url
+     */
     public ElementsAPI(ElementsAPIVersion version, String url){
         this(version, url, null, null, false, null);
     }
 
+    /**
+     * Main constructor for the ElementsAPI class
+     * @param version the version of the API being contacted
+     * @param url the base url of the API being contacted
+     * @param username user credentials for the API being contacted
+     * @param password user credentials for the API being contacted
+     * @param rewriteMismatchedURLs whether the
+     * @param defaults the ProcessingDefaults to be used
+     *                 the "default" ProcessingDefaults of processing all pages at 25 and 100 items per page for full and
+     *                 ref detail queries respectivelt will be used if @defaults is null.
+     */
     public ElementsAPI(ElementsAPIVersion version, String url, String username, String password, boolean rewriteMismatchedURLs, ProcessingDefaults defaults) {
         if(version == null){
             log.error("provided version must not be null on construction");
@@ -191,6 +252,10 @@ public class ElementsAPI {
         }
     }
 
+    /**
+     * Method to construct an XMLEventFilter that counts every "atom entry" that passes through it.
+     * @return a NEW ItemCountingFilter
+     */
     private XMLEventProcessor.ItemCountingFilter getEntryCounter(){
         XMLEventProcessor.EventFilter.DocumentLocation entryLocation = new XMLEventProcessor.EventFilter.DocumentLocation(
             new QName(atomNS, "feed"), new QName(atomNS, "entry")
@@ -198,10 +263,23 @@ public class ElementsAPI {
         return new XMLEventProcessor.ItemCountingFilter(entryLocation);
     }
 
+    /**
+     * Method to execute the requested feedQuery and parse the resulting XML responses using the specified filters.
+     * The query will be run using the appropriate ProcessingDefaults.
+     * @param feedQuery an ElementsFeedQuery to be run against the Elements API
+     * @param filters a set of APIResponseFilters that will be used to parse the XML responses from the API.
+     */
     public void executeQuery(ElementsFeedQuery feedQuery, APIResponseFilter... filters) {
         executeQuery(feedQuery, null, filters);
     }
 
+    /**
+     * Method to execute the requested feedQuery and parse the resulting XML responses using the specified filters.
+     * @param feedQuery an ElementsFeedQuery to be run against the Elements API
+     * @param overrideOptions the specific options that should be used to run the query.
+     *                        the appropriate ProcessingDefaults will be used if @overrideOptions is null.
+     * @param filters a set of APIResponseFilters that will be used to parse the XML responses from the API.
+     */
     public void executeQuery(ElementsFeedQuery feedQuery, ProcessingOptions overrideOptions, APIResponseFilter... filters) {
         List<XMLEventProcessor.EventFilter> eventFilters = new ArrayList<XMLEventProcessor.EventFilter>();
         for(APIResponseFilter filter : filters){
@@ -251,6 +329,13 @@ public class ElementsAPI {
         log.trace(MessageFormat.format("Query completed {0} items processed in total", itemCounter.getItemCount()));
     }
 
+
+    /**
+     * Method to fetch a specific resource from the Elememnts API and store it in the Output stream provided
+     * @param resourceURL the url of the resource to be fetched.
+     * @param outputStream the output stream to be populated with the fetched data.
+     * @return
+     */
     //TODO : rationalise with main query call to have common usage of the underlying client with nice retry behaviour etc.
     public boolean fetchResource(String resourceURL, OutputStream outputStream) {
         HttpClient.ApiResponse apiResponse = null;
@@ -282,6 +367,13 @@ public class ElementsAPI {
         return true;
     }
 
+    /**
+     * Internal helper method to perform the processing of a particular URL as part of executing a query
+     * @param url the url to be processed.
+     * @param eventFilters the filters to be run against the returned XML.
+     * @return an ElementsFeedPagination object representing the position of the current URL in a query of multiple pages.
+     * @throws IllegalStateException
+     */
     private ElementsFeedPagination executeInternalQuery(ValidatedUrl url, Collection<XMLEventProcessor.EventFilter> eventFilters) throws IllegalStateException {
         int retryCount = 0;
         do {
@@ -332,6 +424,15 @@ public class ElementsAPI {
         } while (true);
     }
 
+    /**
+     * helper method to process the provided API XML response (represented by the inputStream) using the supplied filters.
+     * Note, eventFilters does not need to contain a filter to extract pagination info as one is automatically added
+     * by this method and the result is returned in the return parameter.
+     * @param response the API XML response being processed.
+     * @param eventFilters the filters to be run against the XML.
+     * @return an ElementsFeedPagination object representing the position of the current URL in a query of multiple pages.
+     * @throws XMLStreamException
+     */
     private ElementsFeedPagination parseEventResponse(InputStream response, Collection<XMLEventProcessor.EventFilter> eventFilters) throws XMLStreamException {
         final long startTime = System.currentTimeMillis();
         //set up the xml reader

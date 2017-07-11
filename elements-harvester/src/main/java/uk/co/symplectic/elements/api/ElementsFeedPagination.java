@@ -8,6 +8,10 @@
  */
 package uk.co.symplectic.elements.api;
 
+/**
+ *  class representing the concept of where a particular API response is in a feed consisting of multiple pages.
+ *  Note that post API 5.5 most of these will be null, first last and previous will not be supplied.
+ */
 public class ElementsFeedPagination {
     private int itemsPerPage;
     private String firstURL;

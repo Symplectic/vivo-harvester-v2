@@ -19,17 +19,33 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * A Class representing a set of Elements Groups in a map, keyed by GroupID.
+ * The Groups are represented as GroupHierarchyWrapper objects which can enrich the GroupInfo with knowledge about the
+ * groups position in the tree (links to parent and child objects and user membership).
+ */
 public class ElementsGroupCollection extends ElementsItemKeyedCollection<ElementsGroupInfo.GroupHierarchyWrapper> {
     private ElementsGroupInfo.GroupHierarchyWrapper topLevel = null;
     private boolean membershipPopulated = false;
 
     public ElementsGroupCollection(){super(new RestrictToType(ElementsItemType.GROUP));}
 
+    /**
+     * Get the top level "organisation" group - can only be called after constructHierarchy has been run.
+      * @return
+     */
     public ElementsGroupInfo.GroupHierarchyWrapper GetTopLevel(){
         if(topLevel == null) throw new IllegalStateException("must construct group hierarcy before requesting top level");
         return topLevel;
     }
 
+    /**
+     * Once you have a GroupCollection loaded with all the Elements groups in your system this method will
+     * analyse the GroupInfo's and wire the GroupHierarcyWrappers up into a tree by populating the parent object links
+     * (which automatically populates the child links)
+     *
+     * @return the top level "organisation" group at the pinacle of the group tree.
+     */
     public ElementsGroupInfo.GroupHierarchyWrapper constructHierarchy(){
         if(topLevel == null) {
             for (ElementsGroupInfo.GroupHierarchyWrapper group : this.values()) {
@@ -60,6 +76,17 @@ public class ElementsGroupCollection extends ElementsItemKeyedCollection<Element
         return topLevel;
     }
 
+    /**
+     * method to populate the GroupHierarchyWrappers in the collection with user membership information.
+     * It does this by calling the Elements API and requesting information about which users are explicit members of
+     * each group. It therefore needs an ElementsFetch object to complete these queries.
+     * It also accepts a set or ElementsItemId representing all the users in the Elements system.
+     * This is necessary to successfully create the "explicit" users of the organisation group as the API does not return
+     * these in an easily usable manner.
+     * @param fetcher
+     * @param systemUsers
+     * @throws IOException
+     */
     public void populateUserMembership(ElementsFetch fetcher, Set<ElementsItemId> systemUsers) throws IOException {
         if(topLevel == null) throw new IllegalStateException("must construct group hierarcy before populating membership");
         if(!membershipPopulated) {
@@ -73,6 +100,17 @@ public class ElementsGroupCollection extends ElementsItemKeyedCollection<Element
         }
     }
 
+    /**
+     * method to populate the GroupHierarchyWrappers in the collection with user membership information.
+     * It does this by populating them based on the cache of group-user membership informat5ion represented by the
+     * groupUserMap parameter.
+     * It also accepts a set or ElementsItemId representing all the users in the Elements system.
+     * Any new users that are not part of the existing user-membership cache will be represented as members of the top
+     * level organisation group
+     * @param groupUserMap
+     * @param systemUsers
+     * @throws IOException
+     */
     public void populateUserMembership(Map<ElementsItemId, Set<ElementsItemId>> groupUserMap, Set<ElementsItemId> systemUsers) throws IOException {
         if(topLevel == null) throw new IllegalStateException("must construct group hierarchy before populating membership");
         if(!membershipPopulated) {
@@ -96,6 +134,11 @@ public class ElementsGroupCollection extends ElementsItemKeyedCollection<Element
         }
     }
 
+    /**
+     * Internal helper method to calculate the "explicit" members of the top level organisation group
+     * by removing anyone who is an explicit member of any other group from the set of all users.
+     * @param systemUsers
+     */
     private void finaliseUserMembership(Set<ElementsItemId> systemUsers){
         //calculate organisation membership from passed in user cache information
         Set<ElementsItemId> usersInNonOrgGroups = topLevel.getImplicitUsers();
@@ -110,6 +153,14 @@ public class ElementsGroupCollection extends ElementsItemKeyedCollection<Element
     }
 
 
+    /**
+     * Overridden Method from ElementsItemKeyedCollection to make it possible for the GroupCollection
+     * to be used as an ElementsItemStore when retreiving information about Elements Groups from the Elements API.
+     * @param itemInfo
+     * @param resourceType
+     * @param data
+     * @return
+     */
     @Override
     protected ElementsGroupInfo.GroupHierarchyWrapper getItemToStore(ElementsItemInfo itemInfo, StorableResourceType resourceType, byte[] data) {
         if(!itemInfo.isGroupInfo()) throw new IllegalStateException("ElementsGroupCollection can only store Group items");
@@ -117,6 +168,12 @@ public class ElementsGroupCollection extends ElementsItemKeyedCollection<Element
         return new ElementsGroupInfo.GroupHierarchyWrapper(groupInfo);
     }
 
+
+    /**
+     * Internal class representing the ability to target a GroupHierarchyWrapper object as an ElementsItemStore for
+     * group membership information. storeItem will be called with a resourceType or rawObject - but all we want or need
+     * is the parsed ObjectID which will represent a user.
+     */
     private class GroupMembershipStore implements ElementsItemStore {
         private final  ElementsGroupInfo.GroupHierarchyWrapper group;
 

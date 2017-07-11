@@ -17,6 +17,11 @@ import uk.co.symplectic.vivoweb.harvester.model.ElementsUserInfo;
 import java.util.Collections;
 import java.util.Set;
 
+/**
+ * Class representing a filter to exclude some users from being sent to vivo.
+ * There may be additional reasons that a user is not sent (e.g. group membership), this is just one layer
+ * The simplest type operates on whether the user is academic or current.
+ */
 public class EligibilityFilter {
     private final boolean academicsOnly;
     private final boolean currentStaffOnly;
@@ -34,6 +39,9 @@ public class EligibilityFilter {
 
     protected boolean innerIsUserEligible(ElementsUserInfo userToTest) {return true;}
 
+    /**
+     * Abstract class based on including or excluding a user because they have a particular value "somewhere".
+     */
     public static abstract class InclusionExclusionFilter extends EligibilityFilter {
         private final String schemeName;
         private final String inclusionValue;
@@ -64,6 +72,9 @@ public class EligibilityFilter {
         protected abstract Set<String> getValuesToTest(ElementsUserInfo userToTest);
     }
 
+    /**
+     * A filter that operates based on a specific label-scheme
+     */
     public static class LabelSchemeFilter extends InclusionExclusionFilter{
 
         public LabelSchemeFilter(String schemeName, String inclusionValue, String exclusionValue, boolean academicsOnly, boolean currentStaffOnly){
@@ -74,6 +85,9 @@ public class EligibilityFilter {
         protected Set<String> getValuesToTest(ElementsUserInfo userToTest){ return userToTest.getLabelSchemeValues(); }
     }
 
+    /**
+     * A filter that operates based on a specific generic field.
+     */
     public static class GenericFieldFilter extends InclusionExclusionFilter{
 
         public GenericFieldFilter(String schemeName, String inclusionValue, String exclusionValue, boolean academicsOnly, boolean currentStaffOnly){
