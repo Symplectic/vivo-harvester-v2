@@ -150,9 +150,9 @@
             <!--<config:label-scheme name="c-seo-post-2008" defined-by="{baseURI}c-seo-post-2008"/>-->
         </config:label-schemes>
         <config:label-schemes for="user">
-            <config:label-scheme name="mesh" defined-by="http://www.nlm.nih.gov/mesh" />
-            <config:label-scheme name="science-metrix" defined-by="http://www.science-metrix.com/"/>
-            <config:label-scheme name="for" defined-by="http://www.arc.gov.au/era/for"/>
+            <config:label-scheme name="mesh" defined-by="http://www.nlm.nih.gov/mesh" target-research-areas = "true" />
+            <config:label-scheme name="science-metrix" defined-by="http://www.science-metrix.com/" target-research-areas = "true"/>
+            <config:label-scheme name="for" defined-by="http://www.arc.gov.au/era/for" target-research-areas = "true"/>
             <!--<config:label-scheme name="c-availability" defined-by="{baseURI}c-availability"/>-->
             <!--<config:label-scheme name="c-seo-post-2008" defined-by="{baseURI}c-seo-post-2008"/>-->
         </config:label-schemes>

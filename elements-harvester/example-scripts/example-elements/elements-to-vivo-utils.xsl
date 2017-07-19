@@ -795,8 +795,16 @@
         <xsl:for-each select="$label-schemes[@for=$object/@category]/config:label-scheme">
             <xsl:if test="not(./@defined-by='')">
                 <xsl:variable name="scheme-name" select="./@name" />
+                <xsl:variable name="targetResearchAreas" select="./@target-research-areas = 'true'" />
                 <xsl:for-each select="fn:distinct-values($allLabels/api:keywords/api:keyword[@scheme=$scheme-name and ($origin = '' or @origin = $origin)])">
-                    <vivo:hasSubjectArea rdf:resource="{svfn:makeURI(concat('vocab-',$scheme-name,'-'),.)}" />
+                    <xsl:choose>
+                        <xsl:when test="$targetResearchAreas">
+                            <vivo:hasResearchArea rdf:resource="{svfn:makeURI(concat('vocab-',$scheme-name,'-'),.)}" />
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <vivo:hasSubjectArea rdf:resource="{svfn:makeURI(concat('vocab-',$scheme-name,'-'),.)}" />
+                        </xsl:otherwise>
+                    </xsl:choose>
                 </xsl:for-each>
             </xsl:if>
         </xsl:for-each>
@@ -811,10 +819,10 @@
         <xsl:variable name="allLabels" select="$object/api:all-labels" />
         <!-- if there are no mapped schemes then the for each will not trigger -->
         <xsl:for-each select="$label-schemes[@for=$object/@category]/config:label-scheme">
-
             <xsl:variable name="schemeDefinedBy" select="./@defined-by" />
             <xsl:if test="not($schemeDefinedBy='')">
                 <xsl:variable name="scheme-name" select="./@name" />
+                <xsl:variable name="targetResearchAreas" select="./@target-research-areas = 'true'" />
                 <xsl:if test="not(./@defined-by='')">
                     <xsl:for-each select="fn:distinct-values($allLabels/api:keywords/api:keyword[@scheme=$scheme-name])">
                         <xsl:variable name="definitionUri" select="svfn:makeURI(concat('vocab-',$scheme-name,'-'),.)" />
@@ -826,7 +834,14 @@
                                 <rdfs:label><xsl:value-of select="." /></rdfs:label>
                                 <rdfs:isDefinedBy rdf:resource="{$schemeDefinedBy}" />
                                 <xsl:if test="not($objectUri='')">
-                                    <vivo:subjectAreaOf rdf:resource="{$objectUri}" />
+                                    <xsl:choose>
+                                        <xsl:when test="$targetResearchAreas">
+                                            <vivo:researchAreaOf rdf:resource="{$objectUri}" />
+                                        </xsl:when>
+                                        <xsl:otherwise>
+                                            <vivo:subjectAreaOf rdf:resource="{$objectUri}" />
+                                        </xsl:otherwise>
+                                    </xsl:choose>
                                 </xsl:if>
                                 <xsl:variable name="testValue" select="." />
                                 <!-- if we have a "venue" i.e. a journal and there exists a matching label that is inferred from the issn then add that this concept is a subject area of that venue -->
