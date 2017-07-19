@@ -15,6 +15,9 @@ import org.apache.commons.lang.StringUtils;
 import java.text.MessageFormat;
 import java.util.*;
 
+/**
+ * enum representing the idea of a "type" of data from Elements
+ */
 public enum ElementsItemType {
     OBJECT("object"),
     RELATIONSHIP("relationship"),
@@ -37,9 +40,16 @@ public enum ElementsItemType {
         this.pluralName = pluralName;
     }
 
+    /**
+     * SubType's keyed by ItemType and name (singular and plural)
+     */
     private static final Map<ElementsItemType, Map<String, SubType>> singularMap = new HashMap<ElementsItemType, Map<String, SubType>>();
     private static final Map<ElementsItemType, Map<String, SubType>> pluralMap = new HashMap<ElementsItemType, Map<String, SubType>>();
 
+    /**
+     * method to register an item type in the maps above (called by constructor within SubType class)
+     * @param subType
+     */
     private static synchronized void addSubType(SubType subType){
         ElementsItemType mainType = subType.getMainType();
         if(!singularMap.containsKey(mainType)) singularMap.put(mainType, new HashMap<String, SubType>());
@@ -50,6 +60,12 @@ public enum ElementsItemType {
         }
     }
 
+    /**
+     * Method to retrieve a "known" subtype based on ItemType and name from the maps
+     * @param type
+     * @param value
+     * @return
+     */
     public static SubType getSubType(ElementsItemType type, String value) {
         if (singularMap.containsKey(type) && singularMap.get(type).containsKey(value)) {
             return singularMap.get(type).get(value);
@@ -60,6 +76,11 @@ public enum ElementsItemType {
         throw new IndexOutOfBoundsException(MessageFormat.format("{0} is not a known subtype of {2}", value, type.getName()));
     }
 
+    /**
+     * Method to retrieve all the "known" sub types for a particular item type.
+     * @param type
+     * @return
+     */
     public static Collection<SubType> knownSubTypes (ElementsItemType type) {
         if(singularMap.containsKey(type)) {
             return Collections.unmodifiableCollection(singularMap.get(type).values());
@@ -73,6 +94,12 @@ public enum ElementsItemType {
     public static SubType AllRelationships = new AggregateSubType(ElementsItemType.RELATIONSHIP, true);
     public static SubType AllRelationshipTypes = new AggregateSubType(ElementsItemType.RELATIONSHIP_TYPE, true);
 
+    /**
+     * Class representing the idea of a subtype of data (e.g. publication within object)
+     * If they are "concrete" then they are "known" types which are listed by the knownSubTypes method.
+     * If not concrete they might be simple abstract groupings of types that facilitate certain things via the
+     * matches method.
+     */
     public static class SubType{
         private final ElementsItemType mainType;
         private final String singular;
@@ -114,6 +141,10 @@ public enum ElementsItemType {
         }
     }
 
+    /**
+     * Class that can represent an aggregate grouping of subtypes
+     * specifically in terms of matches behaviour..
+     */
     private static class AggregateSubType extends SubType{
         AggregateSubType(ElementsItemType mainType, boolean registerAsConcrete){
             super(mainType, mainType.getName(), mainType.getPluralName(), registerAsConcrete);
