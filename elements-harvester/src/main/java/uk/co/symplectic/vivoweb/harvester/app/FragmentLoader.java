@@ -135,7 +135,13 @@ public class FragmentLoader {
                                 //if there is content to send to vivo then send it
                                 if (sparqlContent != null) {
                                     SparqlUpdateHttpClient client = new SparqlUpdateHttpClient(vivoUrl, username, password, validGraphURI);
-                                    trySendFragment(client, sparqlContent, shouldDeleteContent);
+                                    try {
+                                        trySendFragment(client, sparqlContent, shouldDeleteContent);
+                                    }
+                                    catch(Exception e){
+                                        log.error(MessageFormat.format("Error occurred processing fragment : {0}", file.getName()));
+                                        throw e;
+                                    }
                                 }
 
                                 //if we have not errored out delete the file in question.

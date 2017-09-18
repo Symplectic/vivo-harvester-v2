@@ -207,7 +207,7 @@ public class ElementsFetchAndTranslate {
 
 
                 //we are about to start doing things that affect out caches..
-                begunProcessing = true;
+
 
                 //Now we have wired up all our store observers perform the main fetches
                 //NOTE: order is absolutely vital (relationship translation scripts can rely on raw object data having been fetched)
@@ -231,6 +231,8 @@ public class ElementsFetchAndTranslate {
                             }
                         }
                     }
+                    //building the in memory relationship cache does not affect our disk caches so...
+                    begunProcessing = true;
 
                     processObjects(objectStore, elementsFetcher, pullNewDataSinceDate);
                     //fetch relationships.
@@ -238,6 +240,7 @@ public class ElementsFetchAndTranslate {
                     processRelationships(objectStore, elementsFetcher, pullNewDataSinceDate, relationshipTypesToInclude, repullRelsForVis, relationshipTypesNeedingObjectsForTranslation);
                 }
                 else{
+                    begunProcessing = true; //not sure we need to flag this..
                     reprocessCachedItems(objectStore, StorableResourceType.RAW_OBJECT);
                     reprocessCachedItems(objectStore, StorableResourceType.RAW_RELATIONSHIP);
                 }
@@ -678,7 +681,9 @@ public class ElementsFetchAndTranslate {
         ElementsItemKeyedCollection.ItemRestrictor restrictToGroupsOnly = new ElementsItemKeyedCollection.RestrictToType(ElementsItemType.GROUP);
         ElementsItemKeyedCollection.ItemInfo includedGroups = new ElementsItemKeyedCollection.ItemInfo(restrictToGroupsOnly);
 
-        getIncludedGroups(groupCache.GetTopLevel(), includedGroups, Configuration.getGroupsToHarvest().isEmpty() ? true : false);
+        //only assume we include the org group by default if no groups (or child groups) are specified as to be included
+        boolean assumeIncludeOrgGroup = Configuration.getGroupsToHarvest().isEmpty() && Configuration.getGroupsToIncludeChildrenOf().isEmpty();
+        getIncludedGroups(groupCache.GetTopLevel(), includedGroups, assumeIncludeOrgGroup);
 
         return includedGroups;
     }
@@ -690,21 +695,31 @@ public class ElementsFetchAndTranslate {
      * @param assumeInclude whether we are currently including or excluding discovered nodes.
      */
     private static void getIncludedGroups(ElementsGroupInfo.GroupHierarchyWrapper group, ElementsItemKeyedCollection.ItemInfo includedGroups, boolean assumeInclude){
-        boolean shouldIncludeGroup = assumeInclude;
+
         ElementsItemId.GroupId groupId = (ElementsItemId.GroupId) group.getGroupInfo().getItemId();
 
+        boolean shouldIncludeGroup = assumeInclude;
         if(Configuration.getGroupsToHarvest().contains(groupId)){
             shouldIncludeGroup = true;
         } else if(Configuration.getGroupsToExclude().contains(groupId)){
             shouldIncludeGroup = false;
         }
+
         if(shouldIncludeGroup){
             ElementsGroupInfo groupInfo = group.getGroupInfo();
             includedGroups.put(groupInfo.getItemId(), groupInfo);
         }
 
+        //default to assuming if should include children based on if group itself is being included..
+        boolean shouldAssumeIncludeChildGroups = shouldIncludeGroup;
+        if(Configuration.getGroupsToIncludeChildrenOf().contains(groupId)){
+            shouldAssumeIncludeChildGroups = true;
+        } else if (Configuration.getGroupsToExcludeChildrenOf().contains(groupId)){
+            shouldAssumeIncludeChildGroups = false;
+        }
+
         for(ElementsGroupInfo.GroupHierarchyWrapper child : group.getChildren()){
-            getIncludedGroups(child, includedGroups, shouldIncludeGroup);
+            getIncludedGroups(child, includedGroups, shouldAssumeIncludeChildGroups);
         }
     }
 

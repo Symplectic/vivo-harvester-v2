@@ -36,6 +36,7 @@ public class StateManagement {
 
     public enum PriorRunClassification{
         FAILED_FULL,
+        //FAILED_DELTA,
         FAILED_REPROCESS,
     }
 

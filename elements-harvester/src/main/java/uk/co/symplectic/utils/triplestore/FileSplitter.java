@@ -13,7 +13,8 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.NullArgumentException;
 import org.apache.commons.lang.StringUtils;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
@@ -28,6 +29,8 @@ import java.util.regex.Pattern;
  * when this happens the N3 file will not split nicely into chunks of the requested size given the current code.
  */
 public abstract class FileSplitter {
+
+    private static final Logger log = LoggerFactory.getLogger(FileSplitter.class);
 
     //template for how dates will be converted in this class, note how matches the regexes //note Z is for timezone..
     final private static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd'T'HH_mm_ssZ");
@@ -44,6 +47,7 @@ public abstract class FileSplitter {
     final private String extension;
     //RegEx pattern for detecting files that match the generating templates ;
     final private Pattern fileNameRegEx;
+
 
     protected FileSplitter(File fragmentDirectory, String extension){
         //default size to about 1.2 meg
@@ -97,6 +101,19 @@ public abstract class FileSplitter {
                 int counter = 0;
                 while ((str = in.readLine()) != null) {
                     String trimmedStr = StringUtils.trimToNull(str);
+
+                    if(isLineInvalid(trimmedStr)){
+                        //deliberately allow subtractions to flow through - as if the interim db contains uri forms
+                        //that the final store can't supprot we will get them as subtractions - but they will never have
+                        //made it into the main store.
+                        if(type == Type.Subtractions) {
+                            log.warn(MessageFormat.format("An invalid line was detected in the file {0}, and was deliberately excluded", fileToSplit.getName()));
+                            log.warn(MessageFormat.format("The excluded line was : \"{0}\"", trimmedStr));
+                            continue;
+                        }
+                        else throw new IllegalStateException(MessageFormat.format("Invalid line detected in file {0} : \"{1}\"", fileToSplit.getName(),trimmedStr));
+                    }
+
                     //if it has content add the current line to out internal buffer
                     if(trimmedStr != null) internalBuffer.append(trimmedStr);
                     //always add a new line for this line in the file.
@@ -141,6 +158,10 @@ public abstract class FileSplitter {
 
     //method to look at the line contents and decide if this is a split point.
     public abstract boolean isPotentialSplitPoint(String lineContent);
+
+    //break out point for inheriting classes to inspect each line of content
+    //if line is invalid it will log the issue as an error and exclude it from the outgoing file...
+    public boolean isLineInvalid(String lineContent){return false;}
 
     private void flushBufferToFile(byte[] buffer, File outputFile) throws IOException{
         if(buffer == null) throw new NullArgumentException("buffer");
@@ -263,6 +284,7 @@ public abstract class FileSplitter {
         }
     }
 
+
     public static class N3Splitter extends FileSplitter{
         //default of 122880
         public N3Splitter(File fragmentDirectory){super(fragmentDirectory, "n3");}
@@ -275,12 +297,28 @@ public abstract class FileSplitter {
     }
 
     public static class NTriplesSplitter extends FileSplitter{
-        public NTriplesSplitter(File fragmentDirectory){super(fragmentDirectory, "nt");}
-        public NTriplesSplitter(File fragmentDirectory, int maxOutputFileSize){super(fragmentDirectory, "nt", maxOutputFileSize);}
+
+        final private static String corruptLineRegExPattern = "^<[^>\\s]*\\s[^>\\s]*>|^<[^>\\s]+>\\s<[^>\\s]*\\s[^>\\s]*>|^<[^>\\s]+>\\s<[^>\\s]+>\\s<[^>\\s]*\\s[^>\\s]*>";
+        final private Pattern corruptLineRegEx;
+
+
+        public NTriplesSplitter(File fragmentDirectory){
+            super(fragmentDirectory, "nt");
+            this.corruptLineRegEx = Pattern.compile(corruptLineRegExPattern);
+        }
+        public NTriplesSplitter(File fragmentDirectory, int maxOutputFileSize){
+            super(fragmentDirectory, "nt", maxOutputFileSize);
+            this.corruptLineRegEx = Pattern.compile(corruptLineRegExPattern);
+        }
         @Override
         public boolean isPotentialSplitPoint(String lineContent) {
             //every line in the file is a potential split point for NTriples.
             return true;
+        }
+
+        @Override
+        public boolean isLineInvalid(String lineContent){
+            return corruptLineRegEx.matcher(lineContent).find();
         }
     }
 }

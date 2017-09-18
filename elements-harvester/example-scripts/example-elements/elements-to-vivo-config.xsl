@@ -35,13 +35,14 @@
 
     <!-- The base URI you are using for VIVO identifiers : passed in from java framework -->
     <xsl:param name="baseURI">
-        <xsl:value-of select="fn:normalize-space($loaded-config/config:defaultbaseURI)" />
+        <xsl:value-of select="$loaded-config/config:defaultbaseURI" />
     </xsl:param>
 
     <xsl:variable name="validatedBaseURI">
+        <xsl:variable name="baseUriValidation" select="fn:resolve-uri('', fn:normalize-space($baseURI))" />
         <xsl:choose>
-            <xsl:when test="ends-with($baseURI, '/')"><xsl:value-of select="$baseURI" /></xsl:when>
-            <xsl:otherwise><xsl:value-of select="concat($baseURI, '/')" /></xsl:otherwise>
+            <xsl:when test="ends-with($baseUriValidation, '/')"><xsl:value-of select="$baseUriValidation" /></xsl:when>
+            <xsl:otherwise><xsl:value-of select="concat($baseUriValidation, '/')" /></xsl:otherwise>
         </xsl:choose>
     </xsl:variable>
 
@@ -70,10 +71,12 @@
     <!-- Read the publication types XML configuration file -->
     <xsl:variable name="publication-types" select="$loaded-config/config:publication-types" />
     <xsl:variable name="organization-types" select="$loaded-config/config:organization-types" />
+    <xsl:variable name="country-types" select="$loaded-config/config:country-types" />
     <xsl:variable name="record-precedences" select="$loaded-config/config:record-precedences/config:record-precedences" />
     <xsl:variable name="data-exclusions" select="$loaded-config/config:data-exclusions/config:data-exclusions" />
     <xsl:variable name="journal-precedence" select="$loaded-config/config:journal-precedences" />
     <xsl:variable name="label-schemes" select="$loaded-config/config:label-schemes/config:label-schemes" />
+    <xsl:variable name="label-overrides" select="$loaded-config/config:label-overrides/config:label-override" />
 
     <!-- testing tool for config -->
     <!--<xsl:template match="/">-->

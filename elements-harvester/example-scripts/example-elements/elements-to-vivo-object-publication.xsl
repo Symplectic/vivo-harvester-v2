@@ -83,6 +83,9 @@
         <xsl:variable name="authorUrl" select="svfn:getRecordField(.,'author-url')" />
         <xsl:variable name="publisherUrl" select="svfn:getRecordField(.,'publisher-url')" />
         <xsl:variable name="repositoryUrl" select="(api:repository-items/api:repository-item/api:public-url)[1]" />
+        <!-- specifically try and grab out a "Web of Science" url, which may match the author URL depending on record precednece and exclusions-->
+        <!-- note do not force it with fieldorfirst as we only want to provide a WoS link if we might be showing WoS data -->
+        <xsl:variable name="wosUrl" select="svfn:getRecordField(.,'author-url', 'wos,wos-lite', 'field', false())" />
 
         <xsl:variable name="publicationStatus" select="svfn:getRecordField(.,'publication-status')" />
 
@@ -133,7 +136,7 @@
                 <xsl:if test="$publicationDateObject/*"><vivo:dateTimeValue rdf:resource="{$publicationDateURI}" /></xsl:if>
                 <xsl:if test="$publicationVenueObject/*"><vivo:hasPublicationVenue rdf:resource="{$publicationVenueURI}" /></xsl:if>
                 <xsl:if test="$conferenceObject/*"><bibo:presentedAt rdf:resource="{$conferenceURI}" /></xsl:if>
-                <xsl:if test="$arxivPdfUrl/* or $authorUrl/* or $publisherUrl">
+                <xsl:if test="$arxivPdfUrl/* or $authorUrl/* or $publisherUrl/* or $wosUrl/* or $repositoryUrl">
                     <obo:ARG_2000028 rdf:resource="{concat(svfn:objectURI(.),'-webpages')}" />
                 </xsl:if>
                 <xsl:choose>
@@ -144,7 +147,7 @@
                     <xsl:when test="$publicationStatus/api:text='Unpublished'"><bibo:status rdf:resource="http://purl.org/ontology/bibo/unpublished" /></xsl:when>
                 </xsl:choose>
                 <!-- add label links -->
-                <xsl:copy-of select="svfn:renderControlledSubjectLinks(., '')" />
+                <xsl:copy-of select="svfn:renderControlledSubjectLinks(., $publicationUri, '')" />
 
             </xsl:with-param>
         </xsl:call-template>
@@ -155,16 +158,18 @@
         <xsl:copy-of select="$publicationVenueObject" />
         <xsl:copy-of select="$conferenceObject" />
 
-        <xsl:if test="$arxivPdfUrl/* or $authorUrl/* or $publisherUrl/* or $repositoryUrl ">
+        <xsl:if test="$arxivPdfUrl/* or $authorUrl/* or $publisherUrl/* or $wosUrl/* or $repositoryUrl">
             <xsl:call-template name="render_rdf_object">
                 <xsl:with-param name="objectURI" select="concat(svfn:objectURI(.),'-webpages')" />
                 <xsl:with-param name="rdfNodes">
                     <rdf:type rdf:resource="http://www.w3.org/2006/vcard/ns#Kind" />
                     <obo:ARG_2000029 rdf:resource="{svfn:objectURI(.)}" />
                     <xsl:if test="$arxivPdfUrl/*"><vcard:hasURL rdf:resource="{concat(svfn:objectURI(.),'-webpages-arxiv')}" /></xsl:if>
-                    <xsl:if test="$authorUrl/*"><vcard:hasURL rdf:resource="{concat(svfn:objectURI(.),'-webpages-author')}" /></xsl:if>
                     <xsl:if test="$publisherUrl/*"><vcard:hasURL rdf:resource="{concat(svfn:objectURI(.),'-webpages-publisher')}" /></xsl:if>
                     <xsl:if test="$repositoryUrl"><vcard:hasURL rdf:resource="{concat(svfn:objectURI(.),'-webpages-repository')}" /></xsl:if>
+                    <!-- only include the author url if it is distinct from any wos URL we may have to include -->
+                    <xsl:if test="$authorUrl/* and (not($wosUrl/*) or $authorUrl/api:text != $wosUrl/api:text)"><vcard:hasURL rdf:resource="{concat(svfn:objectURI(.),'-webpages-author')}" /></xsl:if>
+                    <xsl:if test="$wosUrl/*"><vcard:hasURL rdf:resource="{concat(svfn:objectURI(.),'-webpages-wos')}" /></xsl:if>
                 </xsl:with-param>
             </xsl:call-template>
 
@@ -175,17 +180,6 @@
                         <rdf:type rdf:resource="http://www.w3.org/2006/vcard/ns#URL" />
                         <rdfs:label>ArXiv PDF</rdfs:label>
                         <vcard:url><xsl:value-of select="$arxivPdfUrl/api:text" /></vcard:url>
-                    </xsl:with-param>
-                </xsl:call-template>
-            </xsl:if>
-
-            <xsl:if test="$authorUrl/*">
-                <xsl:call-template name="render_rdf_object">
-                    <xsl:with-param name="objectURI" select="concat(svfn:objectURI(.),'-webpages-author')" />
-                    <xsl:with-param name="rdfNodes">
-                        <rdf:type rdf:resource="http://www.w3.org/2006/vcard/ns#URL" />
-                        <rdfs:label>Author's Version</rdfs:label>
-                        <vcard:url><xsl:value-of select="$authorUrl/api:text" /></vcard:url>
                     </xsl:with-param>
                 </xsl:call-template>
             </xsl:if>
@@ -212,20 +206,36 @@
                 </xsl:call-template>
             </xsl:if>
 
+            <!-- only include the author url if it is distinct from any wos URL we may have to include -->
+            <xsl:if test="$authorUrl/* and (not($wosUrl/*) or $authorUrl/api:text != $wosUrl/api:text)">
+                <xsl:call-template name="render_rdf_object">
+                    <xsl:with-param name="objectURI" select="concat(svfn:objectURI(.),'-webpages-author')" />
+                    <xsl:with-param name="rdfNodes">
+                        <rdf:type rdf:resource="http://www.w3.org/2006/vcard/ns#URL" />
+                        <rdfs:label>Author's Version</rdfs:label>
+                        <vcard:url><xsl:value-of select="$authorUrl/api:text" /></vcard:url>
+                    </xsl:with-param>
+                </xsl:call-template>
+            </xsl:if>
+
+            <xsl:if test="$wosUrl/*">
+                <xsl:call-template name="render_rdf_object">
+                    <xsl:with-param name="objectURI" select="concat(svfn:objectURI(.),'-webpages-wos')" />
+                    <xsl:with-param name="rdfNodes">
+                        <rdf:type rdf:resource="http://www.w3.org/2006/vcard/ns#URL" />
+                        <rdfs:label>View record in Web of Science ®</rdfs:label>
+                        <vcard:url><xsl:value-of select="$wosUrl/api:text" /></vcard:url>
+                    </xsl:with-param>
+                </xsl:call-template>
+            </xsl:if>
+
         </xsl:if>
 
         <xsl:copy-of select="svfn:renderLinksAndExternalPeople($authors, $publicationId, $publicationUri)" />
         <xsl:copy-of select="svfn:renderLinksAndExternalPeople($editors, $publicationId, $publicationUri)" />
 
         <!-- add label objects -->
-        <xsl:choose>
-            <xsl:when test="$publicationVenueObject/*">
-                <xsl:copy-of select="svfn:renderControlledSubjectObjects(., $publicationUri, $publicationVenueURI)" />
-            </xsl:when>
-            <xsl:otherwise>
-                <xsl:copy-of select="svfn:renderControlledSubjectObjects(., $publicationUri, '')" />
-            </xsl:otherwise>
-        </xsl:choose>
+        <xsl:copy-of select="svfn:renderControlledSubjectObjects(.)" />
     </xsl:template>
 
     <!-- ====================================================
@@ -365,7 +375,7 @@
                     <xsl:copy-of select="svfn:renderPropertyFromField($object,'bibo:issn','issn')" />
                     <xsl:copy-of select="svfn:renderPropertyFromField($object,'bibo:eissn','eissn')" />
                     <!-- add label links-->
-                    <xsl:copy-of select="svfn:renderControlledSubjectLinks($object, 'issn-inferred')" />
+                    <xsl:copy-of select="svfn:renderControlledSubjectLinks($object, $journalObjectURI, 'issn-inferred')" />
                 </xsl:with-param>
             </xsl:call-template>
         </xsl:if>

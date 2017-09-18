@@ -64,6 +64,8 @@ public class Configuration {
         private ConfigKey ARG_QUERY_CATEGORIES = new ConfigKey("queryObjects"); //TODO : rename this input param?
         private ConfigKey ARG_PARAMS_GROUPS = new ConfigKey("paramGroups");
         private ConfigKey ARG_EXCLUDE_GROUPS = new ConfigKey("excludeGroups");
+        private ConfigKey ARG_INCLUDE_CHILD_GROUPS = new ConfigKey("includeChildGroupsOf");
+        private ConfigKey ARG_EXCLUDE_CHILD_GROUPS = new ConfigKey("excludeChildGroupsOf");
 
         private ConfigKey ARG_PARAMS_USER_GROUPS = new ConfigKey("paramUserGroups");
         private ConfigKey ARG_EXCLUDE_USER_GROUPS = new ConfigKey("excludeUserGroups");
@@ -109,6 +111,8 @@ public class Configuration {
 
         private List<ElementsItemId.GroupId> groupsToExclude;
         private List<ElementsItemId.GroupId> groupsToHarvest;
+        private List<ElementsItemId.GroupId> groupsToIncludeChildrenOf;
+        private List<ElementsItemId.GroupId> groupsToExcludeChildrenOf;
 
         private List<ElementsItemId.GroupId> groupsOfUsersToHarvest;
         private List<ElementsItemId.GroupId> groupsOfUsersToExclude;
@@ -256,7 +260,7 @@ public class Configuration {
             for(String name : props.stringPropertyNames()){
                 if(name.startsWith(xslPrefix)){
                     String key = name.replaceFirst(xslPrefix, "");
-                    returnMap.put(key, props.getProperty(name));
+                    returnMap.put(key, props.getProperty(name).trim());
                 }
             }
             return returnMap;
@@ -289,6 +293,16 @@ public class Configuration {
             //allow null as that means exclude nothing
             for (Integer groupId : getIntegers(ARG_EXCLUDE_GROUPS, true)) groups.add(ElementsItemId.createGroupId(groupId));
             values.groupsToExclude = groups;
+
+            groups = new ArrayList<ElementsItemId.GroupId>();
+            //allow null when getting integers as that means include everything
+            for (Integer groupId : getIntegers(ARG_INCLUDE_CHILD_GROUPS, true)) groups.add(ElementsItemId.createGroupId(groupId));
+            values.groupsToIncludeChildrenOf = groups;
+
+            groups = new ArrayList<ElementsItemId.GroupId>();
+            //allow null when getting integers as that means include everything
+            for (Integer groupId : getIntegers(ARG_EXCLUDE_CHILD_GROUPS, true)) groups.add(ElementsItemId.createGroupId(groupId));
+            values.groupsToExcludeChildrenOf = groups;
 
             groups = new ArrayList<ElementsItemId.GroupId>();
             //allow null as that means exclude nothing
@@ -393,6 +407,14 @@ public class Configuration {
 
     public static List<ElementsItemId.GroupId> getGroupsToHarvest() {
         return values.groupsToHarvest;
+    }
+
+    public static List<ElementsItemId.GroupId> getGroupsToIncludeChildrenOf() {
+        return values.groupsToIncludeChildrenOf;
+    }
+
+    public static List<ElementsItemId.GroupId> getGroupsToExcludeChildrenOf() {
+        return values.groupsToExcludeChildrenOf;
     }
 
     public static List<ElementsItemId.GroupId> getGroupsOfUsersToExclude() {

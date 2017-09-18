@@ -448,12 +448,12 @@
     </xsl:function>
 
     <!--
-        svfn:renderPropertyFromField
-        ============================
-        Function to retrieve the specified Elements field (fieldName) from the most preferred record,
-        and render it as the RDF property (propertyName)
-        Overloaded method that takes a comma delimited list of record names to use as the preference order (override the central configuration)
-    -->
+    svfn:renderPropertyFromField
+    ============================
+    Function to retrieve the specified Elements field (fieldName) from the most preferred record,
+    and render it as the RDF property (propertyName)
+    Overloaded method that takes a comma delimited list of record names to use as the preference order (override the central configuration)
+-->
     <xsl:function name="svfn:renderPropertyFromField">
         <xsl:param name="object" />
         <xsl:param name="propertyName" as="xs:string" />
@@ -461,6 +461,28 @@
         <xsl:param name="records" as="xs:string" />
 
         <xsl:copy-of select="svfn:_renderPropertyFromField($object, $propertyName, $fieldName, svfn:getRecordField($object, $fieldName, $records))" />
+    </xsl:function>
+
+
+    <!--
+        svfn:renderPropertyFromField
+        ============================
+        Function to retrieve the specified Elements field (fieldName) from the most preferred record,
+        and render it as the RDF property (propertyName)
+        Overloaded method that takes a comma delimited list of record names to use as the preference order (override the central configuration)
+        additionally takes "select-by and useUnlistedSources" to allow complete control of how record precedence is calculated
+        select-by should be 'field' (find first occurrence of the field) or 'record' (use first preferred record, even if the field is not present)
+        useUnlistedSources is a boolean true() or false()
+    -->
+    <xsl:function name="svfn:renderPropertyFromField">
+        <xsl:param name="object" />
+        <xsl:param name="propertyName" as="xs:string" />
+        <xsl:param name="fieldName" as="xs:string" />
+        <xsl:param name="records" as="xs:string" />
+        <xsl:param name="select-by" as="xs:string" />
+        <xsl:param name="useUnlistedSources" as="xs:boolean" />
+
+        <xsl:copy-of select="svfn:_renderPropertyFromField($object, $propertyName, $fieldName, svfn:getRecordField($object, $fieldName, $records, $select-by, $useUnlistedSources))" />
     </xsl:function>
 
     <!--
@@ -536,23 +558,18 @@
         ================
         Function to retrieve the specified Elements field (fieldName) from the most preferred record,
         Overloaded method that takes a comma delimited list of record names to use as the preference order (override the central configuration)
-        and select-by is 'field' (find first occurrence of the field) or 'record' (use first preferred record, even if the field is not present)
+        additionally takes "select-by and useUnlistedSources" to allow complete control of how record precedence is calculated
+        select-by should be 'field' (find first occurrence of the field) or 'record' (use first preferred record, even if the field is not present)
+        useUnlistedSources is a boolean true() or false()
     -->
     <xsl:function name="svfn:getRecordField">
         <xsl:param name="object" />
         <xsl:param name="fieldName" as="xs:string" />
         <xsl:param name="records" as="xs:string" />
         <xsl:param name="select-by" as="xs:string" />
+        <xsl:param name="useUnlistedSources" as="xs:boolean" />
 
-        <xsl:variable name="precedence-to-use">
-            <xsl:choose>
-                <xsl:when test="$record-precedences[@for=$object/@category]"><xsl:value-of select="$object/@category" /></xsl:when>
-                <xsl:otherwise><xsl:value-of select="'default'" /></xsl:otherwise>
-            </xsl:choose>
-        </xsl:variable>
-        <xsl:variable name="record-precedence-use-unlisted" select="$record-precedences[@for=$precedence-to-use]/@use-unlisted-sources != 'false'" />
-
-        <xsl:copy-of select="svfn:_getRecordField($object, $fieldName, fn:tokenize($records,','), $select-by, 1, $record-precedence-use-unlisted, false())" />
+        <xsl:copy-of select="svfn:_getRecordField($object, $fieldName, fn:tokenize($records,','), $select-by, 1, $useUnlistedSources, false())" />
     </xsl:function>
 
     <!--
@@ -788,33 +805,67 @@
 
     <xsl:function name="svfn:renderControlledSubjectLinks">
         <xsl:param name="object" />
+        <xsl:param name="objectUri" as="xs:string" />
         <xsl:param name="origin" />
         <!-- grab the labels off the object in question -->
         <xsl:variable name="allLabels" select="$object/api:all-labels" />
         <!-- if there are no mapped schemes then the for each will not trigger -->
         <xsl:for-each select="$label-schemes[@for=$object/@category]/config:label-scheme">
-            <xsl:if test="not(./@defined-by='')">
-                <xsl:variable name="scheme-name" select="./@name" />
-                <xsl:variable name="targetResearchAreas" select="./@target-research-areas = 'true'" />
-                <xsl:for-each select="fn:distinct-values($allLabels/api:keywords/api:keyword[@scheme=$scheme-name and ($origin = '' or @origin = $origin)])">
+            <xsl:variable name="scheme-name" select="fn:normalize-space(./@name)" />
+            <xsl:variable name="target-type" select="fn:normalize-space(./@target)" />
+            <xsl:for-each select="fn:distinct-values($allLabels/api:keywords/api:keyword[@scheme=$scheme-name and ($origin = '' or @origin = $origin)])">
+                <xsl:variable name="targetObjectUri" >
                     <xsl:choose>
-                        <xsl:when test="$targetResearchAreas">
-                            <vivo:hasResearchArea rdf:resource="{svfn:makeURI(concat('vocab-',$scheme-name,'-'),.)}" />
+                        <xsl:when test="$target-type = 'geographic-focus'">
+                            <xsl:variable name="label-value" select="." />
+                            <xsl:value-of select="$country-types/config:country-type[@name = $label-value][1]/@uri" />
+                            <!--<xsl:value-of select="$country-types/config:country-type[@name = $label-value]/@uri" />-->
                         </xsl:when>
                         <xsl:otherwise>
-                            <vivo:hasSubjectArea rdf:resource="{svfn:makeURI(concat('vocab-',$scheme-name,'-'),.)}" />
+                            <xsl:value-of select="svfn:makeURI(concat('vocab-',$scheme-name,'-'),.)" />
                         </xsl:otherwise>
                     </xsl:choose>
-                </xsl:for-each>
-            </xsl:if>
+                </xsl:variable>
+                <xsl:if test="fn:normalize-space($targetObjectUri) != ''">
+                    <xsl:choose>
+                        <xsl:when test="$target-type = 'research-areas'">
+                            <vivo:hasResearchArea>
+                                <xsl:call-template name="render_rdf_object">
+                                    <xsl:with-param name="objectURI" select="$targetObjectUri" />
+                                    <xsl:with-param name="rdfNodes">
+                                        <vivo:researchAreaOf rdf:resource="{$objectUri}" />
+                                    </xsl:with-param>
+                                </xsl:call-template>
+                            </vivo:hasResearchArea>
+                        </xsl:when>
+                        <xsl:when test="$target-type = 'geographic-focus'">
+                            <vivo:geographicFocus>
+                                <xsl:call-template name="render_rdf_object">
+                                    <xsl:with-param name="objectURI" select="$targetObjectUri" />
+                                    <xsl:with-param name="rdfNodes">
+                                        <vivo:geographicFocusOf rdf:resource="{$objectUri}" />
+                                    </xsl:with-param>
+                                </xsl:call-template>
+                            </vivo:geographicFocus>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <vivo:hasSubjectArea>
+                                <xsl:call-template name="render_rdf_object">
+                                    <xsl:with-param name="objectURI" select="$targetObjectUri" />
+                                    <xsl:with-param name="rdfNodes">
+                                        <vivo:subjectAreaOf rdf:resource="{$objectUri}" />
+                                    </xsl:with-param>
+                                </xsl:call-template>
+                            </vivo:hasSubjectArea>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:if>
+            </xsl:for-each>
         </xsl:for-each>
     </xsl:function>
 
     <xsl:function name="svfn:renderControlledSubjectObjects">
         <xsl:param name="object" />
-        <xsl:param name="objectUri" as="xs:string" />
-        <xsl:param name="publicationVenueUri" as="xs:string" />
-
         <!-- grab the labels off the object in question -->
         <xsl:variable name="allLabels" select="$object/api:all-labels" />
         <!-- if there are no mapped schemes then the for each will not trigger -->
@@ -822,41 +873,40 @@
             <xsl:variable name="schemeDefinedBy" select="./@defined-by" />
             <xsl:if test="not($schemeDefinedBy='')">
                 <xsl:variable name="scheme-name" select="./@name" />
-                <xsl:variable name="targetResearchAreas" select="./@target-research-areas = 'true'" />
-                <xsl:if test="not(./@defined-by='')">
+                <xsl:variable name="target" select="./@target" />
+                <xsl:if test="not($target) or $target != 'geographic-focus'">
                     <xsl:for-each select="fn:distinct-values($allLabels/api:keywords/api:keyword[@scheme=$scheme-name])">
                         <xsl:variable name="definitionUri" select="svfn:makeURI(concat('vocab-',$scheme-name,'-'),.)" />
-
                         <xsl:call-template name="render_rdf_object">
                             <xsl:with-param name="objectURI" select="$definitionUri" />
                             <xsl:with-param name="rdfNodes">
                                 <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept" />
-                                <rdfs:label><xsl:value-of select="." /></rdfs:label>
+                                <rdfs:label>
+                                    <xsl:value-of select="svfn:getLabelOrOverride($definitionUri ,.)" />
+                                </rdfs:label>
                                 <rdfs:isDefinedBy rdf:resource="{$schemeDefinedBy}" />
-                                <xsl:if test="not($objectUri='')">
-                                    <xsl:choose>
-                                        <xsl:when test="$targetResearchAreas">
-                                            <vivo:researchAreaOf rdf:resource="{$objectUri}" />
-                                        </xsl:when>
-                                        <xsl:otherwise>
-                                            <vivo:subjectAreaOf rdf:resource="{$objectUri}" />
-                                        </xsl:otherwise>
-                                    </xsl:choose>
-                                </xsl:if>
-                                <xsl:variable name="testValue" select="." />
-                                <!-- if we have a "venue" i.e. a journal and there exists a matching label that is inferred from the issn then add that this concept is a subject area of that venue -->
-                                <xsl:if test="not($publicationVenueUri='') and $allLabels/api:keywords/api:keyword[@scheme=$scheme-name and @origin='issn-inferred' and text() = $testValue]">
-                                    <vivo:subjectAreaOf rdf:resource="{$publicationVenueUri}" />
-                                </xsl:if>
                             </xsl:with-param>
                         </xsl:call-template>
                     </xsl:for-each>
                 </xsl:if>
-
             </xsl:if>
         </xsl:for-each>
     </xsl:function>
 
+    <xsl:function name="svfn:getLabelOrOverride">
+        <xsl:param name="objectUri" />
+        <xsl:param name="defaultLabelValue" />
+
+        <xsl:variable name="shortenedUri" select="substring-after($objectUri, $validatedBaseURI )" />
+        <xsl:choose>
+            <xsl:when test="$label-overrides[@uri=$shortenedUri]/@label">
+                <xsl:value-of select="$label-overrides[@uri=$shortenedUri][1]/@label" />
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:value-of select="$defaultLabelValue" />
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:function>
 
     <xsl:function name="svfn:userPhotoDescription">
         <xsl:param name="userURI" />

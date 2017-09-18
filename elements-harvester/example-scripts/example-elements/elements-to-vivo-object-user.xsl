@@ -64,13 +64,13 @@
                 <xsl:copy-of select="svfn:renderPropertyFromFieldOrFirst(.,'vivo:overview','overview', '')" />
 
                 <!-- render any user labels that are relevant -->
-                <xsl:copy-of select="svfn:renderControlledSubjectLinks(., '')" />
+                <xsl:copy-of select="svfn:renderControlledSubjectLinks(., $userURI, '')" />
 
             </xsl:with-param>
         </xsl:call-template>
 
         <!-- output objects to reference any labels that we have written out -->
-        <xsl:copy-of select="svfn:renderControlledSubjectObjects(., $userURI, '')" />
+        <xsl:copy-of select="svfn:renderControlledSubjectObjects(.)" />
 
         <!--
             Output the VCARD
@@ -151,7 +151,7 @@
                     <xsl:call-template name="render_rdf_object">
                         <xsl:with-param name="objectURI" select="$orgURI" />
                         <xsl:with-param name="rdfNodes">
-                            <vivo:relatedBy rdf:resource="{$awardedDegreeURI}" />
+                            <vivo:assigns rdf:resource="{$awardedDegreeURI}" />
                         </xsl:with-param>
                     </xsl:call-template>
                 </xsl:if>
@@ -193,9 +193,9 @@
                         <!--
                             Link to department if available, otherwise organisation
                         -->
-                        <xsl:if test="$orgObjects/*"><vivo:relates rdf:resource="{$orgURI}" /></xsl:if>
-                        <vivo:relates rdf:resource="{$userURI}" />
-                    </xsl:with-param>
+                    <xsl:if test="$orgObjects/*"><vivo:relates rdf:resource="{$orgURI}" /></xsl:if>
+                    <vivo:relates rdf:resource="{$userURI}" />
+                </xsl:with-param>
                 </xsl:call-template>
 
                 <xsl:call-template name="render_rdf_object">

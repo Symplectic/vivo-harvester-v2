@@ -47,8 +47,10 @@
         <config:record-precedences for="publication" select-by="field" use-unlisted-sources="true">
             <config:record-precedence>pubmed</config:record-precedence>
             <config:record-precedence>epmc</config:record-precedence>
-            <config:record-precedence>crossref</config:record-precedence>
+            <config:record-precedence>wos</config:record-precedence>
+            <config:record-precedence>wos-lite</config:record-precedence>
             <config:record-precedence>scopus</config:record-precedence>
+            <config:record-precedence>crossref</config:record-precedence>
             <config:record-precedence>repec</config:record-precedence>
             <config:record-precedence>arxiv</config:record-precedence>
             <config:record-precedence>orcid</config:record-precedence>
@@ -82,7 +84,9 @@
     -->
     <config:data-exclusions>
         <config:data-exclusions for="publication">
-            <config:record-exclusion>wos</config:record-exclusion>
+            <!-- we no longer exclude wos or wos-lite as Clarivate allow use in Vivo as long as it is attributed-->
+            <!--<config:record-exclusion>wos</config:record-exclusion>-->
+            <!--<config:record-exclusion>wos-lite</config:record-exclusion>-->
             <config:field-exclusions for-source="scopus">
                 <config:excluded-field>abstract</config:excluded-field>
             </config:field-exclusions>
@@ -128,7 +132,7 @@
     </config:journal-precedences>
 
     <!--
-        To use Labels, as well as having the schemes defined below, you must add data to vocabularySource.n3 in vivo/home/rdf/abox/filegraph
+        For any labels targetting subject-areas (default) or research-areas, as well as having the schemes defined below, you must add data to vocabularySource.n3 in vivo/home/rdf/abox/filegraph
 
         For example for Mesh, ScienceMetrix and For label schemes you need to add this (note how the "defined-by" attribute from the label-schemes defs below is being used).
 
@@ -142,6 +146,15 @@
         <http://www.arc.gov.au/era/for> <http://www.w3.org/2000/01/rdf-schema#label> "FoR"^^<http://www.w3.org/2001/XMLSchema#string>  .
     -->
 
+    <!--
+        Elements label schemes to be processed:
+        By default the target will be considered to be Vivo's "subject-areas"  property unless the "target" attribute is set to either "research-areas" or "geographic-focus"
+        The first two target types (subject-areas and research-areas) will result in the label values being rendered as "Concepts" in the scheme specified in the "defined-by" attribute.
+        This will not happen for "geographic-focus", instead the label value will be looked up in the country-types dictionary (see below) and mapped to
+        a known Vivo geographical entity, this entity will then be appropriately linked to.. note you can customise this country/region mapping by editing the dictionary below.
+        Note: the "defined-by" attribute is meaningless, and not necessary, for a target type of "geographical-focus".
+    -->
+
     <config:label-schemes>
         <config:label-schemes for="publication">
             <config:label-scheme name="mesh" defined-by="http://www.nlm.nih.gov/mesh" />
@@ -150,14 +163,14 @@
             <!--<config:label-scheme name="c-seo-post-2008" defined-by="{baseURI}c-seo-post-2008"/>-->
         </config:label-schemes>
         <config:label-schemes for="user">
-            <config:label-scheme name="mesh" defined-by="http://www.nlm.nih.gov/mesh" target-research-areas = "true" />
-            <config:label-scheme name="science-metrix" defined-by="http://www.science-metrix.com/" target-research-areas = "true"/>
-            <config:label-scheme name="for" defined-by="http://www.arc.gov.au/era/for" target-research-areas = "true"/>
+            <config:label-scheme name="mesh" defined-by="http://www.nlm.nih.gov/mesh" target="research-areas" />
+            <config:label-scheme name="science-metrix" defined-by="http://www.science-metrix.com/" target="research-areas"/>
+            <config:label-scheme name="for" defined-by="http://www.arc.gov.au/era/for" target="research-areas"/>
             <!--<config:label-scheme name="c-availability" defined-by="{baseURI}c-availability"/>-->
             <!--<config:label-scheme name="c-seo-post-2008" defined-by="{baseURI}c-seo-post-2008"/>-->
+            <!--<config:label-scheme name="c-geography" target="geographic-focus" />-->
         </config:label-schemes>
     </config:label-schemes>
-
 
     <!--
         This section specifies the rdf:type (and vitro:mostSpecificType) statements that you require for each Elements publication type.
@@ -220,7 +233,11 @@
             <rdf:type rdf:resource="http://purl.org/ontology/bibo/Article"/>
         </config:publication-type>
         <config:publication-type type="software">
-            <rdf:type rdf:resource="http://vivoweb.org/ontology/core#Software"/>
+
+            <!-- Note, the default Vivo ontology representation of "software" is not very good for our purposes
+                 It may be preferably to add a local ontology property inheriting off "Information Content Entity and use that here.."-->
+            <!--<rdf:type rdf:resource="http://vivoweb.org/ontology/core#Software"/>--> <!-- non existent ...-->
+            <rdf:type rdf:resource="http://purl.obolibrary.org/obo/ERO_0000071"/>
         </config:publication-type>
         <config:publication-type type="thesis-dissertation">
             <rdf:type rdf:resource="http://purl.org/ontology/bibo/Thesis"/>
@@ -394,5 +411,317 @@
         <config:organization-type name="Wellesley College"                                          type="http://vivoweb.org/ontology/core#College" />
         <config:organization-type name="Yale University"                                            type="http://vivoweb.org/ontology/core#University" />
     </config:organization-types>
+
+    <config:country-types>
+        <config:country-type name="Afghanistan" uri="http://aims.fao.org/aos/geopolitical.owl#Afghanistan" />
+        <config:country-type name="Albania" uri="http://aims.fao.org/aos/geopolitical.owl#Albania" />
+        <config:country-type name="Algeria" uri="http://aims.fao.org/aos/geopolitical.owl#Algeria" />
+        <config:country-type name="Andorra" uri="http://aims.fao.org/aos/geopolitical.owl#Andorra" />
+        <config:country-type name="Angola" uri="http://aims.fao.org/aos/geopolitical.owl#Angola" />
+        <config:country-type name="Antigua and Barbuda" uri="http://aims.fao.org/aos/geopolitical.owl#Antigua_and_Barbuda" />
+        <config:country-type name="Argentina" uri="http://aims.fao.org/aos/geopolitical.owl#Argentina" />
+        <config:country-type name="Armenia" uri="http://aims.fao.org/aos/geopolitical.owl#Armenia" />
+        <config:country-type name="Australia" uri="http://aims.fao.org/aos/geopolitical.owl#Australia" />
+        <config:country-type name="Austria" uri="http://aims.fao.org/aos/geopolitical.owl#Austria" />
+        <config:country-type name="Azerbaijan" uri="http://aims.fao.org/aos/geopolitical.owl#Azerbaijan" />
+        <config:country-type name="Bahamas" uri="http://aims.fao.org/aos/geopolitical.owl#Bahamas_the" />
+        <config:country-type name="Bahrain" uri="http://aims.fao.org/aos/geopolitical.owl#Bahrain" />
+        <config:country-type name="Bangladesh" uri="http://aims.fao.org/aos/geopolitical.owl#Bangladesh" />
+        <config:country-type name="Barbados" uri="http://aims.fao.org/aos/geopolitical.owl#Barbados" />
+        <config:country-type name="Belarus" uri="http://aims.fao.org/aos/geopolitical.owl#Belarus" />
+        <config:country-type name="Belgium" uri="http://aims.fao.org/aos/geopolitical.owl#Belgium" />
+        <config:country-type name="Belize" uri="http://aims.fao.org/aos/geopolitical.owl#Belize" />
+        <config:country-type name="Benin" uri="http://aims.fao.org/aos/geopolitical.owl#Benin" />
+        <config:country-type name="Bhutan" uri="http://aims.fao.org/aos/geopolitical.owl#Bhutan" />
+        <config:country-type name="Bolivia (Plurinational State of)" uri="http://aims.fao.org/aos/geopolitical.owl#Bolivia" />
+        <config:country-type name="Bosnia and Herzegovina" uri="http://aims.fao.org/aos/geopolitical.owl#Bosnia_and_Herzegovina" />
+        <config:country-type name="Botswana" uri="http://aims.fao.org/aos/geopolitical.owl#Botswana" />
+        <config:country-type name="Brazil" uri="http://aims.fao.org/aos/geopolitical.owl#Brazil" />
+        <config:country-type name="Brunei Darussalam" uri="http://aims.fao.org/aos/geopolitical.owl#Brunei_Darussalam" />
+        <config:country-type name="Bulgaria" uri="http://aims.fao.org/aos/geopolitical.owl#Bulgaria" />
+        <config:country-type name="Burkina Faso" uri="http://aims.fao.org/aos/geopolitical.owl#Burkina_Faso" />
+        <config:country-type name="Burundi" uri="http://aims.fao.org/aos/geopolitical.owl#Burundi" />
+        <config:country-type name="Cambodia" uri="http://aims.fao.org/aos/geopolitical.owl#Cambodia" />
+        <config:country-type name="Cameroon" uri="http://aims.fao.org/aos/geopolitical.owl#Cameroon" />
+        <config:country-type name="Canada" uri="http://aims.fao.org/aos/geopolitical.owl#Canada" />
+        <config:country-type name="Cape Verde" uri="http://aims.fao.org/aos/geopolitical.owl#Cape_Verde" />
+        <config:country-type name="Central African Republic" uri="http://aims.fao.org/aos/geopolitical.owl#Central_African_Republic_the" />
+        <config:country-type name="Chad" uri="http://aims.fao.org/aos/geopolitical.owl#Chad" />
+        <config:country-type name="Chile" uri="http://aims.fao.org/aos/geopolitical.owl#Chile" />
+        <config:country-type name="China" uri="http://aims.fao.org/aos/geopolitical.owl#China" />
+        <config:country-type name="Colombia" uri="http://aims.fao.org/aos/geopolitical.owl#Colombia" />
+        <config:country-type name="Comoros" uri="http://aims.fao.org/aos/geopolitical.owl#Comoros_the" />
+        <config:country-type name="Congo" uri="http://aims.fao.org/aos/geopolitical.owl#Congo_the" />
+        <config:country-type name="Cook Islands" uri="http://aims.fao.org/aos/geopolitical.owl#Cook_Islands_the" />
+        <config:country-type name="Costa Rica" uri="http://aims.fao.org/aos/geopolitical.owl#Costa_Rica" />
+        <config:country-type name="Côte d'Ivoire" uri="http://aims.fao.org/aos/geopolitical.owl#Cote_d_Ivoire" />
+        <config:country-type name="Croatia" uri="http://aims.fao.org/aos/geopolitical.owl#Croatia" />
+        <config:country-type name="Cuba" uri="http://aims.fao.org/aos/geopolitical.owl#Cuba" />
+        <config:country-type name="Cyprus" uri="http://aims.fao.org/aos/geopolitical.owl#Cyprus" />
+        <config:country-type name="Czech Republic" uri="http://aims.fao.org/aos/geopolitical.owl#Czech_Republic_the" />
+        <config:country-type name="Czechoslovakia" uri="http://aims.fao.org/aos/geopolitical.owl#Czechoslovakia" />
+        <config:country-type name="Democratic Republic of the Congo" uri="http://aims.fao.org/aos/geopolitical.owl#Democratic_Republic_of_the_Congo" />
+        <config:country-type name="Denmark" uri="http://aims.fao.org/aos/geopolitical.owl#Denmark" />
+        <config:country-type name="Djibouti" uri="http://aims.fao.org/aos/geopolitical.owl#Djibouti" />
+        <config:country-type name="Dominica" uri="http://aims.fao.org/aos/geopolitical.owl#Dominica" />
+        <config:country-type name="Dominican Republic" uri="http://aims.fao.org/aos/geopolitical.owl#Dominican_Republic_the" />
+        <config:country-type name="Ecuador" uri="http://aims.fao.org/aos/geopolitical.owl#Ecuador" />
+        <config:country-type name="Egypt" uri="http://aims.fao.org/aos/geopolitical.owl#Egypt" />
+        <config:country-type name="El Salvador" uri="http://aims.fao.org/aos/geopolitical.owl#El_Salvador" />
+        <config:country-type name="Equatorial Guinea" uri="http://aims.fao.org/aos/geopolitical.owl#Equatorial_Guinea" />
+        <config:country-type name="Eritrea" uri="http://aims.fao.org/aos/geopolitical.owl#Eritrea" />
+        <config:country-type name="Estonia" uri="http://aims.fao.org/aos/geopolitical.owl#Estonia" />
+        <config:country-type name="Ethiopia" uri="http://aims.fao.org/aos/geopolitical.owl#Ethiopia" />
+        <config:country-type name="Ethiopia_1993" uri="http://aims.fao.org/aos/geopolitical.owl#Ethiopia_1993" />
+        <config:country-type name="Faroe Islands" uri="http://aims.fao.org/aos/geopolitical.owl#Faroe_Islands" />
+        <config:country-type name="Fiji" uri="http://aims.fao.org/aos/geopolitical.owl#Fiji" />
+        <config:country-type name="Finland" uri="http://aims.fao.org/aos/geopolitical.owl#Finland" />
+        <config:country-type name="France" uri="http://aims.fao.org/aos/geopolitical.owl#France" />
+        <config:country-type name="Gabon" uri="http://aims.fao.org/aos/geopolitical.owl#Gabon" />
+        <config:country-type name="Gambia" uri="http://aims.fao.org/aos/geopolitical.owl#Gambia__the" />
+        <config:country-type name="Georgia" uri="http://aims.fao.org/aos/geopolitical.owl#Georgia" />
+        <config:country-type name="German Democratic Republic" uri="http://aims.fao.org/aos/geopolitical.owl#German_Democratic_Republic_the" />
+        <config:country-type name="Germany" uri="http://aims.fao.org/aos/geopolitical.owl#Germany" />
+        <config:country-type name="Germany, Federal Republic of" uri="http://aims.fao.org/aos/geopolitical.owl#Federal_Republic_of_Germany_the" />
+        <config:country-type name="Ghana" uri="http://aims.fao.org/aos/geopolitical.owl#Ghana" />
+        <config:country-type name="Greece" uri="http://aims.fao.org/aos/geopolitical.owl#Greece" />
+        <config:country-type name="Grenada" uri="http://aims.fao.org/aos/geopolitical.owl#Grenada" />
+        <config:country-type name="Guatemala" uri="http://aims.fao.org/aos/geopolitical.owl#Guatemala" />
+        <config:country-type name="Guinea" uri="http://aims.fao.org/aos/geopolitical.owl#Guinea" />
+        <config:country-type name="Guinea-Bissau" uri="http://aims.fao.org/aos/geopolitical.owl#Guinea-Bissau" />
+        <config:country-type name="Guyana" uri="http://aims.fao.org/aos/geopolitical.owl#Guyana" />
+        <config:country-type name="Haiti" uri="http://aims.fao.org/aos/geopolitical.owl#Haiti" />
+        <config:country-type name="Holy See" uri="http://aims.fao.org/aos/geopolitical.owl#Holy_See" />
+        <config:country-type name="Honduras" uri="http://aims.fao.org/aos/geopolitical.owl#Honduras" />
+        <config:country-type name="Hungary" uri="http://aims.fao.org/aos/geopolitical.owl#Hungary" />
+        <config:country-type name="Iceland" uri="http://aims.fao.org/aos/geopolitical.owl#Iceland" />
+        <config:country-type name="India" uri="http://aims.fao.org/aos/geopolitical.owl#India" />
+        <config:country-type name="Indonesia" uri="http://aims.fao.org/aos/geopolitical.owl#Indonesia" />
+        <config:country-type name="Iran (Islamic Republic of)" uri="http://aims.fao.org/aos/geopolitical.owl#Iran_Islamic_Rep_of_" />
+        <config:country-type name="Iraq" uri="http://aims.fao.org/aos/geopolitical.owl#Iraq" />
+        <config:country-type name="Ireland" uri="http://aims.fao.org/aos/geopolitical.owl#Ireland" />
+        <config:country-type name="Israel" uri="http://aims.fao.org/aos/geopolitical.owl#Israel" />
+        <config:country-type name="Italy" uri="http://aims.fao.org/aos/geopolitical.owl#Italy" />
+        <config:country-type name="Jamaica" uri="http://aims.fao.org/aos/geopolitical.owl#Jamaica" />
+        <config:country-type name="Japan" uri="http://aims.fao.org/aos/geopolitical.owl#Japan" />
+        <config:country-type name="Jordan" uri="http://aims.fao.org/aos/geopolitical.owl#Jordan" />
+        <config:country-type name="Kazakhstan" uri="http://aims.fao.org/aos/geopolitical.owl#Kazakhstan" />
+        <config:country-type name="Kenya" uri="http://aims.fao.org/aos/geopolitical.owl#Kenya" />
+        <config:country-type name="Kiribati" uri="http://aims.fao.org/aos/geopolitical.owl#Kiribati" />
+        <config:country-type name="Kuwait" uri="http://aims.fao.org/aos/geopolitical.owl#Kuwait" />
+        <config:country-type name="Kyrgyzstan" uri="http://aims.fao.org/aos/geopolitical.owl#Kyrgyzstan" />
+        <config:country-type name="Lao People's Democratic Republic" uri="http://aims.fao.org/aos/geopolitical.owl#Lao_People_s_Democratic_Republic__the" />
+        <config:country-type name="Latvia" uri="http://aims.fao.org/aos/geopolitical.owl#Latvia" />
+        <config:country-type name="Lebanon" uri="http://aims.fao.org/aos/geopolitical.owl#Lebanon" />
+        <config:country-type name="Lesotho" uri="http://aims.fao.org/aos/geopolitical.owl#Lesotho" />
+        <config:country-type name="Liberia" uri="http://aims.fao.org/aos/geopolitical.owl#Liberia" />
+        <config:country-type name="Libyan Arab Jamahiriya" uri="http://aims.fao.org/aos/geopolitical.owl#Libyan_Arab_Jamahiriya__the" />
+        <config:country-type name="Liechtenstein" uri="http://aims.fao.org/aos/geopolitical.owl#Liechtenstein" />
+        <config:country-type name="Lithuania" uri="http://aims.fao.org/aos/geopolitical.owl#Lithuania" />
+        <config:country-type name="Luxembourg" uri="http://aims.fao.org/aos/geopolitical.owl#Luxembourg" />
+        <config:country-type name="Madagascar" uri="http://aims.fao.org/aos/geopolitical.owl#Madagascar" />
+        <config:country-type name="Malawi" uri="http://aims.fao.org/aos/geopolitical.owl#Malawi" />
+        <config:country-type name="Malaysia" uri="http://aims.fao.org/aos/geopolitical.owl#Malaysia" />
+        <config:country-type name="Maldives" uri="http://aims.fao.org/aos/geopolitical.owl#Maldives" />
+        <config:country-type name="Mali" uri="http://aims.fao.org/aos/geopolitical.owl#Mali" />
+        <config:country-type name="Malta" uri="http://aims.fao.org/aos/geopolitical.owl#Malta" />
+        <config:country-type name="Marshall Islands" uri="http://aims.fao.org/aos/geopolitical.owl#Marshall_Islands__the" />
+        <config:country-type name="Mauritania" uri="http://aims.fao.org/aos/geopolitical.owl#Mauritania" />
+        <config:country-type name="Mauritius" uri="http://aims.fao.org/aos/geopolitical.owl#Mauritius" />
+        <config:country-type name="Mexico" uri="http://aims.fao.org/aos/geopolitical.owl#Mexico" />
+        <config:country-type name="Micronesia (Federated States of)" uri="http://aims.fao.org/aos/geopolitical.owl#Micronesia__Fed_States_of_" />
+        <config:country-type name="Monaco" uri="http://aims.fao.org/aos/geopolitical.owl#Monaco" />
+        <config:country-type name="Mongolia" uri="http://aims.fao.org/aos/geopolitical.owl#Mongolia" />
+        <config:country-type name="Montenegro" uri="http://aims.fao.org/aos/geopolitical.owl#Montenegro" />
+        <config:country-type name="Morocco" uri="http://aims.fao.org/aos/geopolitical.owl#Morocco" />
+        <config:country-type name="Mozambique" uri="http://aims.fao.org/aos/geopolitical.owl#Mozambique" />
+        <config:country-type name="Myanmar" uri="http://aims.fao.org/aos/geopolitical.owl#Myanmar" />
+        <config:country-type name="Namibia" uri="http://aims.fao.org/aos/geopolitical.owl#Namibia" />
+        <config:country-type name="Nauru" uri="http://aims.fao.org/aos/geopolitical.owl#Nauru" />
+        <config:country-type name="Nepal" uri="http://aims.fao.org/aos/geopolitical.owl#Nepal" />
+        <config:country-type name="Netherlands" uri="http://aims.fao.org/aos/geopolitical.owl#Netherlands_the" />
+        <config:country-type name="New Zealand" uri="http://aims.fao.org/aos/geopolitical.owl#New_Zealand" />
+        <config:country-type name="Nicaragua" uri="http://aims.fao.org/aos/geopolitical.owl#Nicaragua" />
+        <config:country-type name="Niger" uri="http://aims.fao.org/aos/geopolitical.owl#Niger_the" />
+        <config:country-type name="Nigeria" uri="http://aims.fao.org/aos/geopolitical.owl#Nigeria" />
+        <config:country-type name="Niue" uri="http://aims.fao.org/aos/geopolitical.owl#Niue" />
+        <config:country-type name="North Korea" uri="http://aims.fao.org/aos/geopolitical.owl#Democratic_People_s_Republic_of_Korea_the" />
+        <config:country-type name="Norway" uri="http://aims.fao.org/aos/geopolitical.owl#Norway" />
+        <config:country-type name="Oman" uri="http://aims.fao.org/aos/geopolitical.owl#Oman" />
+        <config:country-type name="Pakistan" uri="http://aims.fao.org/aos/geopolitical.owl#Pakistan" />
+        <config:country-type name="Palau" uri="http://aims.fao.org/aos/geopolitical.owl#Palau" />
+        <config:country-type name="Panama" uri="http://aims.fao.org/aos/geopolitical.owl#Panama" />
+        <config:country-type name="Papua New Guinea" uri="http://aims.fao.org/aos/geopolitical.owl#Papua_New_Guinea" />
+        <config:country-type name="Paraguay" uri="http://aims.fao.org/aos/geopolitical.owl#Paraguay" />
+        <config:country-type name="Peru" uri="http://aims.fao.org/aos/geopolitical.owl#Peru" />
+        <config:country-type name="Philippines" uri="http://aims.fao.org/aos/geopolitical.owl#Philippines__the" />
+        <config:country-type name="Poland" uri="http://aims.fao.org/aos/geopolitical.owl#Poland" />
+        <config:country-type name="Portugal" uri="http://aims.fao.org/aos/geopolitical.owl#Portugal" />
+        <config:country-type name="Qatar" uri="http://aims.fao.org/aos/geopolitical.owl#Qatar" />
+        <config:country-type name="Republic of Moldova" uri="http://aims.fao.org/aos/geopolitical.owl#Republic_of_Moldova" />
+        <config:country-type name="Romania" uri="http://aims.fao.org/aos/geopolitical.owl#Romania" />
+        <config:country-type name="Russian Federation" uri="http://aims.fao.org/aos/geopolitical.owl#Russian_Federation__the" />
+        <config:country-type name="Rwanda" uri="http://aims.fao.org/aos/geopolitical.owl#Rwanda" />
+        <config:country-type name="Saint Kitts and Nevis" uri="http://aims.fao.org/aos/geopolitical.owl#Saint_Kitts_and_Nevis" />
+        <config:country-type name="Saint Lucia" uri="http://aims.fao.org/aos/geopolitical.owl#Saint_Lucia" />
+        <config:country-type name="Saint Vincent and the Grenadines" uri="http://aims.fao.org/aos/geopolitical.owl#Saint_Vincent_and_the_Grenadines" />
+        <config:country-type name="Samoa" uri="http://aims.fao.org/aos/geopolitical.owl#Samoa" />
+        <config:country-type name="San Marino" uri="http://aims.fao.org/aos/geopolitical.owl#San_Marino" />
+        <config:country-type name="Sao Tome and Principe" uri="http://aims.fao.org/aos/geopolitical.owl#Sao_Tome_and_Principe" />
+        <config:country-type name="Saudi Arabia" uri="http://aims.fao.org/aos/geopolitical.owl#Saudi_Arabia" />
+        <config:country-type name="Senegal" uri="http://aims.fao.org/aos/geopolitical.owl#Senegal" />
+        <config:country-type name="Serbia" uri="http://aims.fao.org/aos/geopolitical.owl#Serbia" />
+        <config:country-type name="Serbia and Montenegro" uri="http://aims.fao.org/aos/geopolitical.owl#Serbia_and_Montenegro" />
+        <config:country-type name="Seychelles" uri="http://aims.fao.org/aos/geopolitical.owl#Seychelles" />
+        <config:country-type name="Sierra Leone" uri="http://aims.fao.org/aos/geopolitical.owl#Sierra_Leone" />
+        <config:country-type name="Singapore" uri="http://aims.fao.org/aos/geopolitical.owl#Singapore" />
+        <config:country-type name="Slovakia" uri="http://aims.fao.org/aos/geopolitical.owl#Slovakia" />
+        <config:country-type name="Slovenia" uri="http://aims.fao.org/aos/geopolitical.owl#Slovenia" />
+        <config:country-type name="Solomon Islands" uri="http://aims.fao.org/aos/geopolitical.owl#Solomon_Islands" />
+        <config:country-type name="Somalia" uri="http://aims.fao.org/aos/geopolitical.owl#Somalia" />
+        <config:country-type name="South Africa" uri="http://aims.fao.org/aos/geopolitical.owl#South_Africa" />
+        <config:country-type name="South Korea" uri="http://aims.fao.org/aos/geopolitical.owl#Republic_of_Korea__the" />
+        <config:country-type name="South Sudan" uri="http://aims.fao.org/aos/geopolitical.owl#South_Sudan" />
+        <config:country-type name="Spain" uri="http://aims.fao.org/aos/geopolitical.owl#Spain" />
+        <config:country-type name="Sri Lanka" uri="http://aims.fao.org/aos/geopolitical.owl#Sri_Lanka" />
+        <!--<config:country-type name="Sudan" uri="http://aims.fao.org/aos/geopolitical.owl#Sudan_the_1956" />-->
+        <config:country-type name="Sudan" uri="http://aims.fao.org/aos/geopolitical.owl#Sudan_the" />
+        <config:country-type name="Suriname" uri="http://aims.fao.org/aos/geopolitical.owl#Suriname" />
+        <config:country-type name="Swaziland" uri="http://aims.fao.org/aos/geopolitical.owl#Swaziland" />
+        <config:country-type name="Sweden" uri="http://aims.fao.org/aos/geopolitical.owl#Sweden" />
+        <config:country-type name="Switzerland" uri="http://aims.fao.org/aos/geopolitical.owl#Switzerland" />
+        <config:country-type name="Syrian Arab Republic" uri="http://aims.fao.org/aos/geopolitical.owl#Syrian_Arab_Republic_the" />
+        <config:country-type name="Tajikistan" uri="http://aims.fao.org/aos/geopolitical.owl#Tajikistan" />
+        <config:country-type name="Thailand" uri="http://aims.fao.org/aos/geopolitical.owl#Thailand" />
+        <config:country-type name="Timor-Leste" uri="http://aims.fao.org/aos/geopolitical.owl#Timor-Leste" />
+        <config:country-type name="Togo" uri="http://aims.fao.org/aos/geopolitical.owl#Togo" />
+        <config:country-type name="Tokelau" uri="http://aims.fao.org/aos/geopolitical.owl#Tokelau" />
+        <config:country-type name="Tonga" uri="http://aims.fao.org/aos/geopolitical.owl#Tonga" />
+        <config:country-type name="Trinidad and Tobago" uri="http://aims.fao.org/aos/geopolitical.owl#Trinidad_and_Tobago" />
+        <config:country-type name="Tunisia" uri="http://aims.fao.org/aos/geopolitical.owl#Tunisia" />
+        <config:country-type name="Turkey" uri="http://aims.fao.org/aos/geopolitical.owl#Turkey" />
+        <config:country-type name="Turkmenistan" uri="http://aims.fao.org/aos/geopolitical.owl#Turkmenistan" />
+        <config:country-type name="Tuvalu" uri="http://aims.fao.org/aos/geopolitical.owl#Tuvalu" />
+        <config:country-type name="Uganda" uri="http://aims.fao.org/aos/geopolitical.owl#Uganda" />
+        <config:country-type name="Ukraine" uri="http://aims.fao.org/aos/geopolitical.owl#Ukraine" />
+        <config:country-type name="Union of Soviet Socialist Republic" uri="http://aims.fao.org/aos/geopolitical.owl#Union_of_Soviet_Socialist_Republic_the" />
+        <config:country-type name="United Arab Emirates" uri="http://aims.fao.org/aos/geopolitical.owl#United_Arab_Emirates__the" />
+        <config:country-type name="United Kingdom" uri="http://aims.fao.org/aos/geopolitical.owl#United_Kingdom_of_Great_Britain_and_Northern_Ireland__the" />
+        <config:country-type name="United Republic of Tanzania" uri="http://aims.fao.org/aos/geopolitical.owl#United_Republic_of_Tanzania__the" />
+        <config:country-type name="United States of America" uri="http://aims.fao.org/aos/geopolitical.owl#United_States_of_America" />
+        <config:country-type name="Uruguay" uri="http://aims.fao.org/aos/geopolitical.owl#Uruguay" />
+        <config:country-type name="Uzbekistan" uri="http://aims.fao.org/aos/geopolitical.owl#Uzbekistan" />
+        <config:country-type name="Vanuatu" uri="http://aims.fao.org/aos/geopolitical.owl#Vanuatu" />
+        <config:country-type name="Venezuela (Bolivarian Republic of)" uri="http://aims.fao.org/aos/geopolitical.owl#Venezuela" />
+        <config:country-type name="Viet Nam" uri="http://aims.fao.org/aos/geopolitical.owl#Viet_Nam" />
+        <config:country-type name="Yemen" uri="http://aims.fao.org/aos/geopolitical.owl#Yemen" />
+        <config:country-type name="Yemen, Democratic" uri="http://aims.fao.org/aos/geopolitical.owl#Democratic_Yemen" />
+        <config:country-type name="Yemen_1990" uri="http://aims.fao.org/aos/geopolitical.owl#Yemen_1990" />
+        <config:country-type name="Yugoslav, former Yugoslav Republic of Macedonia" uri="http://aims.fao.org/aos/geopolitical.owl#The_former_Yugoslav_Republic_of_Macedonia" />
+        <config:country-type name="Yugoslavia" uri="http://aims.fao.org/aos/geopolitical.owl#Yugoslavia" />
+        <config:country-type name="Yugoslavia, Socialist Federal Republic of" uri="http://aims.fao.org/aos/geopolitical.owl#Socialist_Federal_Republic_of_Yugoslavia_the" />
+        <config:country-type name="Zaire" uri="http://aims.fao.org/aos/geopolitical.owl#Zaire" />
+        <config:country-type name="Zambia" uri="http://aims.fao.org/aos/geopolitical.owl#Zambia" />
+        <config:country-type name="Zimbabwe" uri="http://aims.fao.org/aos/geopolitical.owl#Zimbabwe" />
+        <!-- aliasses -->
+        <config:country-type name="Bolivia" uri="http://aims.fao.org/aos/geopolitical.owl#Bolivia" />
+        <config:country-type name="Cabo Verde" uri="http://aims.fao.org/aos/geopolitical.owl#Cape_Verde" />
+        <config:country-type name="Democratic People's Republic of Korea (North Korea)" uri="http://aims.fao.org/aos/geopolitical.owl#Democratic_People_s_Republic_of_Korea_the" />
+        <config:country-type name="Democratic Republic of the Cong" uri="http://aims.fao.org/aos/geopolitical.owl#Democratic_Republic_of_the_Congo" />
+        <config:country-type name="Iran" uri="http://aims.fao.org/aos/geopolitical.owl#Iran_Islamic_Rep_of_" />
+        <config:country-type name="Lao People's Democratic Republic (Laos)" uri="http://aims.fao.org/aos/geopolitical.owl#Lao_People_s_Democratic_Republic__the" />
+        <config:country-type name="Libya" uri="http://aims.fao.org/aos/geopolitical.owl#Libyan_Arab_Jamahiriya__the" />
+        <config:country-type name="Macedonia" uri="http://aims.fao.org/aos/geopolitical.owl#The_former_Yugoslav_Republic_of_Macedonia" />
+        <config:country-type name="Republic of Korea (South Korea)" uri="http://aims.fao.org/aos/geopolitical.owl#Republic_of_Korea__the" />
+        <config:country-type name="United Kingdom of Great Britain and Northern Ireland" uri="http://aims.fao.org/aos/geopolitical.owl#United_Kingdom_of_Great_Britain_and_Northern_Ireland__the" />
+        <config:country-type name="Great Britain" uri="http://aims.fao.org/aos/geopolitical.owl#United_Kingdom_of_Great_Britain_and_Northern_Ireland__the" />
+        <config:country-type name="UK" uri="http://aims.fao.org/aos/geopolitical.owl#United_Kingdom_of_Great_Britain_and_Northern_Ireland__the" />
+        <config:country-type name="Vietnam" uri="http://aims.fao.org/aos/geopolitical.owl#Viet_Nam" />
+        <config:country-type name="Venezuela" uri="http://aims.fao.org/aos/geopolitical.owl#Venezuela" />
+
+    </config:country-types>
+
+    <!-- Note Experimental changes to resolve issues with Skos concepts representing labels having multiple values -->
+    <!-- May well be refactored into some other form in due course -->
+    <config:label-overrides>
+        <!-- overrides to handle issues w://uoc.vivo.symplectic.org/individual/vocab-for-0103-numerical-and-computational-mathematicsith for codes being represented differently by elements in some places -->
+        <config:label-override uri="vocab-for-0103-numerical-and-computational-mathematics" label="0103 Numerical and Computational " />
+        <config:label-override uri="vocab-for-0201-astronomical-and-space-sciences" label="0201 Astronomical and Space Sciences" />
+        <config:label-override uri="vocab-for-0202-atomic-molecular-nuclear-particle-and-plasma-physics" label="0202 Atomic, Molecular, Nuclear, Particle and Plasma Physics" />
+        <config:label-override uri="vocab-for-0303-macromolecular-and-materials-chemistry" label="0303 Macromolecular and Materials Chemistry" />
+        <config:label-override uri="vocab-for-0304-medicinal-and-biomolecular-chemistry" label="0304 Medicinal and Biomolecular Chemistry" />
+        <config:label-override uri="vocab-for-0307-theoretical-and-computational-chemistry" label="0307 Theoretical and Computational Chemistry" />
+        <config:label-override uri="vocab-for-0406-physical-geography-and-environmental-geoscience" label="0406 Physical Geography and Environmental Geoscience" />
+        <config:label-override uri="vocab-for-0502-environmental-science-and-management" label="0502 Environmental Science and Management" />
+        <config:label-override uri="vocab-for-0601-biochemistry-and-cell-biology" label="0601 Biochemistry and Cell Biology" />
+        <config:label-override uri="vocab-for-0701-agriculture-land-and-farm-management" label="0701 Agriculture, Land and Farm Management" />
+        <config:label-override uri="vocab-for-0703-crop-and-pasture-production" label="0703 Crop and Pasture Production" />
+        <config:label-override uri="vocab-for-0799-other-agricultural-and-veterinary-sciences" label="0799 Other Agricultural and Veterinary Sciences" />
+        <config:label-override uri="vocab-for-07-agricultural-and-veterinary-sciences" label="07 Agricultural and Veterinary Sciences" />
+        <config:label-override uri="vocab-for-0801-artificial-intelligence-and-image-processing" label="0801 Artificial Intelligence and Image Processing" />
+        <config:label-override uri="vocab-for-0802-computation-theory-and-mathematics" label="0802 Computation Theory and Mathematics" />
+        <config:label-override uri="vocab-for-0807-library-and-information-studies" label="0807 Library and Information Studies" />
+        <config:label-override uri="vocab-for-0899-other-information-and-computing-sciences" label="0899 Other Information and Computing Sciences" />
+        <config:label-override uri="vocab-for-08-information-and-computing-sciences" label="08 Information and Computing Sciences" />
+        <config:label-override uri="vocab-for-0906-electrical-and-electronic-engineering" label="0906 Electrical and Electronic Engineering" />
+        <config:label-override uri="vocab-for-0914-resources-engineering-and-extractive-metallurgy" label="0914 Resources Engineering and Extractive Metallurgy" />
+        <config:label-override uri="vocab-for-1101-medical-biochemistry-and-metabolomics" label="1101 Medical Biochemistry and Metabolomics" />
+        <config:label-override uri="vocab-for-1102-cardiovascular-medicine-and-haematology" label="1102 Cardiorespiratory Medicine and Haematology" />
+        <config:label-override uri="vocab-for-1104-complementary-and-alternative-medicine" label="1104 Complementary and Alternative Medicine" />
+        <config:label-override uri="vocab-for-1106-human-movement-and-sports-science" label="1106 Human Movement and Sports Science" />
+        <config:label-override uri="vocab-for-1111-nutrition-and-dietetics" label="1111 Nutrition and Dietetics" />
+        <config:label-override uri="vocab-for-1112-oncology-and-carcinogenesis" label="1112 Oncology and Carcinogenesis" />
+        <config:label-override uri="vocab-for-1113-ophthalmology-and-optometry" label="1113 Ophthalmology and Optometry" />
+        <config:label-override uri="vocab-for-1114-paediatrics-and-reproductive-medicine" label="1114 Paediatrics and Reproductive Medicine" />
+        <config:label-override uri="vocab-for-1115-pharmacology-and-pharmaceutical-sciences" label="1115 Pharmacology and Pharmaceutical Sciences" />
+        <config:label-override uri="vocab-for-1117-public-health-and-health-services" label="1117 Public Health and Health Services" />
+        <config:label-override uri="vocab-for-1199-other-medical-and-health-sciences" label="1199 Other Medical and Health Sciences" />
+        <config:label-override uri="vocab-for-11-medical-and-health-sciences" label="11 Medical and Health Sciences" />
+        <config:label-override uri="vocab-for-1203-design-practice-and-management" label="1203 Design Practice and Management" />
+        <config:label-override uri="vocab-for-1205-urban-and-regional-planning" label="1205 Urban and Regional Planning" />
+        <config:label-override uri="vocab-for-1299-other-built-environment-and-design" label="1299 Other Built Environment and Design" />
+        <config:label-override uri="vocab-for-12-built-environment-and-design" label="12 Built Environment and Design" />
+        <config:label-override uri="vocab-for-1302-curriculum-and-pedagogy" label="1302 Curriculum and Pedagogy" />
+        <config:label-override uri="vocab-for-1501-accounting-auditing-and-accountability" label="1501 Accounting, Auditing and Accountability" />
+        <config:label-override uri="vocab-for-1502-banking-finance-and-investment" label="1502 Banking, Finance and Investment" />
+        <config:label-override uri="vocab-for-1503-business-and-management" label="1503 Business and Management" />
+        <config:label-override uri="vocab-for-1507-transportation-and-freight-services" label="1507 Transportation and Freight Services" />
+        <config:label-override uri="vocab-for-1599-other-commerce-management-tourism-and-services" label="1599 Other Commerce, Management, Tourism and Services" />
+        <config:label-override uri="vocab-for-15-commerce-management-tourism-and-services" label="15 Commerce, Management, Tourism and Services" />
+        <config:label-override uri="vocab-for-1605-policy-and-administration" label="1605 Policy and Administration" />
+        <config:label-override uri="vocab-for-1702-cognitive-science" label="1702 Cognitive Sciences" />
+        <config:label-override uri="vocab-for-1799-other-psychology-and-cognitive-sciences" label="1799 Other Psychology and Cognitive Sciences" />
+        <config:label-override uri="vocab-for-17-psychology-and-cognitive-sciences" label="17 Psychology and Cognitive Sciences" />
+        <config:label-override uri="vocab-for-1899-other-law-and-legal-studies" label="1899 Other Law and Legal Studies" />
+        <config:label-override uri="vocab-for-18-law-and-legal-studies" label="18 Law and Legal Studies" />
+        <config:label-override uri="vocab-for-1901-art-theory-and-criticism" label="1901 Art Theory and Criticism" />
+        <config:label-override uri="vocab-for-1902-film-television-and-digital-media" label="1902 Film, Television and Digital Media" />
+        <config:label-override uri="vocab-for-1903-journalism-and-professional-writing" label="1903 Journalism and Professional Writing" />
+        <config:label-override uri="vocab-for-1904-performing-arts-and-creative-writing" label="1904 Performing Arts and Creative Writing" />
+        <config:label-override uri="vocab-for-1905-visual-arts-and-crafts" label="1905 Visual Arts and Crafts" />
+        <config:label-override uri="vocab-for-1999-other-studies-in-creative-arts-and-writing" label="1999 Other Studies In Creative Arts and Writing" />
+        <config:label-override uri="vocab-for-19-studies-in-creative-arts-and-writing" label="19 Studies In Creative Arts and Writing" />
+        <config:label-override uri="vocab-for-2001-communication-and-media-studies" label="2001 Communication and Media Studies" />
+        <config:label-override uri="vocab-for-2099-other-language-communication-and-culture" label="2099 Other Language, Communication and Culture" />
+        <config:label-override uri="vocab-for-20-language-communication-and-culture" label="20 Language, Communication and Culture" />
+        <config:label-override uri="vocab-for-2102-curatorial-and-related-studies" label="2102 Curatorial and Related Studies" />
+        <config:label-override uri="vocab-for-2199-other-history-and-archaeology" label="2199 Other History and Archaeology" />
+        <config:label-override uri="vocab-for-21-history-and-archaeology" label="21 History and Archaeology" />
+        <config:label-override uri="vocab-for-2202-history-and-philosophy-of-specific-fields" label="2202 History and Philosophy of Specific Fields" />
+        <config:label-override uri="vocab-for-2204-religion-and-religious-studies" label="2204 Religion and Religious Studies" />
+        <config:label-override uri="vocab-for-2299-other-philosophy-and-religious-studies" label="2299 Other Philosophy and Religious Studies" />
+        <config:label-override uri="vocab-for-22-philosophy-and-religious-studies" label="22 Philosophy and Religious Studies" />
+        <!-- known mesh issues - there may be others -->
+        <config:label-override uri="vocab-mesh-hela-cells" label="HeLa Cells" />
+        <config:label-override uri="vocab-mesh-simian-immunodeficiency-virus" label="Simian Immunodeficiency Virus" />
+        <config:label-override uri="vocab-mesh-receptor-erbb-2" label="Receptor, ErbB-2" />
+        <config:label-override uri="vocab-mesh-receptor-erbb-3" label="Receptor, ErbB-3" />
+        <config:label-override uri="vocab-mesh-coombs-test" label="Coombs' Test" />
+        <config:label-override uri="vocab-mesh-african-horse-sickness-virus" label="African Horse Sickness Virus" />
+        <config:label-override uri="vocab-mesh-avian-myeloblastosis-virus" label="Avian Myeloblastosis Virus" />
+        <config:label-override uri="vocab-mesh-avian-leukosis-virus" label="Avian Leukosis Virus" />
+        <config:label-override uri="vocab-mesh-biofeedback-psychology" label="Biofeedback (Psychology)" />
+    </config:label-overrides>
+
 
 </config:main>

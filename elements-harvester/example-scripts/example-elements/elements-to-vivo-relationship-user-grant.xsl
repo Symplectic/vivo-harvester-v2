@@ -47,15 +47,72 @@
             <xsl:with-param name="objectURI" select="$investigatorURI" />
             <xsl:with-param name="rdfNodes">
                 <xsl:choose>
-                    <xsl:when test="./@type='user-grant-primary-investigation'">
+                    <xsl:when test="./@type='user-grant-primary-investigation' or ./@type='user-grant-principal-investigation'">
                         <rdf:type rdf:resource="http://vivoweb.org/ontology/core#PrincipalInvestigatorRole" />
                     </xsl:when>
-                    <xsl:when test="./@type='user-grant-secondary-investigation'">
+                    <xsl:when test="./@type='user-grant-co-primary-investigation' or ./@type='user-grant-co-principal-investigation' or ./@type='user-grant-multi-pi'">
+                        <rdf:type rdf:resource="http://vivoweb.org/ontology/core#CoPrincipalInvestigatorRole" />
+                    </xsl:when>
+                    <xsl:when test="./@type='user-grant-secondary-investigation' or ./@type='user-grant-co-investigation'">
                         <rdf:type rdf:resource="http://vivoweb.org/ontology/core#InvestigatorRole"/>
                     </xsl:when>
                     <xsl:otherwise>
                         <rdf:type rdf:resource="http://vivoweb.org/ontology/core#ResearcherRole"/>
-                        <rdfs:label>Funded</rdfs:label>
+                        <rdfs:label>
+                            <xsl:choose>
+                                <xsl:when test="./@type='grant-user-funding' or ./@type='user-grant-sponsorship'">
+                                    <xsl:text>Funded by</xsl:text>
+                                </xsl:when>
+                                <xsl:when test="./@type='user-grant-primary-investigation-sub-project'">
+                                    <xsl:text>Sub Project Principal Investigator</xsl:text>
+                                </xsl:when>
+                                <xsl:when test="./@type='user-grant-secondary-investigation-sub-project'">
+                                    <xsl:text>Sub Project Investigator</xsl:text>
+                                </xsl:when>
+                                <xsl:when test="./@type='user-grant-senior-key-personnel'">
+                                    <xsl:text>Senior Personnel</xsl:text>
+                                </xsl:when>
+                                <xsl:when test="./@type='user-grant-personnel'">
+                                    <xsl:text>Personnel</xsl:text>
+                                </xsl:when>
+                                <xsl:when test="./@type='user-grant-project-co-leadership'">
+                                    <xsl:text>Sub Project Co-Leader</xsl:text>
+                                </xsl:when>
+                                <xsl:when test="./@type='user-grant-site-pi-investigation'">
+                                    <xsl:text>Site Principal Investigator</xsl:text>
+                                </xsl:when>
+                                <xsl:when test="./@type='user-grant-site-investigation'">
+                                    <xsl:text>Site Investigator</xsl:text>
+                                </xsl:when>
+                                <xsl:when test="./@type='user-grant-consulting'">
+                                    <xsl:text>Consultant</xsl:text>
+                                </xsl:when>
+                                <xsl:when test="./@type='user-grant-collaboration'">
+                                    <xsl:text>Collaborator</xsl:text>
+                                </xsl:when>
+                                <xsl:when test="./@type='user-grant-clinical-evaluation'">
+                                    <xsl:text>Clinical Evaluator</xsl:text>
+                                </xsl:when>
+                                <xsl:when test="./@type='user-grant-mentoring'">
+                                    <xsl:text>Mentor</xsl:text>
+                                </xsl:when>
+                                <xsl:when test="./@type='user-grant-program-coordination'">
+                                    <xsl:text>Project Co-ordinator</xsl:text>
+                                </xsl:when>
+                                <xsl:when test="./@type='user-grant-project-leadership' or ./@type='user-grant-program-direction'">
+                                    <xsl:text>Project Leader/Director</xsl:text>
+                                </xsl:when>
+                                <xsl:when test="./@type='user-grant-research'">
+                                    <xsl:text>Researcher</xsl:text>
+                                </xsl:when>
+                                <xsl:when test="./@type='user-grant-statistics'">
+                                    <xsl:text>Statistician</xsl:text>
+                                </xsl:when>
+                                <xsl:otherwise>
+                                    <xsl:text>Other Contribution</xsl:text>
+                                </xsl:otherwise>
+                            </xsl:choose>
+                        </rdfs:label>
                     </xsl:otherwise>
                 </xsl:choose>
                 <vivo:relatedBy rdf:resource="{svfn:objectURI($grant)}"/><!-- link to grant -->
