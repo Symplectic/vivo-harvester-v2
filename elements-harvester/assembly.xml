@@ -5,6 +5,8 @@
   ~   License, v. 2.0. If a copy of the MPL was not distributed with this
   ~   file, You can obtain one at http://mozilla.org/MPL/2.0/.
   ~ *******************************************************************************
+  ~   Version :  ${git.branch}:${git.commit.id}
+  ~ *******************************************************************************
   -->
 <assembly xmlns="http://maven.apache.org/POM/4.0.0"
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -16,16 +18,19 @@
     <baseDirectory>/</baseDirectory>
     <fileSets>
         <fileSet>
+            <filtered>true</filtered>
             <directory>bin</directory>
             <outputDirectory>.</outputDirectory>
             <fileMode>755</fileMode>
         </fileSet>
         <fileSet>
+            <filtered>true</filtered>
             <directory>init</directory>
             <outputDirectory>init</outputDirectory>
             <fileMode>755</fileMode>
         </fileSet>
         <fileSet>
+            <filtered>true</filtered>
             <directory>src/main/resources</directory>
             <outputDirectory>example-config</outputDirectory>
             <excludes>
@@ -33,6 +38,7 @@
             </excludes>
         </fileSet>
         <fileSet>
+            <filtered>true</filtered>
             <directory>src/main/resources</directory>
             <outputDirectory>lib</outputDirectory>
             <includes>
@@ -40,6 +46,7 @@
             </includes>
         </fileSet>
         <fileSet>
+            <filtered>true</filtered>
             <directory>example-scripts</directory>
             <outputDirectory>example-scripts</outputDirectory>
             <excludes>
@@ -55,6 +62,7 @@
             <!--</includes>-->
         <!--</fileSet>-->
         <fileSet>
+            <filtered>true</filtered>
             <directory>systemd</directory>
             <outputDirectory>systemd</outputDirectory>
         </fileSet>

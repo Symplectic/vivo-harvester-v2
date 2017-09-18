@@ -5,7 +5,10 @@
   ~   License, v. 2.0. If a copy of the MPL was not distributed with this
   ~   file, You can obtain one at http://mozilla.org/MPL/2.0/.
   ~ *******************************************************************************
+  ~   Version :  ${git.branch}:${git.commit.id}
+  ~ *******************************************************************************
   -->
+
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
@@ -29,6 +32,23 @@
 	
 	<build>
 		<plugins>
+            <plugin>
+                <groupId>pl.project13.maven</groupId>
+                <artifactId>git-commit-id-plugin</artifactId>
+                <version>2.1.13</version>
+                <executions>
+                    <execution>
+                        <id>get-the-git-infos</id>
+                        <goals>
+                            <goal>revision</goal>
+                        </goals>
+                        <phase>validate</phase>
+                    </execution>
+                </executions>
+                <configuration>
+                    <dotGitDirectory>${project.basedir}/.git</dotGitDirectory>
+                </configuration>
+            </plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -46,7 +66,7 @@
                     <descriptors>
                         <descriptor>assembly.xml</descriptor>
                     </descriptors>
-                    <finalName>${project.artifactId}</finalName>
+                    <finalName>${project.artifactId}-(${git.branch}_${git.commit.id.abbrev})</finalName>
                 </configuration>
                 <executions>
                     <execution>
@@ -72,6 +92,11 @@
                         <exclude>**/elementsfetch.properties</exclude>
                         <exclude>**/fragmentloader.properties</exclude>
                     </excludes>
+                    <archive>
+                        <manifestEntries>
+                            <SCM-Revision>${git.branch}:${git.commit.id}</SCM-Revision>
+                        </manifestEntries>
+                    </archive>
                 </configuration>
             </plugin>
         </plugins>

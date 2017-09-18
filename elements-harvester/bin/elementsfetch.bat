@@ -4,6 +4,8 @@
 ::   License, v. 2.0. If a copy of the MPL was not distributed with this
 ::   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 :: *******************************************************************************
+::   Version :  ${git.branch}:${git.commit.id}
+:: *******************************************************************************
 
 ::update memory to match your hardware -- ideally set both to be the same, in general the more memory the better, but too much can cause errors as well.
 ::8G-12G on large vivo's seems to work well
