@@ -287,6 +287,7 @@ public class ElementsFetchAndTranslate {
 
                 //Initiate the shutdown of the asynchronous translation engine - note this will actually block until
                 //the engine has completed all its enqueued tasks - think of it as "await completion".
+                log.info("Waiting for enqueued translations to complete");
                 TranslationService.awaitShutdown();
 
                 //changes towards making include monitoring a separate step in the process?

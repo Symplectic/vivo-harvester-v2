@@ -133,8 +133,16 @@
         <xsl:param name="propertyName" />
         <xsl:param name="fieldName" />
 
+        <xsl:variable name="useLinebreaks" select="svfn:shouldUseHTMLLineBreaks($propertyName)" as="xs:boolean" />
         <xsl:element name="{$propertyName}">
-            <xsl:value-of select="." />
+            <xsl:choose>
+                <xsl:when test="$useLinebreaks">
+                    <xsl:value-of select="svfn:injectHTMLLinesBreaks(.)" />
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:value-of select="." />
+                </xsl:otherwise>
+            </xsl:choose>
         </xsl:element>
     </xsl:template>
 

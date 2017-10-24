@@ -646,8 +646,8 @@
     <!-- Note Experimental changes to resolve issues with Skos concepts representing labels having multiple values -->
     <!-- May well be refactored into some other form in due course -->
     <config:label-overrides>
-        <!-- overrides to handle issues w://uoc.vivo.symplectic.org/individual/vocab-for-0103-numerical-and-computational-mathematicsith for codes being represented differently by elements in some places -->
-        <config:label-override uri="vocab-for-0103-numerical-and-computational-mathematics" label="0103 Numerical and Computational" />
+        <!-- overrides to handle issues with for codes being represented differently by elements in some places -->
+        <config:label-override uri="vocab-for-0103-numerical-and-computational-mathematics" label="0103 Numerical and Computational Mathematics" />
         <config:label-override uri="vocab-for-0201-astronomical-and-space-sciences" label="0201 Astronomical and Space Sciences" />
         <config:label-override uri="vocab-for-0202-atomic-molecular-nuclear-particle-and-plasma-physics" label="0202 Atomic, Molecular, Nuclear, Particle and Plasma Physics" />
         <config:label-override uri="vocab-for-0303-macromolecular-and-materials-chemistry" label="0303 Macromolecular and Materials Chemistry" />
@@ -725,5 +725,8 @@
         <config:label-override uri="vocab-mesh-biofeedback-psychology" label="Biofeedback (Psychology)" />
     </config:label-overrides>
 
+    <config:htmlLineBreakProperties>
+        <config:htmlLineBreakProperty name="vivo:overview" />
+    </config:htmlLineBreakProperties>
 
 </config:main>

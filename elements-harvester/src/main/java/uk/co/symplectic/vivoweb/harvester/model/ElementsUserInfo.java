@@ -51,7 +51,7 @@ public class ElementsUserInfo extends ElementsObjectInfo {
         switch(photoType){
             case NONE: return null;
             case ORIGINAL: return additionalInfo.photoUrl + "?type=original";
-            case THUMBNAIL: return additionalInfo.photoUrl + "type=thumbnail";
+            case THUMBNAIL: return additionalInfo.photoUrl + "?type=thumbnail";
             default : return additionalInfo.photoUrl;
         }
     }

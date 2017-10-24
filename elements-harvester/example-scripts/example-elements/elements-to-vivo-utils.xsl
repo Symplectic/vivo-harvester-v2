@@ -62,6 +62,30 @@
         </xsl:choose>
     </xsl:function>
 
+    <xsl:function name="svfn:shouldUseHTMLLineBreaks">
+        <xsl:param name="propertyName" as="xs:string" />
+
+        <xsl:choose>
+            <xsl:when test="$htmlLineBreakProperties[@name=$propertyName]">
+                <xsl:value-of select="true()" />
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:value-of select="false()" />
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:function>
+
+    <!-- templates to inject html line breaks if required, these need to be templates as functions end up evaluating the
+ result in a value -of which strips the desired <br/> tags..-->
+
+    <!-- template to take in input containing line breaks /r/n /r or /n and turn them into html containing <br/> tags -->
+    <xsl:function name="svfn:injectHTMLLinesBreaks">
+        <xsl:param name="input" as="xs:string" />
+        <xsl:variable name="step1" select="replace($input, '&#13;&#10;', '&#10;')" />
+        <xsl:variable name="step2" select="replace($step1, '&#13;', '&#10;')" />
+        <xsl:value-of select="replace($step2, '&#10;', '&lt;br/&gt;')" />
+    </xsl:function>
+
     <!--
         svfn:makeURI
         ============
@@ -432,7 +456,6 @@
                 <xsl:copy-of select="svfn:_renderPropertyFromField($object, $propertyName, $fieldName, $dummy-field)" />
             </xsl:when>
         </xsl:choose>
-
     </xsl:function>
 
     <!--
@@ -496,6 +519,7 @@
     <xsl:function name="svfn:getRecordFieldOrFirst">
         <xsl:param name="object" />
         <xsl:param name="fieldName" as="xs:string" />
+
 
         <xsl:variable name="precedence-to-use">
             <xsl:choose>
@@ -583,6 +607,7 @@
         <xsl:param name="propertyName" as="xs:string" />
         <xsl:param name="fieldName" as="xs:string" />
         <xsl:param name="fieldNode" />
+
         <xsl:apply-templates select="$fieldNode" mode="renderForProperty">
             <xsl:with-param name="propertyName" select="$propertyName" />
             <xsl:with-param name="fieldName" select="$fieldName" />
