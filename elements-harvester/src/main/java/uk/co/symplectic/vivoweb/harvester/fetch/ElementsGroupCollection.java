@@ -16,6 +16,8 @@ import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItemInfo;
 import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -28,13 +30,15 @@ public class ElementsGroupCollection extends ElementsItemKeyedCollection<Element
     private ElementsGroupInfo.GroupHierarchyWrapper topLevel = null;
     private boolean membershipPopulated = false;
 
+    private Map<ElementsItemId.ObjectId, Set<ElementsItemId.GroupId>> userGroupMap = new HashMap<ElementsItemId.ObjectId, Set<ElementsItemId.GroupId>>();
+
     public ElementsGroupCollection(){super(new RestrictToType(ElementsItemType.GROUP));}
 
     /**
      * Get the top level "organisation" group - can only be called after constructHierarchy has been run.
       * @return
      */
-    public ElementsGroupInfo.GroupHierarchyWrapper GetTopLevel(){
+    public synchronized ElementsGroupInfo.GroupHierarchyWrapper GetTopLevel(){
         if(topLevel == null) throw new IllegalStateException("must construct group hierarcy before requesting top level");
         return topLevel;
     }
@@ -46,7 +50,7 @@ public class ElementsGroupCollection extends ElementsItemKeyedCollection<Element
      *
      * @return the top level "organisation" group at the pinacle of the group tree.
      */
-    public ElementsGroupInfo.GroupHierarchyWrapper constructHierarchy(){
+    public synchronized ElementsGroupInfo.GroupHierarchyWrapper constructHierarchy(){
         if(topLevel == null) {
             for (ElementsGroupInfo.GroupHierarchyWrapper group : this.values()) {
                 ElementsItemId parentGroupId = group.getGroupInfo().getParentId();
@@ -87,7 +91,7 @@ public class ElementsGroupCollection extends ElementsItemKeyedCollection<Element
      * @param systemUsers
      * @throws IOException
      */
-    public void populateUserMembership(ElementsFetch fetcher, Set<ElementsItemId> systemUsers) throws IOException {
+    public synchronized void populateUserMembership(ElementsFetch fetcher, Set<ElementsItemId> systemUsers) throws IOException {
         if(topLevel == null) throw new IllegalStateException("must construct group hierarcy before populating membership");
         if(!membershipPopulated) {
             //fetch memberships from the API
@@ -111,7 +115,7 @@ public class ElementsGroupCollection extends ElementsItemKeyedCollection<Element
      * @param systemUsers
      * @throws IOException
      */
-    public void populateUserMembership(Map<ElementsItemId, Set<ElementsItemId>> groupUserMap, Set<ElementsItemId> systemUsers) throws IOException {
+    public synchronized void populateUserMembership(Map<ElementsItemId, Set<ElementsItemId>> groupUserMap, Set<ElementsItemId> systemUsers) throws IOException {
         if(topLevel == null) throw new IllegalStateException("must construct group hierarchy before populating membership");
         if(!membershipPopulated) {
             //fetch memberships from the API
@@ -125,6 +129,7 @@ public class ElementsGroupCollection extends ElementsItemKeyedCollection<Element
                         for(ElementsItemId uid : users){
                             if(uid.getItemType() == ElementsItemType.OBJECT && uid.getItemSubType() == ElementsObjectCategory.USER) {
                                 group.addExplicitUser((ElementsItemId.ObjectId) uid);
+                                getUsersGroups((ElementsItemId.ObjectId) uid).add((ElementsItemId.GroupId) group.getGroupInfo().getItemId());
                             }
                         }
                     }
@@ -139,17 +144,32 @@ public class ElementsGroupCollection extends ElementsItemKeyedCollection<Element
      * by removing anyone who is an explicit member of any other group from the set of all users.
      * @param systemUsers
      */
-    private void finaliseUserMembership(Set<ElementsItemId> systemUsers){
+    private synchronized void finaliseUserMembership(Set<ElementsItemId> systemUsers){
         //calculate organisation membership from passed in user cache information
         Set<ElementsItemId> usersInNonOrgGroups = topLevel.getImplicitUsers();
         for (ElementsItemId userID : systemUsers) {
             if(userID instanceof ElementsItemId.ObjectId) {
                 ElementsItemId.ObjectId userObjID = (ElementsItemId.ObjectId) userID;
-                if (!usersInNonOrgGroups.contains(userObjID))
+                if (!usersInNonOrgGroups.contains(userObjID)) {
                     topLevel.addExplicitUser(userObjID);
+                    getUsersGroups(userObjID).add((ElementsItemId.GroupId) topLevel.getGroupInfo().getItemId());
+                }
             }
         }
         membershipPopulated = true;
+    }
+
+    public synchronized Set<ElementsItemId.GroupId> getUsersGroups(ElementsItemId.ObjectId userID){
+        if(userID == null)throw new NullArgumentException("userID");
+        if(userID.getItemSubType() != ElementsObjectCategory.USER) throw new IllegalArgumentException("userID must refer to a user object");
+
+        Set<ElementsItemId.GroupId> usersGroups = userGroupMap.get(userID);
+        if(usersGroups == null){
+            usersGroups = new HashSet<ElementsItemId.GroupId>();
+            userGroupMap.put(userID, usersGroups);
+        }
+        //refetch it to be sure..
+        return userGroupMap.get(userID);
     }
 
 
@@ -188,6 +208,7 @@ public class ElementsGroupCollection extends ElementsItemKeyedCollection<Element
             ElementsObjectInfo objectInfo = itemInfo.asObjectInfo();
             if(!(objectInfo instanceof ElementsUserInfo)) throw new IllegalStateException("GroupUserMembershipStore can only store User items");
             group.addExplicitUser(objectInfo.getObjectId());
+            getUsersGroups(objectInfo.getObjectId()).add((ElementsItemId.GroupId) group.getGroupInfo().getItemId());
             return null;
         }
     }

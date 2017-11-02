@@ -30,6 +30,7 @@ public class StorableResourceType {
     final public static StorableResourceType TRANSLATED_USER_PHOTO_DESCRIPTION = new StorableResourceType(ElementsObjectCategory.USER, "photo", "rdf", true);
     final public static StorableResourceType TRANSLATED_RELATIONSHIP = new StorableResourceType(ElementsItemType.AllRelationships, "translated", "rdf", true);
     final public static StorableResourceType TRANSLATED_GROUP = new StorableResourceType(ElementsItemType.AllGroups, "translated", "rdf", true);
+    final public static StorableResourceType TRANSLATED_USER_GROUP_MEMBERSHIP = new StorableResourceType(ElementsObjectCategory.USER, "group-membership", "rdf", true);
 
     //Item part of class to define structure
     private final ElementsItemType.SubType keySubItemType;

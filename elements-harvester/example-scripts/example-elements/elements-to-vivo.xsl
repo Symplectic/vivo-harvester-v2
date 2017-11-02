@@ -40,10 +40,16 @@
     <xsl:import href="elements-to-vivo-object.xsl" />
     <xsl:import href="elements-to-vivo-relationship.xsl" />
     <xsl:import href="elements-to-vivo-user-photo.xsl" />
+
+    <xsl:import href="elements-to-vivo-group-membership.xsl" />
+
+    <xsl:param name="userGroupMembershipProcessing" select="false()" />
+
     <xsl:output method="xml" indent="yes" encoding="UTF-8" />
 
     <xsl:include href="elements-to-vivo-util-overrides.xsl" />
     <xsl:include href="elements-to-vivo-template-overrides.xsl" />
+
 
     <!--
         Default template - matches the root, to output an RDF document tag around any RDF objects that are output
@@ -51,7 +57,14 @@
     <xsl:template match="/">
         <xsl:call-template name="render_rdf_document">
             <xsl:with-param name="rdfNodes">
-                <xsl:apply-templates select="*" />
+                <xsl:choose>
+                    <xsl:when test="boolean($userGroupMembershipProcessing) = true()">
+                        <xsl:apply-templates select="*" mode="userGroupMembershipProcessing" />
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:apply-templates select="*" />
+                    </xsl:otherwise>
+                </xsl:choose>
             </xsl:with-param>
         </xsl:call-template>
     </xsl:template>

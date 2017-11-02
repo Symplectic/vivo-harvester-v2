@@ -99,18 +99,18 @@ public class ElementsItemFileStore implements ElementsItemStore.ElementsDeletabl
         return data;
     }
 
-    public ElementsStoredItemInfo innerStoreItem(ElementsItemInfo itemInfo, StorableResourceType resourceType, byte[] data, boolean actuallyStoreData) throws IOException{
+    @Override
+    public ElementsStoredItemInfo storeItem(ElementsItemInfo itemInfo, StorableResourceType resourceType, byte[] data) throws IOException{
         //TODO: do something better here with error message?
         if(!resourceType.isAppropriateForItem(itemInfo.getItemId())) throw new IllegalStateException("resourceType is incompatible with item");
         if(!supportedTypes.contains(resourceType)) throw new IllegalStateException("resourceType is incompatible with store");
         File file = layoutStrategy.getItemFile(dir, itemInfo.getItemId(), resourceType);
         ElementsStoredItemInfo storedItem = new ElementsStoredItemInfo(itemInfo, resourceType, new StoredData.InFile(file, shouldZipResourceFile(resourceType)));
-        if(actuallyStoreData){ store(file, data, zipFiles && resourceType.shouldZip()); }
-        else if(!file.exists()){ throw new FileNotFoundException(file.getAbsolutePath()); }
+        store(file, data, zipFiles && resourceType.shouldZip());
 
         //flag the item as having been affected during this run
         //if it is a newly affected item, or if the data is actually being updated during this processing run then process any observers
-        if(markItemAsAffected(resourceType, itemInfo.getItemId()) || actuallyStoreData) {
+        if(markItemAsAffected(resourceType, itemInfo.getItemId())) {
             for (IElementsStoredItemObserver observer : itemObservers) {
                 observer.observe(storedItem);
             }
@@ -119,13 +119,30 @@ public class ElementsItemFileStore implements ElementsItemStore.ElementsDeletabl
     }
 
     @Override
-    public ElementsStoredItemInfo storeItem(ElementsItemInfo itemInfo, StorableResourceType resourceType, byte[] data) throws IOException{
-        return innerStoreItem(itemInfo, resourceType, data, true);
-    }
+    public ElementsStoredItemInfo touchItem(ElementsItemInfo itemInfo, StorableResourceType resourceType, IElementsStoredItemObserver... observersToRecalculate) throws IOException{
+        //TODO: do something better here with error message?
+        if(!resourceType.isAppropriateForItem(itemInfo.getItemId())) throw new IllegalStateException("resourceType is incompatible with item");
+        if(!supportedTypes.contains(resourceType)) throw new IllegalStateException("resourceType is incompatible with store");
+        File file = layoutStrategy.getItemFile(dir, itemInfo.getItemId(), resourceType);
+        ElementsStoredItemInfo storedItem = new ElementsStoredItemInfo(itemInfo, resourceType, new StoredData.InFile(file, shouldZipResourceFile(resourceType)));
+        if(!file.exists()){ throw new FileNotFoundException(file.getAbsolutePath()); }
 
-    @Override
-    public ElementsStoredItemInfo touchItem(ElementsItemInfo itemInfo, StorableResourceType resourceType) throws IOException{
-        return innerStoreItem(itemInfo, resourceType, null, false);
+
+        if(observersToRecalculate != null && observersToRecalculate.length != 0) {
+            //reprocess any specifically requested observers regardless of whether the item has been "affected" already.
+            for (IElementsStoredItemObserver observer : observersToRecalculate) {
+                observer.observe(storedItem);
+            }
+        }
+
+        //flag the item as having been affected during this run
+        //if it is a newly affected item, or if the data is actually being updated during this processing run then process any observers
+        if(markItemAsAffected(resourceType, itemInfo.getItemId())) {
+            for (IElementsStoredItemObserver observer : itemObservers) {
+                observer.observe(storedItem);
+            }
+        }
+        return storedItem;
     }
 
     @Override

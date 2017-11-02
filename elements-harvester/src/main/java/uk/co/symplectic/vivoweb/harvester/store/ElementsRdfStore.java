@@ -19,6 +19,7 @@ public class ElementsRdfStore extends ElementsItemFileStore {
 
     public ElementsRdfStore(File dir, boolean keepEmpty, boolean zipFiles){
         super(dir, keepEmpty, zipFiles, ElementsRdfStore.layoutStrategy,
-            StorableResourceType.TRANSLATED_OBJECT, StorableResourceType.TRANSLATED_RELATIONSHIP, StorableResourceType.TRANSLATED_GROUP, StorableResourceType.TRANSLATED_USER_PHOTO_DESCRIPTION);
+            StorableResourceType.TRANSLATED_OBJECT, StorableResourceType.TRANSLATED_RELATIONSHIP, StorableResourceType.TRANSLATED_GROUP,
+                StorableResourceType.TRANSLATED_USER_PHOTO_DESCRIPTION, StorableResourceType.TRANSLATED_USER_GROUP_MEMBERSHIP);
     }
 }

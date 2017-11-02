@@ -49,6 +49,37 @@
                     <dotGitDirectory>${project.basedir}/.git</dotGitDirectory>
                 </configuration>
             </plugin>
+            <!--<plugin>-->
+                <!--<groupId>org.codehaus.mojo</groupId>-->
+                <!--<artifactId>build-helper-maven-plugin</artifactId>-->
+                <!--<version>3.0.0</version>-->
+                <!--<executions>-->
+                    <!--<execution>-->
+                        <!--<id>regex-properties</id>-->
+                        <!--<goals>-->
+                            <!--<goal>regex-properties</goal>-->
+                        <!--</goals>-->
+                        <!--<configuration>-->
+                            <!--<regexPropertySetting>-->
+                                <!--<name>version.descriptor</name>-->
+                                <!--<value>${version.intermediatedescriptor}</value>-->
+                                <!--<regex>-false</regex>-->
+                                <!--<replacement></replacement>-->
+                                <!--<failIfNoMatch>false</failIfNoMatch>-->
+                            <!--</regexPropertySetting>-->
+                            <!--<regexPropertySettings>-->
+                                <!--<regexPropertySetting>-->
+                                    <!--<name>version.intermediatedescriptor</name>-->
+                                    <!--<value>${project.artifactId}-(${git.branch}_${git.commit.id.abbrev})-${git.dirty}</value>-->
+                                    <!--<regex>-true</regex>-->
+                                    <!--<replacement>-dirty</replacement>-->
+                                    <!--<failIfNoMatch>false</failIfNoMatch>-->
+                                <!--</regexPropertySetting>-->
+                            <!--</regexPropertySettings>-->
+                        <!--</configuration>-->
+                    <!--</execution>-->
+                <!--</executions>-->
+            <!--</plugin>-->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -67,6 +98,7 @@
                         <descriptor>assembly.xml</descriptor>
                     </descriptors>
                     <finalName>${project.artifactId}-(${git.branch}_${git.commit.id.abbrev})</finalName>
+                    <!--<finalName>${version.intermediatedescriptor}</finalName>-->
                 </configuration>
                 <executions>
                     <execution>
