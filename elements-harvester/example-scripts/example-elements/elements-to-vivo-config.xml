@@ -725,8 +725,10 @@
         <config:label-override uri="vocab-mesh-biofeedback-psychology" label="Biofeedback (Psychology)" />
     </config:label-overrides>
 
-    <config:htmlLineBreakProperties>
-        <config:htmlLineBreakProperty name="vivo:overview" />
-    </config:htmlLineBreakProperties>
+    <!-- list any vivo properties that should be treated as html if the data being used to populate them from Elements is coming from a raw text field
+         at the moment this will attempt to inject line breaks at new lines and turn urls into links -->
+    <config:htmlProperties>
+        <config:htmlProperty name="vivo:overview" />
+    </config:htmlProperties>
 
 </config:main>
