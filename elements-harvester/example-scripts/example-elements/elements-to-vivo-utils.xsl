@@ -217,12 +217,16 @@
         </xsl:if>
     </xsl:function>
 
-    <xsl:function name="svfn:organisationObjectsMainURI">
+    <xsl:function name="svfn:organisationObjectsMainURI" as="xs:string">
         <xsl:param name="orgObjects" />
-        <xsl:choose>
-            <xsl:when test="$orgObjects/*"><xsl:value-of select="$orgObjects[1]/@rdf:about" /></xsl:when>
-            <xsl:otherwise><xsl:text /></xsl:otherwise>
-        </xsl:choose>
+        <xsl:variable name="uri-to-use">
+            <xsl:choose>
+                <xsl:when test="$orgObjects[@rdf:about][1]/@rdf:about"><xsl:value-of select="$orgObjects[@rdf:about][1]/@rdf:about" /></xsl:when>
+                <xsl:when test="$orgObjects/@rdf:about"><xsl:value-of select="$orgObjects/@rdf:about" /></xsl:when>
+                <xsl:otherwise><xsl:text /></xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
+        <xsl:value-of select="fn:normalize-space($uri-to-use)" />
     </xsl:function>
 
     <!--
@@ -312,16 +316,18 @@
     <xsl:function name="svfn:retrieveUri" as="xs:string">
         <xsl:param name="rdfFragment" />
         <xsl:param name="rdfType" />
-        <xsl:if test="$rdfFragment">
+        <xsl:variable name="uri-to-use">
             <xsl:choose>
-                <xsl:when test="$rdfFragment[rdf:type/@rdf:resource=$rdfType]">
-                    <xsl:value-of select="$rdfFragment[rdf:type/@rdf:resource=$rdfType][1]/@rdf:about" />
-                </xsl:when>
-                <xsl:when test="$rdfFragment/rdf:Description[rdf:type/@rdf:resource=$rdfType]">
-                    <xsl:value-of select="$rdfFragment/rdf:Description[rdf:type/@rdf:resource=$rdfType][1]/@rdf:about" />
-                </xsl:when>
-            </xsl:choose>
-        </xsl:if>
+            <xsl:when test="$rdfFragment and $rdfFragment[rdf:type/@rdf:resource=$rdfType]">
+                <xsl:value-of select="$rdfFragment[rdf:type/@rdf:resource=$rdfType][1]/@rdf:about" />
+            </xsl:when>
+            <xsl:when test="$rdfFragment and $rdfFragment/rdf:Description[rdf:type/@rdf:resource=$rdfType]">
+                <xsl:value-of select="$rdfFragment/rdf:Description[rdf:type/@rdf:resource=$rdfType][1]/@rdf:about" />
+            </xsl:when>
+            <xsl:otherwise><xsl:value-of select="''" /></xsl:otherwise>
+        </xsl:choose>
+        </xsl:variable>
+        <xsl:value-of select="fn:normalize-space($uri-to-use)" />
     </xsl:function>
 
     <!--

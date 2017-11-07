@@ -42,7 +42,9 @@
         <xsl:variable name="orgObjects" select="svfn:organisationObjects($orgAddress/api:addresses/api:address[1])" />
         <xsl:variable name="orgURI" select="svfn:organisationObjectsMainURI($orgObjects)" />
 
-        <xsl:if test="$orgObjects/*">
+        <xsl:variable name="hasLinkedOrg" select="$orgURI and $orgURI != ''" />
+
+        <xsl:if test="$hasLinkedOrg">
             <xsl:variable name="userURI" select="svfn:userURI($userObj)" />
 
             <!-- An Organization-->

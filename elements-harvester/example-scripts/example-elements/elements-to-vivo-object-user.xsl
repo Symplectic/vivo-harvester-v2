@@ -91,7 +91,10 @@
 
                 <!-- XXX: Ideally these will be unique identifiers in the future that can map to unique individuals in VIVO -->
                 <xsl:variable name="orgObjects" select="svfn:organisationObjects(api:institution)" />
-                <xsl:variable name="orgURI" select="svfn:organisationObjectsMainURI($orgObjects)" />
+                <xsl:variable name="orgURI" select="(svfn:organisationObjectsMainURI($orgObjects))" />
+
+                <xsl:variable name="hasLinkedOrg" select="$orgURI and $orgURI != ''" />
+
 
                 <xsl:variable name="degreeURI" select="svfn:makeURI('degree-', concat($awardedDegreeName,'-',$awardedDegreeField))" />
 
@@ -123,7 +126,7 @@
                         <xsl:if test="$dateInterval/*">
                             <vivo:dateTimeInterval rdf:resource="{$dateIntervalURI}" />
                         </xsl:if>
-                        <xsl:if test="$orgObjects/*"><obo:RO_0000057 rdf:resource="{$orgURI}" /></xsl:if>
+                        <xsl:if test="$hasLinkedOrg"><obo:RO_0000057 rdf:resource="{$orgURI}" /></xsl:if>
                         <obo:RO_0000057 rdf:resource="{$userURI}" />
                         <obo:RO_0002234 rdf:resource="{$awardedDegreeURI}" />
                     </xsl:with-param>
@@ -135,7 +138,7 @@
                     <xsl:with-param name="rdfNodes">
                         <rdf:type rdf:resource="http://vivoweb.org/ontology/core#AwardedDegree" />
                         <rdfs:label><xsl:value-of select="concat($lastName, ', ', $firstName, ': ', $awardedDegreeName, ' ', $awardedDegreeField)" /></rdfs:label>  <!-- VIVO includes name, e.g. "Smith, John: B.S. Bachelor of Science" -->
-                        <xsl:if test="$orgObjects/*"><vivo:assignedBy rdf:resource="{$orgURI}" /></xsl:if>
+                        <xsl:if test="$hasLinkedOrg"><vivo:assignedBy rdf:resource="{$orgURI}" /></xsl:if>
                         <vivo:relates rdf:resource="{$degreeURI}" />
                         <vivo:relates rdf:resource="{$userURI}" />
                         <obo:RO_0002353 rdf:resource="{$eduProcessURI}" />
@@ -149,7 +152,7 @@
                     </xsl:with-param>
                 </xsl:call-template>
 
-                <xsl:if test="$orgObjects/*">
+                <xsl:if test="$hasLinkedOrg">
                     <xsl:call-template name="render_rdf_object">
                         <xsl:with-param name="objectURI" select="$orgURI" />
                         <xsl:with-param name="rdfNodes">
@@ -167,6 +170,8 @@
                 <!-- XXX: Ideally these will be unique identifiers in the future that can map to unique individuals in VIVO -->
                 <xsl:variable name="orgObjects" select="svfn:organisationObjects(api:institution)" />
                 <xsl:variable name="orgURI" select="svfn:organisationObjectsMainURI($orgObjects)" />
+
+                <xsl:variable name="hasLinkedOrg" select="$orgURI and $orgURI != ''" />
 
                 <!-- Output RDF for vivo:University individual -->
                 <xsl:copy-of select="$orgObjects" />
@@ -195,7 +200,7 @@
                         <!--
                             Link to department if available, otherwise organisation
                         -->
-                    <xsl:if test="$orgObjects/*"><vivo:relates rdf:resource="{$orgURI}" /></xsl:if>
+                    <xsl:if test="$hasLinkedOrg"><vivo:relates rdf:resource="{$orgURI}" /></xsl:if>
                     <vivo:relates rdf:resource="{$userURI}" />
                 </xsl:with-param>
                 </xsl:call-template>
@@ -207,7 +212,7 @@
                     </xsl:with-param>
                 </xsl:call-template>
 
-                <xsl:if test="$orgObjects/*">
+                <xsl:if test="$hasLinkedOrg">
                     <xsl:call-template name="render_rdf_object">
                         <xsl:with-param name="objectURI" select="$orgURI" />
                         <xsl:with-param name="rdfNodes">
@@ -225,6 +230,9 @@
                 <!-- XXX: Ideally these will be unique identifiers in the future that can map to unique individuals in VIVO -->
                 <xsl:variable name="orgObjects" select="svfn:organisationObjects(api:employer)" />
                 <xsl:variable name="orgURI" select="svfn:organisationObjectsMainURI($orgObjects)" />
+
+                <xsl:variable name="hasLinkedOrg" select="$orgURI and $orgURI != ''" />
+
                 <!-- Output RDF for foaf:Organization individual -->
                 <xsl:copy-of select="$orgObjects" />
 
@@ -244,7 +252,7 @@
                         <xsl:if test="$dateInterval/*">
                             <vivo:dateTimeInterval rdf:resource="{$dateIntervalURI}" />
                         </xsl:if>
-                        <xsl:if test="$orgObjects/*"><vivo:relates rdf:resource="{$orgURI}" /></xsl:if>
+                        <xsl:if test="$hasLinkedOrg"><vivo:relates rdf:resource="{$orgURI}" /></xsl:if>
                         <vivo:relates rdf:resource="{$userURI}" />
                     </xsl:with-param>
                 </xsl:call-template>
@@ -256,7 +264,7 @@
                     </xsl:with-param>
                 </xsl:call-template>
 
-                <xsl:if test="$orgObjects/*">
+                <xsl:if test="$hasLinkedOrg">
                     <xsl:call-template name="render_rdf_object">
                         <xsl:with-param name="objectURI" select="$orgURI" />
                         <xsl:with-param name="rdfNodes">
