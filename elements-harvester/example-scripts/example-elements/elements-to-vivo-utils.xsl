@@ -62,11 +62,11 @@
         </xsl:choose>
     </xsl:function>
 
-    <xsl:function name="svfn:shouldUseHTMLLineBreaks">
+    <xsl:function name="svfn:shouldConvertToHTML">
         <xsl:param name="propertyName" as="xs:string" />
 
         <xsl:choose>
-            <xsl:when test="$htmlLineBreakProperties[@name=$propertyName]">
+            <xsl:when test="$htmlProperties[@name=$propertyName]">
                 <xsl:value-of select="true()" />
             </xsl:when>
             <xsl:otherwise>
@@ -84,6 +84,12 @@
         <xsl:variable name="step1" select="replace($input, '&#13;&#10;', '&#10;')" />
         <xsl:variable name="step2" select="replace($step1, '&#13;', '&#10;')" />
         <xsl:value-of select="replace($step2, '&#10;', '&lt;br/&gt;')" />
+    </xsl:function>
+
+
+    <xsl:function name="svfn:injectHtmlAnchors">
+        <xsl:param name="input" as="xs:string" />
+        <xsl:value-of select="replace($input, '(^|\n|\s)https?://(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}(\?[-a-zA-Z0-9@:%_\+.~#?&amp;//=]*)?($|\n|\s)', '&lt;a href=&#34;$0&#34; &gt;$0&lt;/a&gt;')" />
     </xsl:function>
 
     <!--
@@ -211,12 +217,16 @@
         </xsl:if>
     </xsl:function>
 
-    <xsl:function name="svfn:organisationObjectsMainURI">
+    <xsl:function name="svfn:organisationObjectsMainURI" as="xs:string">
         <xsl:param name="orgObjects" />
-        <xsl:choose>
-            <xsl:when test="$orgObjects/*"><xsl:value-of select="$orgObjects[1]/@rdf:about" /></xsl:when>
-            <xsl:otherwise><xsl:text /></xsl:otherwise>
-        </xsl:choose>
+        <xsl:variable name="uri-to-use">
+            <xsl:choose>
+                <xsl:when test="$orgObjects[@rdf:about][1]/@rdf:about"><xsl:value-of select="$orgObjects[@rdf:about][1]/@rdf:about" /></xsl:when>
+                <xsl:when test="$orgObjects/@rdf:about"><xsl:value-of select="$orgObjects/@rdf:about" /></xsl:when>
+                <xsl:otherwise><xsl:text /></xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
+        <xsl:value-of select="fn:normalize-space($uri-to-use)" />
     </xsl:function>
 
     <!--
@@ -306,16 +316,18 @@
     <xsl:function name="svfn:retrieveUri" as="xs:string">
         <xsl:param name="rdfFragment" />
         <xsl:param name="rdfType" />
-        <xsl:if test="$rdfFragment">
+        <xsl:variable name="uri-to-use">
             <xsl:choose>
-                <xsl:when test="$rdfFragment[rdf:type/@rdf:resource=$rdfType]">
-                    <xsl:value-of select="$rdfFragment[rdf:type/@rdf:resource=$rdfType][1]/@rdf:about" />
-                </xsl:when>
-                <xsl:when test="$rdfFragment/rdf:Description[rdf:type/@rdf:resource=$rdfType]">
-                    <xsl:value-of select="$rdfFragment/rdf:Description[rdf:type/@rdf:resource=$rdfType][1]/@rdf:about" />
-                </xsl:when>
-            </xsl:choose>
-        </xsl:if>
+            <xsl:when test="$rdfFragment and $rdfFragment[rdf:type/@rdf:resource=$rdfType]">
+                <xsl:value-of select="$rdfFragment[rdf:type/@rdf:resource=$rdfType][1]/@rdf:about" />
+            </xsl:when>
+            <xsl:when test="$rdfFragment and $rdfFragment/rdf:Description[rdf:type/@rdf:resource=$rdfType]">
+                <xsl:value-of select="$rdfFragment/rdf:Description[rdf:type/@rdf:resource=$rdfType][1]/@rdf:about" />
+            </xsl:when>
+            <xsl:otherwise><xsl:value-of select="''" /></xsl:otherwise>
+        </xsl:choose>
+        </xsl:variable>
+        <xsl:value-of select="fn:normalize-space($uri-to-use)" />
     </xsl:function>
 
     <!--

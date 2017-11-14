@@ -32,23 +32,6 @@
         Main import for Group processing (publication, user, etc.)
     -->
 
-    <xsl:param name="groupMembers">
-        <!--<xsl:element name="groupMembers">-->
-            <!--<xsl:element name="user">-->
-                <!--<xsl:attribute name="id">123</xsl:attribute>-->
-                <!--<xsl:attribute name="username">bob</xsl:attribute>-->
-            <!--</xsl:element>-->
-            <!--<xsl:element name="user">-->
-                <!--<xsl:attribute name="id">456</xsl:attribute>-->
-                <!--<xsl:attribute name="username">bill</xsl:attribute>-->
-            <!--</xsl:element>-->
-            <!--<xsl:element name="user">-->
-                <!--<xsl:attribute name="id">987</xsl:attribute>-->
-                <!--<xsl:attribute name="username">jenny</xsl:attribute>-->
-            <!--</xsl:element>-->
-        <!--</xsl:element>-->
-    </xsl:param>
-
     <xsl:param name="includedParentGroupId" />
 
     <!-- Default template - output group -->
@@ -84,50 +67,9 @@
                     <!-- will currently create crud in the vivo db for any groups that are NOT included....sigh -->
                     <obo:BFO_0000050 rdf:resource="{svfn:makeURI('institutional-user-group-', $includedParentGroupId)}" />
                 </xsl:if>
-
-                <!--<xsl:if test="api:parents/api:parent[1]">-->
-                    <!--&lt;!&ndash; will currently create crud in the vivo db for any groups that are NOT included....sigh &ndash;&gt;-->
-                    <!--<obo:BFO_0000050 rdf:resource="{svfn:makeURI('institutional-user-group-', api:parents/api:parent[1]/@id)}" />-->
-                <!--</xsl:if>-->
             </xsl:with-param>
         </xsl:call-template>
 
         <!--todo: should the parent group have its children set too? are inferred - rightly or wrongly...-->
-
-        <!-- for each group member render info about their membership of this group -->
-        <xsl:for-each select="$groupMembers/groupMembers/user">
-            <xsl:variable name="membershipURI" select="svfn:objectToObjectURI('group-user-membership-', $groupID, @id)" />
-            <xsl:variable name="userURI" select="svfn:userURI(.)" />
-            <!-- Output RDF for vivo:NonAcademicPosition individual -->
-            <xsl:call-template name="render_rdf_object">
-                <xsl:with-param name="objectURI" select="$membershipURI" />
-                <xsl:with-param name="rdfNodes">
-                    <!-- XXX: vivo:Position is the "Other" select option in VIVO 1.7 user interface. This
-                             could also be vivo:FacultyPosition, vivo:FacultyAdministrativePosition,
-                             vivo:LibrarianPosition, vivo:NonFacultyAcademicPosition, vivo:PostdocPosition,
-                             or vivo:PrimaryPosition -->
-                    <rdf:type rdf:resource="http://vivoweb.org/ontology/core#Position" />
-                    <rdfs:label>Member</rdfs:label>
-                    <vivo:relates rdf:resource="{$groupURI}" />
-                    <vivo:relates rdf:resource="{$userURI}" />
-                </xsl:with-param>
-            </xsl:call-template>
-
-            <xsl:call-template name="render_rdf_object">
-            <xsl:with-param name="objectURI" select="$groupURI" />
-                <xsl:with-param name="rdfNodes">
-                    <vivo:relatedBy rdf:resource="{$membershipURI}" />
-                </xsl:with-param>
-            </xsl:call-template>
-
-            <xsl:call-template name="render_rdf_object">
-                <xsl:with-param name="objectURI" select="$userURI" />
-                <xsl:with-param name="rdfNodes">
-                    <vivo:relatedBy rdf:resource="{$membershipURI}" />
-                </xsl:with-param>
-            </xsl:call-template>
-
-        </xsl:for-each>
     </xsl:template>
-
 </xsl:stylesheet>

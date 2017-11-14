@@ -79,7 +79,7 @@
     <xsl:variable name="journal-precedence" select="$loaded-config/config:journal-precedences" />
     <xsl:variable name="label-schemes" select="$loaded-config/config:label-schemes/config:label-schemes" />
     <xsl:variable name="label-overrides" select="$loaded-config/config:label-overrides/config:label-override" />
-    <xsl:variable name="htmlLineBreakProperties" select="$loaded-config/config:htmlLineBreakProperties/config:htmlLineBreakProperty" />
+    <xsl:variable name="htmlProperties" select="$loaded-config/config:htmlProperties/config:htmlProperty" />
 
     <!-- testing tool for config -->
     <!--<xsl:template match="/">-->

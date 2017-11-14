@@ -133,11 +133,12 @@
         <xsl:param name="propertyName" />
         <xsl:param name="fieldName" />
 
-        <xsl:variable name="useLinebreaks" select="svfn:shouldUseHTMLLineBreaks($propertyName)" as="xs:boolean" />
+        <xsl:variable name="useLinebreaks" select="svfn:shouldConvertToHTML($propertyName)" as="xs:boolean" />
         <xsl:element name="{$propertyName}">
             <xsl:choose>
                 <xsl:when test="$useLinebreaks">
-                    <xsl:value-of select="svfn:injectHTMLLinesBreaks(.)" />
+                    <!-- do anchors first as we are relying on text containing new lines, etc to establish boundaries between potential urls -->
+                    <xsl:value-of select="svfn:injectHTMLLinesBreaks(svfn:injectHtmlAnchors(.))" />
                 </xsl:when>
                 <xsl:otherwise>
                     <xsl:value-of select="." />

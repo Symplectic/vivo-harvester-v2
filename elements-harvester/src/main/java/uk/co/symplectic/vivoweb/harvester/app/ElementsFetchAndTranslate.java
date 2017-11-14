@@ -273,7 +273,7 @@ public class ElementsFetchAndTranslate {
                 ElementsItemKeyedCollection.ItemInfo includedGroups = CalculateIncludedGroups(groupCache);
 
                 //Wire up the group translation observer...(needs group cache to work out members Ids and included users to get the user info of those members)
-                objectStore.addItemObserver(new ElementsGroupTranslateObserver(rdfStore, xslFilename, groupCache, includedUsers, includedGroups));
+                objectStore.addItemObserver(new ElementsGroupTranslateObserver(rdfStore, xslFilename, groupCache, includedGroups));
 
                 if(currentRunClassification == StateManagement.RunClassification.REPROCESSING || (skipGroups && currentRunClassification == StateManagement.RunClassification.DELTA)) {
                     reprocessCachedItems(objectStore, StorableResourceType.RAW_GROUP);
@@ -283,6 +283,26 @@ public class ElementsFetchAndTranslate {
                     log.info("Clearing down old group cache");
                     objectStore.cleardown(StorableResourceType.RAW_GROUP);
                     elementsFetcher.execute(new ElementsFetch.GroupConfig(), objectStore);
+                }
+
+                log.info("ElementsFetchAndTranslate: Translating Group Memberships");
+                //we need to do this regardless of run type
+                //reprocessing - the mapping files may have changed.
+                //skipgroups delta - there may be users in the top level group that weren't present before (could optimise).
+                //delta - group memberships may have changed.
+                //full - group memberships may have changed.
+                //TODO : method to decide if we need to do group membership this way?
+                ElementsGroupMembershipTranslateObserver groupMembershipTranslateObserver =
+                        new ElementsGroupMembershipTranslateObserver(rdfStore, xslFilename, groupCache, includedGroups);
+                //cleardown the group memberships
+                rdfStore.cleardown(StorableResourceType.TRANSLATED_USER_GROUP_MEMBERSHIP);
+                //and recalc them for the included users.
+                int counter = 0;
+                for(ElementsItemInfo info :includedUsers.values()){
+                    //should run the calc even if there are no included groups as it could be doing the memebership parts based on positions, etc...
+                    objectStore.touchItem(info, StorableResourceType.RAW_OBJECT, groupMembershipTranslateObserver);
+                    counter++;
+                    if(counter % 1000 == 0) log.info(MessageFormat.format("{0} user's group-membership processed", counter));
                 }
 
                 //Initiate the shutdown of the asynchronous translation engine - note this will actually block until
@@ -301,7 +321,7 @@ public class ElementsFetchAndTranslate {
                 boolean visibleLinksOnly = Configuration.getVisibleLinksOnly();
                 ElementsVivoIncludeMonitor monitor = new ElementsVivoIncludeMonitor(includedUsers.keySet(), includedGroups.keySet(), Configuration.getCategoriesToHarvest(), visibleLinksOnly);
 
-                int counter = 0;
+                counter = 0;
                 for (StoredData.InFile relData : objectStore.getAllExistingFilesOfType(StorableResourceType.RAW_RELATIONSHIP)) {
                     ElementsStoredItemInfo relItem = ElementsStoredItemInfo.loadStoredResource(relData, StorableResourceType.RAW_RELATIONSHIP);
                     monitor.observe(relItem);
@@ -362,6 +382,7 @@ public class ElementsFetchAndTranslate {
             ModelOutput subtractionsOutput = new ModelOutput.FileOutput(subtractionsFile);
             DiffUtility.diff(previousJC, currentJC, subtractionsOutput);
 
+            log.info("ElementsFetchAndTranslate: Generating fragments");
             //TODO: ? make this action configurable?
             File fragmentStore = new File(interimTdbDirectory, fragmentsDirName);
             FileSplitter splitter = new FileSplitter.NTriplesSplitter(fragmentStore, Configuration.getMaxFragmentFileSize());

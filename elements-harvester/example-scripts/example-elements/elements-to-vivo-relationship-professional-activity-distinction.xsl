@@ -61,7 +61,9 @@
                 <xsl:variable name="orgObjects" select="svfn:organisationObjects(.)" />
                 <xsl:variable name="orgURI" select="svfn:organisationObjectsMainURI($orgObjects)" />
 
-                <xsl:if test="$orgObjects/*">
+                <xsl:variable name="hasLinkedOrg" select="$orgURI and $orgURI != ''" />
+
+                <xsl:if test="$hasLinkedOrg">
                     <xsl:copy-of select="$orgObjects" />
                     <!-- Add context object link -->
                     <xsl:call-template name="render_rdf_object">

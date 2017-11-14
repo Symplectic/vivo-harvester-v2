@@ -60,15 +60,15 @@ public interface ElementsItemStore {
      * It exists primarily to allow invocation of any "observers" for a particular item's specified resource.
      */
     interface ElementsDeletableItemStore extends ElementsItemStore{
-
-        /**
-         * the touch item
+         /**
+         * touch item and force or request processing of the specific observers requested
          * @param itemInfo the source elements item.
          * @param resourceType the resource type of the item.
          * @return
          * @throws IOException
          */
-        ElementsStoredItemInfo touchItem(ElementsItemInfo itemInfo, StorableResourceType resourceType) throws IOException;
+        ElementsStoredItemInfo touchItem(ElementsItemInfo itemInfo, StorableResourceType resourceType, IElementsStoredItemObserver... observersToRecalculate) throws IOException;
+
 
         /**
          * delete removes any data about the specified resource type for the specified item from the store.
