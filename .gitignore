@@ -23,3 +23,6 @@ lements-harvester/example-scripts/example-elements/logs/
 elements-harvester/data
 elements-harvester/logs
 elements-harvester/state.txt
+
+#Developer config files
+elements-harvester/src/main/resources/developer-*.properties

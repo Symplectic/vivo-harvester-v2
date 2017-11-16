@@ -35,6 +35,7 @@
             <outputDirectory>example-config</outputDirectory>
             <excludes>
                 <exclude>*logback.xml</exclude>
+                <exclude>developer-*.properties</exclude>
             </excludes>
         </fileSet>
         <fileSet>

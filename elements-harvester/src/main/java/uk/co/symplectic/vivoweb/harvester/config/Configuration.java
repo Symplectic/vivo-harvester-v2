@@ -533,16 +533,9 @@ public class Configuration {
     public static void parse(String propertiesFileName) throws IOException, ConfigParser.UsageException {
         InputStream stream = null;
         try {
-            try{
-                stream = Configuration.class.getClassLoader().getResourceAsStream(propertiesFileName);
-                Properties props = new Properties();
-                props.load(stream);
-                values = new Parser(props, configErrors);
-                values.parse();
-            }
-            finally{
-                if(stream != null) stream.close();
-            }
+            Properties props = ConfigParser.getPropsFromFile(propertiesFileName);
+            values = new Parser(props, configErrors);
+            values.parse();
         }
         catch(Exception e){
             configErrors.add(MessageFormat.format("Could not load properties file: \"{0}\"", propertiesFileName));

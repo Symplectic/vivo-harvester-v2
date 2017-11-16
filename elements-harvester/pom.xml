@@ -123,6 +123,7 @@
                         <!--<exclude>**/eft_logback.xml</exclude>-->
                         <exclude>**/elementsfetch.properties</exclude>
                         <exclude>**/fragmentloader.properties</exclude>
+                        <exclude>**/developer-*.properties</exclude>
                     </excludes>
                     <archive>
                         <manifestEntries>

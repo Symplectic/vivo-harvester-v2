@@ -10,7 +10,13 @@
 package uk.co.symplectic.utils.configuration;
 import org.apache.commons.lang.NullArgumentException;
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import uk.co.symplectic.vivoweb.harvester.app.ElementsFetchAndTranslate;
+
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.text.MessageFormat;
 import java.util.*;
 
@@ -20,6 +26,8 @@ Class representing the idea of a a utility for parsing config out of .properties
 This abstract class should be extended to create a relevant parser for your tool.
  */
 public abstract class ConfigParser {
+
+    final private static Logger log = LoggerFactory.getLogger(ConfigParser.class);
 
     public static class UsageException extends Exception {
         public UsageException() {
@@ -202,6 +210,25 @@ public abstract class ConfigParser {
             }
         }
         return directoryName;
+    }
+
+
+    public static Properties getPropsFromFile(String propertiesFileName) throws IOException {
+        InputStream stream = null;
+        try {
+            stream = ConfigParser.class.getClassLoader().getResourceAsStream("developer-" + propertiesFileName);
+            if(stream != null){
+                log.warn(MessageFormat.format("Using developer config file : {0}", "developer-" + propertiesFileName));
+            }
+            else {
+                stream = ConfigParser.class.getClassLoader().getResourceAsStream(propertiesFileName);
+            }
+            Properties props = new Properties();
+            props.load(stream);
+            return props;
+        } finally {
+            if (stream != null) stream.close();
+        }
     }
 }
 
