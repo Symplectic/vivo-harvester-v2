@@ -84,6 +84,8 @@
                 </xsl:with-param>
             </xsl:call-template>
         </xsl:for-each>
+
+        <!--todo: should we pick up some "position" information and try to match against user groups (e.g. institutional-appointments?)...-->
     </xsl:template>
 
 </xsl:stylesheet>

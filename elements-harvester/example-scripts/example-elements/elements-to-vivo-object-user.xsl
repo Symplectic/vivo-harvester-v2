@@ -68,6 +68,29 @@
                 <!-- render any user labels that are relevant -->
                 <xsl:copy-of select="svfn:renderControlledSubjectLinks(., $userURI, '')" />
 
+
+                <!-- output any claimed user identifiers -->
+                <!-- Note: these will not do anything unless you are connected to v5.5 schema Elements api endpoint running on an Elements server upgraded to v5.9 or greater -->
+                <xsl:if test="api:user-identifier-associations/api:user-identifier-association[@scheme='orcid' and @decision='always-me']">
+                    <xsl:variable name="orcid-uri" select="concat('http://orcid.org/', api:user-identifier-associations/api:user-identifier-association[@scheme='orcid' and @decision='always-me'][1])" />
+                    <vivo:orcidId>
+                        <rdf:Description rdf:about="{$orcid-uri}">
+                            <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+                            <vivo:confirmedOrcidId rdf:resource="{$userURI}" />
+                        </rdf:Description>
+                    </vivo:orcidId>
+                </xsl:if>
+
+                <xsl:if test="api:user-identifier-associations/api:user-identifier-association[@scheme='researcherid' and @decision='always-me']">
+                    <xsl:variable name="id" select="api:user-identifier-associations/api:user-identifier-association[@scheme='researcherid' and @decision='always-me'][1]" />
+                    <vivo:researcherId><xsl:value-of select="$id" /></vivo:researcherId>
+                </xsl:if>
+
+                <xsl:if test="api:user-identifier-associations/api:user-identifier-association[@scheme='scopus-author-id' and @decision='always-me']">
+                    <xsl:variable name="id" select="api:user-identifier-associations/api:user-identifier-association[@scheme='scopus-author-id' and @decision='always-me'][1]" />
+                    <vivo:scopusId><xsl:value-of select="$id" /></vivo:scopusId>
+                </xsl:if>
+
             </xsl:with-param>
         </xsl:call-template>
 
