@@ -88,6 +88,10 @@ public class Configuration {
 
         private ConfigKey ARG_ZIP_FILES = new ConfigKey("zipFiles", "false"); //TODO: review this default
 
+        private ConfigKey ARG_CHANGE_PROTECTION_ENABLED = new ConfigKey("changeProtectionEnabled", "true"); //TODO: review this default
+        private ConfigKey ARG_ALLOWED_USER_CHANGE_FRACTION = new ConfigKey("allowedUserChangeFraction", "0.2"); //TODO: review this default
+        private ConfigKey ARG_ALLOWED_NON_USER_CHANGE_FRACTION= new ConfigKey("allowedNonUserChangeFraction", "0.3"); //TODO: review this default
+
         //isntance fields for storage of values parsed from the Properties
         private int maxThreadsResource = -1;
         private int maxThreadsXsl = -1;
@@ -135,6 +139,10 @@ public class Configuration {
         private File otherOutputDir;
 
         private boolean zipFiles = false;
+
+        private boolean changeProtectionEnabled = true;
+        private double allowedUserChangeFraction;
+        private double allowedNonUserChangeFraction;
 
         private EligibilityFilter eligibilityFilter = null;
 
@@ -344,6 +352,10 @@ public class Configuration {
 
             values.xslParameters = getXslParameters();
 
+            values.changeProtectionEnabled = getBoolean(ARG_CHANGE_PROTECTION_ENABLED);
+            values.allowedUserChangeFraction = getDouble(ARG_ALLOWED_USER_CHANGE_FRACTION, (double) 0 ,(double) 1);
+            values.allowedNonUserChangeFraction = getDouble(ARG_ALLOWED_NON_USER_CHANGE_FRACTION, (double) 0 ,(double) 1);
+
         }
     }
 
@@ -485,6 +497,16 @@ public class Configuration {
 
     public static boolean getZipFiles() {
         return values.zipFiles;
+    }
+
+    public static boolean getChangeProtectionEnabled() {
+        return values.changeProtectionEnabled;
+    }
+
+    public static double getAllowedUserChangeFraction() { return values.allowedUserChangeFraction; }
+
+    public static double getAllowedNonUserChangeFraction() {
+        return values.allowedNonUserChangeFraction;
     }
 
     /**

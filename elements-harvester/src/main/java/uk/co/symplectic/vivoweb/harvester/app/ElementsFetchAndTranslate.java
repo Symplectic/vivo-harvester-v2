@@ -91,6 +91,8 @@ public class ElementsFetchAndTranslate {
 
             boolean skipGroups = args.length != 0 && ArrayUtils.contains(args, "--skipgroups");
 
+            boolean ignoreChangeProtectionThisRun = args.length != 0 && ArrayUtils.contains(args, "--disableChangeProtection");
+
             boolean updateLocalTDB = true;
 
             //load the state from the state file
@@ -138,7 +140,11 @@ public class ElementsFetchAndTranslate {
                 }
             }
 
-
+            if(!Configuration.getChangeProtectionEnabled() && currentRunClassification != StateManagement.RunClassification.INITIAL)
+                log.warn("CHANGE PROTECTION DISABLED : Changes will be passed to Vivo in fragments, regardless of how much data has changed since the last harvest run.");
+            else
+                log.info(MessageFormat.format("Change Protection Enabled : Users - Max {0}% difference; Non Users - Max {1}% difference.",
+                        Configuration.getAllowedUserChangeFraction()*100, Configuration.getAllowedNonUserChangeFraction()*100));
             //hacks for testing
             //from next line read the date time
             //String aString = "2016-11-23T17:41:39+0000";
@@ -158,6 +164,8 @@ public class ElementsFetchAndTranslate {
 
             log.info("ElementsFetchAndTranslate: Start");
 
+            int includedUserCount = 0;
+            int includedObjectCount = 0;
 
             if(updateLocalTDB) {
                 //Set up the services that will be used to do asynchronous work
@@ -331,6 +339,43 @@ public class ElementsFetchAndTranslate {
                 }
                 log.info(MessageFormat.format("ElementsFetchAndTranslate: finished processing relationships from cache, {0} items processed in total", counter));
 
+                //update object counts
+                includedUserCount = includedUsers.values().size();
+                includedObjectCount = monitor.getIncludedItems().get(ElementsItemType.OBJECT).size() - includedUserCount;
+
+                int previousUserCount = state.getPreviousUserCount();
+                int previousObjectCount = state.getPreviousObjectCount();
+
+                //check if amount of users changed is within allowed limits
+                double allowedFraction = Configuration.getAllowedUserChangeFraction();
+                double difference = previousUserCount <= 0 ? 0 : ((double) Math.abs(includedUserCount-previousUserCount))/previousUserCount;
+                if(Configuration.getChangeProtectionEnabled() && difference > allowedFraction) {
+                    if(ignoreChangeProtectionThisRun)
+                        log.warn(MessageFormat.format(
+                            "ElementsFetchAndTranslate: {0} users being sent to vivo, despite exceeding change protection vs last run ({1}, {2}%) [--disableChangeProtection]",
+                            includedUserCount, previousUserCount, allowedFraction*100)
+                        );
+                    else
+                        throw new IllegalStateException(MessageFormat.format("Number of Users being sent to vivo ({0} vs {1}) changed by more than {2}% since last run. Use --disableChangeProtection to force change.", includedUserCount, previousUserCount, allowedFraction*100));
+                }
+                else
+                    log.info(MessageFormat.format("ElementsFetchAndTranslate: {0} users being sent to vivo", includedUserCount));
+
+                //check if amount of non user objects changed is within allowed limits
+                allowedFraction = Configuration.getAllowedNonUserChangeFraction();
+                difference = previousObjectCount <= 0 ? 0 : ((double) Math.abs(includedObjectCount-previousObjectCount))/previousObjectCount;
+                if(Configuration.getChangeProtectionEnabled() && difference > allowedFraction) {
+                    if(ignoreChangeProtectionThisRun)
+                        log.warn(
+                            MessageFormat.format("ElementsFetchAndTranslate: {0} non-user objects being sent to vivo, despite exceeding change protection vs last run ({1}, {2}%) [--disableChangeProtection)]",
+                            includedObjectCount, previousObjectCount, allowedFraction*100)
+                        );
+                    else
+                        throw new IllegalStateException(MessageFormat.format("Number of non-user objects being sent to vivo ({0} vs {1}) changed by more than {2}% since last run. Use --disableChangeProtection to force change", includedObjectCount, previousObjectCount, allowedFraction*100));
+                }
+                else
+                    log.info(MessageFormat.format("ElementsFetchAndTranslate: {0} non-user objects being sent to vivo", includedObjectCount));
+
                 log.info("ElementsFetchAndTranslate: Calculating output files related to included objects");
                 List<StoredData.InFile> filesToProcess = new ArrayList<StoredData.InFile>();
                 BufferedWriter writer = null;
@@ -390,7 +435,7 @@ public class ElementsFetchAndTranslate {
             splitter.split(subtractionsFile, state.getCurrentRunStartedAt(), FileSplitter.Type.Subtractions);
 
             //if completed successfully manage state file..
-            stateManager.manageStateForCompleteRun(state);
+            stateManager.manageStateForCompleteRun(state, includedUserCount, includedObjectCount);
 
         }
         catch (ConfigParser.UsageException e) {

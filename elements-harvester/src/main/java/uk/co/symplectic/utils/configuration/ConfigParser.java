@@ -145,7 +145,7 @@ public abstract class ConfigParser {
 
     /**
      * method to extract an integer from the named configKey.
-     * retrieving null is not acceptable and will reult in an error being logged in the list.
+     * retrieving null is acceptable and will result in -1.
      * @param configKey
      * @return
      */
@@ -161,6 +161,49 @@ public abstract class ConfigParser {
             configErrors.add(MessageFormat.format("Invalid value provided for argument {0} : {1} (must be an integer)", key, value));
         }
         return -1;
+    }
+
+    /**
+     * method to extract a double precision floating point number from the named configKey.
+     * retrieving null is not acceptable and will result in an error being logged in the list.
+     * @param configKey
+     * @return
+     */
+    protected double getDouble(ConfigKey configKey){
+        return getDouble(configKey, null, null);
+    }
+
+    /**
+     * method to extract a double precision floating point number from the named configKey.
+     * value must be between the provided parameter values -inclusive- (if they are not null)
+     * retrieving null is not acceptable and will result in an error being logged in the list.
+     * @param configKey
+     * @param minValue
+     * @param maxValue
+     * @return
+     */
+    protected double getDouble(ConfigKey configKey, Double minValue, Double maxValue) {
+        String key = configKey.getName();
+        String value = configKey.getValue(props);
+        try {
+            double aDouble = Double.parseDouble(value);
+            if(minValue != null && aDouble < minValue.doubleValue()){
+                configErrors.add(MessageFormat.format("Invalid value provided for argument {0} : {1} (must be larger than {2})", key, value, minValue));
+                return 0;
+            }
+            if(maxValue != null && aDouble > maxValue.doubleValue()){
+                configErrors.add(MessageFormat.format("Invalid value provided for argument {0} : {1} (must be less than {2})", key, value, maxValue));
+                return 0;
+            }
+            return aDouble;
+
+        } catch (NumberFormatException nfe) {
+            configErrors.add(MessageFormat.format("Invalid value provided for argument {0} : {1} (must be a floating point value)", key, value));
+        }
+        catch (NullPointerException npe) {
+            configErrors.add(MessageFormat.format("Invalid value provided for argument {0} : {1} (must supply a floating point value)", key, value));
+        }
+        return 0;
     }
 
     /**
