@@ -20,7 +20,7 @@
         <fileSet>
             <filtered>true</filtered>
             <directory>bin</directory>
-            <outputDirectory>.</outputDirectory>
+            <outputDirectory>example-bin</outputDirectory>
             <fileMode>755</fileMode>
         </fileSet>
         <fileSet>

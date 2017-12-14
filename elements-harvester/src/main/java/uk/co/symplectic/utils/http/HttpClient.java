@@ -34,6 +34,9 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.ssl.SSLContextBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -51,6 +54,9 @@ import java.util.List;
  * consistency across instances (e.g. ensuring that requests aren't too frequent, etc).
  */
 public class HttpClient {
+
+    private static final Logger log = LoggerFactory.getLogger(HttpClient.class);
+
     //static configuration for all instances
 
     //default settings for timeouts (socket and connection).
@@ -228,6 +234,9 @@ public class HttpClient {
 
         ///convert non 200 responses into exceptions - this is ok for our purposes.
         int responseCode = response.getStatusLine().getStatusCode();
+
+        log.info(MessageFormat.format("GET {0} : {1}", getUrl(), responseCode));
+
         if(responseCode != HttpStatus.SC_OK){
             String codeDescription = EnglishReasonPhraseCatalog.INSTANCE.getReason(responseCode, null);
             String message = MessageFormat.format("Invalid Http response code received: {0} ({1})", responseCode, codeDescription);
@@ -284,6 +293,7 @@ public class HttpClient {
         ApiResponse responseToReturn = new ApiResponse(response);
         ///convert non 200 responses into exceptions.
         int responseCode = response.getStatusLine().getStatusCode();
+        log.info(MessageFormat.format("POST {0} : {1}", getUrl(), responseCode));
         if(responseCode != HttpStatus.SC_OK){
             String codeDescription = EnglishReasonPhraseCatalog.INSTANCE.getReason(responseCode, null);
             String message = MessageFormat.format("Invalid Http response code received: {0} ({1})", responseCode, codeDescription);
