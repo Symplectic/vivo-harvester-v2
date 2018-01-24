@@ -80,6 +80,7 @@
     <xsl:variable name="label-schemes" select="$loaded-config/config:label-schemes/config:label-schemes" />
     <xsl:variable name="label-overrides" select="$loaded-config/config:label-overrides/config:label-override" />
     <xsl:variable name="htmlProperties" select="$loaded-config/config:htmlProperties/config:htmlProperty" />
+    <xsl:variable name="uriAliasses" select="$loaded-config/config:uriAliasses/config:uri" />
 
     <!-- testing tool for config -->
     <!--<xsl:template match="/">-->

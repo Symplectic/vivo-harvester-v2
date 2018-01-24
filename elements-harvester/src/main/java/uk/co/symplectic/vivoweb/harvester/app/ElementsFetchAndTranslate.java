@@ -279,6 +279,9 @@ public class ElementsFetchAndTranslate {
                 //work out the included groups too..
                 ElementsItemKeyedCollection.ItemInfo includedGroups = CalculateIncludedGroups(groupCache);
 
+                //set up some nicely uniqueified names for the groups we are about to send out - to make URI construction easier in the crosswalks.
+                groupCache.createCanonicalNames(includedGroups.keySet());
+
                 //Wire up the group translation observer...(needs group cache to work out members Ids and included users to get the user info of those members)
                 objectStore.addItemObserver(new ElementsGroupTranslateObserver(rdfStore, xslFilename, groupCache, includedGroups));
 

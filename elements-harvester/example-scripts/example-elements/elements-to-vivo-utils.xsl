@@ -101,7 +101,17 @@
         <xsl:param name="prefix" as="xs:string" />
         <xsl:param name="id" as="xs:string" />
 
-        <xsl:value-of select="concat($validatedBaseURI,svfn:stringToURI($prefix),svfn:stringToURI($id))" />
+        <xsl:variable name="calculatedURISuffix" select="concat(svfn:stringToURI($prefix),svfn:stringToURI($id))" />
+
+        <xsl:choose>
+            <xsl:when test="$uriAliasses[@alias=$calculatedURISuffix]">
+                <xsl:value-of select="concat($validatedBaseURI, $uriAliasses[@alias=$calculatedURISuffix][1])" />
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:value-of select="concat($validatedBaseURI,$calculatedURISuffix)" />
+            </xsl:otherwise>
+        </xsl:choose>
+
     </xsl:function>
 
     <!--
@@ -119,15 +129,29 @@
         svfn:userURI
         ============
         Create a URI for a user based on the passed Elements object
-        Note: if you use anything other then id, username or proprietary_id to create the user's uri
-        you will have issues with group membership as the extra user group membership xml passed as a param there
-        only contains those three attributes.
     -->
     <xsl:function name="svfn:userURI" as="xs:string">
         <xsl:param name="object" />
 
         <xsl:value-of select="svfn:makeURI('',$object/@username)" />
     </xsl:function>
+
+
+    <!--
+        svfn:groupURI
+        ============
+        Create a URI for a group based on the passed in Elements group object (or equivalent proxy object)
+        Note: if you use anything other then id or name to create the user's uri
+        you will have issues with group membership as the group proxy objects passed as a param there
+        only contains those attributes.
+    -->
+    <xsl:function name="svfn:groupURI" as="xs:string">
+        <xsl:param name="id" as="xs:integer"/>
+        <xsl:param name="name" as="xs:string"/>
+        <!--<xsl:value-of select="svfn:makeURI('institutional-user-group-', string($id))" />-->
+        <xsl:value-of select="svfn:makeURI(string($id), concat('-', $name))" />
+    </xsl:function>
+
 
     <!--
         svfn:objectToObjectURI

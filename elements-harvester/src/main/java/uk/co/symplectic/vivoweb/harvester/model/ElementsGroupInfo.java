@@ -10,6 +10,8 @@
 package uk.co.symplectic.vivoweb.harvester.model;
 
 import org.apache.commons.lang.NullArgumentException;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import uk.co.symplectic.utils.xml.XMLEventProcessor;
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLStreamException;
@@ -97,11 +99,16 @@ public class ElementsGroupInfo extends ElementsItemInfo{
         private ElementsGroupInfo.GroupHierarchyWrapper parent = null;
         private Set<ElementsGroupInfo.GroupHierarchyWrapper> children = new HashSet<ElementsGroupInfo.GroupHierarchyWrapper>();
         private Set<ElementsItemId> explicitUsers = new HashSet<ElementsItemId>();
+        private String uniqueName = null;
 
         public GroupHierarchyWrapper(ElementsGroupInfo info) {
             if(info == null) throw new NullArgumentException("info");
             this.info = info;
         }
+
+        public String getUniqueName(){return this.uniqueName;}
+
+        public void setUniqueName(String value){this.uniqueName = value;}
 
         public ElementsGroupInfo getGroupInfo() {
             return info;
@@ -174,9 +181,23 @@ public class ElementsGroupInfo extends ElementsItemInfo{
         public void addExplicitUser(ElementsItemId.ObjectId user) {
             if(user != null && user.getItemSubType() == ElementsObjectCategory.USER) explicitUsers.add(user);
         }
+
+        /**
+         * Method to turn a hierarchy wrapper into a simple XML descriptor - useful for sending into the XSLT framework as a descriptor.
+         * @param contextDocument
+         * @return
+         */
+        public Element getXMLElementDescriptor(Document contextDocument){
+            Element element = contextDocument.createElement("group");
+            element.setAttribute("id", Integer.toString(getGroupInfo().getItemId().getId()));
+            element.setAttribute("name", getGroupInfo().getName());
+            element.setAttribute("unique-name", getUniqueName());
+            return element;
+        }
     }
 
     public static abstract class GroupInclusionFilter{
         public abstract boolean includeGroup(ElementsGroupInfo.GroupHierarchyWrapper group);
     }
+
 }

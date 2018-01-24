@@ -5,6 +5,8 @@
  *   License, v. 2.0. If a copy of the MPL was not distributed with this
  *   file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * ******************************************************************************
+ *   Version :  ${git.branch}:${git.commit.id}
+ * ******************************************************************************
  */
 
 package uk.co.symplectic.vivoweb.harvester.fetch;
@@ -136,6 +138,40 @@ public class ElementsGroupCollection extends ElementsItemKeyedCollection<Element
                 }
             }
             finaliseUserMembership(systemUsers);
+        }
+    }
+
+    public synchronized void createCanonicalNames(Set<ElementsItemId> groupIdsToPrioritise){
+        Map<String, Integer> counts = new HashMap<String, Integer>();
+
+        Set<ElementsItemId> groupIdsToProcess = new HashSet<ElementsItemId>();
+        groupIdsToProcess.addAll(this.keySet());
+
+        //do the priority ones
+        for (ElementsItemId groupId : groupIdsToPrioritise){
+            ElementsGroupInfo.GroupHierarchyWrapper groupWrapper = this.get(groupId);
+            if(groupWrapper.getUniqueName() == null) {
+                String groupName = groupWrapper.getGroupInfo().getName();
+                Integer boxedCount = counts.get(groupName);
+                int count = boxedCount == null ? 0 : boxedCount.intValue();
+                groupWrapper.setUniqueName(count < 1 ? groupName : groupName + " (" + Integer.toString(count) + ")");
+                counts.put(groupName, ++count);
+            }
+            groupIdsToProcess.remove(groupId);
+        }
+
+        //now do all of them
+        for (ElementsItemId groupId : groupIdsToProcess){
+            ElementsGroupInfo.GroupHierarchyWrapper groupWrapper = this.get(groupId);
+            //skip any we have seen previously..
+            if(groupWrapper.getUniqueName() == null) {
+                String groupName = groupWrapper.getGroupInfo().getName();
+                Integer boxedCount = counts.get(groupName.toLowerCase());
+                int count = boxedCount == null ? 0 : boxedCount.intValue();
+                groupWrapper.setUniqueName(count < 1 ? groupName : groupName + " (" + Integer.toString(count) + ")");
+                counts.put(groupName.toLowerCase(), count++);
+            }
+            //System.out.println(Integer.toString(groupWrapper.getGroupInfo().getItemId().getId()) + ": "  + groupWrapper.getUniqueName());
         }
     }
 

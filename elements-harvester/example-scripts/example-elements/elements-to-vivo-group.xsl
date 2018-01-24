@@ -32,14 +32,18 @@
         Main import for Group processing (publication, user, etc.)
     -->
 
-    <xsl:param name="includedParentGroupId" />
+    <!--<xsl:param name="includedParentGroupId" />-->
+    <xsl:param name="includedParentGroup" />
+    <xsl:param name="uniqueGroupName" />
 
     <!-- Default template - output group -->
     <xsl:template match="api:user-group" >
 
         <!-- create the URI that we will use for this group -->
         <xsl:variable name="groupID" select="@id" />
-        <xsl:variable name="groupURI" select="svfn:makeURI('institutional-user-group-', $groupID)" />
+        <xsl:variable name="groupName" select="api:name" />
+        <!--<xsl:variable name="groupURI" select="svfn:makeURI('institutional-user-group-', $groupID)" />-->
+        <xsl:variable name="groupURI" select="svfn:groupURI($groupID, $groupName)" />
         <!-- work out what "VIVO type" of group we will treat this group as -->
 
         <xsl:variable name="defaultGroupType">
@@ -60,12 +64,13 @@
                 <!-- TODO Implement dictionary to determine department type -->
                 <rdf:type rdf:resource="{$groupType}"/>
                 <xsl:if test="$internalClass!=''"><rdf:type rdf:resource="{$internalClass}" /></xsl:if>
-                <rdfs:label><xsl:value-of select="api:name"/></rdfs:label>
+                <rdfs:label><xsl:value-of select="$groupName"/></rdfs:label>
                 <vivo:overview><xsl:value-of select="api:group-description"/></vivo:overview>
 
-                <xsl:if test="$includedParentGroupId">
+                <xsl:if test="$includedParentGroup and $includedParentGroup/group ">
                     <!-- will currently create crud in the vivo db for any groups that are NOT included....sigh -->
-                    <obo:BFO_0000050 rdf:resource="{svfn:makeURI('institutional-user-group-', $includedParentGroupId)}" />
+                    <!--<obo:BFO_0000050 rdf:resource="{svfn:makeURI('institutional-user-group-', $includedParentGroupId)}" />-->
+                    <obo:BFO_0000050 rdf:resource="{svfn:groupURI($includedParentGroup/group/@id, $includedParentGroup/group/@name)}" />
                 </xsl:if>
             </xsl:with-param>
         </xsl:call-template>
@@ -73,3 +78,4 @@
         <!--todo: should the parent group have its children set too? are inferred - rightly or wrongly...-->
     </xsl:template>
 </xsl:stylesheet>
+

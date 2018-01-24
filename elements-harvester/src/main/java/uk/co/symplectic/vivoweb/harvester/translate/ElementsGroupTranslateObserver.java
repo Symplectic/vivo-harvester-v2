@@ -11,12 +11,10 @@ package uk.co.symplectic.vivoweb.harvester.translate;
 
 import org.apache.commons.lang.NullArgumentException;
 import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 import uk.co.symplectic.vivoweb.harvester.fetch.ElementsGroupCollection;
 import uk.co.symplectic.vivoweb.harvester.fetch.ElementsItemKeyedCollection;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsGroupInfo;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
-import uk.co.symplectic.vivoweb.harvester.model.ElementsUserInfo;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsRdfStore;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItemInfo;
 import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
@@ -25,9 +23,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 public class ElementsGroupTranslateObserver extends ElementsTranslateObserver {
 
@@ -46,7 +42,9 @@ public class ElementsGroupTranslateObserver extends ElementsTranslateObserver {
     protected void observeStoredGroup(ElementsGroupInfo info, ElementsStoredItemInfo item) {
         Map<String, Object> extraXSLTParameters = new HashMap<String, Object>();
         ElementsItemId parentId = getIncludedParentGroupId(info);
-        extraXSLTParameters.put("includedParentGroupId", parentId == null ? null : Integer.toString(parentId.getId()));
+        //extraXSLTParameters.put("includedParentGroupId", parentId == null ? null : Integer.toString(parentId.getId()));
+        extraXSLTParameters.put("includedParentGroup", parentId == null ? null : getParentGroupDescriptor(parentId));
+        extraXSLTParameters.put("uniqueGroupName", groupCache.get(info.getItemId()).getUniqueName());
         translate(item, extraXSLTParameters);
     }
 
@@ -59,5 +57,18 @@ public class ElementsGroupTranslateObserver extends ElementsTranslateObserver {
             groupDescription = parentDescription;
         }
         return null;
+    }
+
+    private Document getParentGroupDescriptor(ElementsItemId includedParentGroupId) {
+        try {
+            DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+            Document doc = docBuilder.newDocument();
+            ElementsGroupInfo.GroupHierarchyWrapper group = groupCache.get(includedParentGroupId);
+            doc.appendChild(group.getXMLElementDescriptor(doc));
+            return doc;
+        } catch (ParserConfigurationException pce) {
+            throw new IllegalStateException(pce);
+        }
     }
 }

@@ -237,7 +237,7 @@
         <config:publication-type type="software">
 
             <!-- Note, the default Vivo ontology representation of "software" is not very good for our purposes
-                 It may be preferably to add a local ontology property inheriting off "Information Content Entity and use that here.."-->
+                 It may be preferable to add a local ontology property inheriting off "Information Content Entity and use that here.."-->
             <!--<rdf:type rdf:resource="http://vivoweb.org/ontology/core#Software"/>--> <!-- non existent ...-->
             <rdf:type rdf:resource="http://purl.obolibrary.org/obo/ERO_0000071"/>
         </config:publication-type>
@@ -730,5 +730,14 @@
     <config:htmlProperties>
         <config:htmlProperty name="vivo:overview" />
     </config:htmlProperties>
+
+    <!-- Here you can "alias" any uri suffix (i.e the part after the Vivo base URL) to something of your choosing
+     This capability exists to allow you to create more "friendly" URIs for a small subset of the data if this is necessary
+     Take care not to introduce URI re-use (i.e. different objects using the same URI) when using this capability.
+     -->
+    <config:uriAliasses>
+        <!-- the line below will mean the the URI ending /dwh will be replaced with /banana -->
+        <!--<config:uri alias="dwh">banana</config:uri>-->
+    </config:uriAliasses>
 
 </config:main>

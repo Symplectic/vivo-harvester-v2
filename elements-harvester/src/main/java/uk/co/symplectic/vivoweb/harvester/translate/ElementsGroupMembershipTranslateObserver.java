@@ -15,8 +15,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.xml.sax.SAXException;
 import uk.co.symplectic.vivoweb.harvester.fetch.ElementsGroupCollection;
 import uk.co.symplectic.vivoweb.harvester.fetch.ElementsItemKeyedCollection;
 import uk.co.symplectic.vivoweb.harvester.model.*;
@@ -25,10 +23,6 @@ import uk.co.symplectic.vivoweb.harvester.store.*;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
 import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -108,11 +102,12 @@ public class ElementsGroupMembershipTranslateObserver extends ElementsTranslateO
             mainDocRootElement.setAttribute("user-id", Integer.toString(userInfo.getObjectId().getId()));
             doc.appendChild(mainDocRootElement);
             for (ElementsItemId.GroupId groupId : usersIncludedGroups) {
-                Element element = doc.createElement("group");
-                element.setAttribute("id", Integer.toString(groupId.getId()));
                 ElementsGroupInfo.GroupHierarchyWrapper group = groupCache.get(groupId);
-                element.setAttribute("name", group.getGroupInfo().getName());
-                mainDocRootElement.appendChild(element);
+//                Element element = doc.createElement("group");
+//                element.setAttribute("id", Integer.toString(groupId.getId()));
+//                element.setAttribute("name", group.getGroupInfo().getName());
+//                mainDocRootElement.appendChild(element);
+                mainDocRootElement.appendChild(group.getXMLElementDescriptor(doc));
             }
             return doc;
         }

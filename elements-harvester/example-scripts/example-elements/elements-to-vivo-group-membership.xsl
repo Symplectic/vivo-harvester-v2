@@ -54,7 +54,8 @@
             </xsl:variable>
 
             <xsl:variable name="membershipURI" select="svfn:objectToObjectURI('group-user-membership-', @id, $userID)" />
-            <xsl:variable name="groupURI" select="svfn:makeURI('institutional-user-group-', @id)" />
+            <!--<xsl:variable name="groupURI" select="svfn:makeURI('institutional-user-group-', @id)" />-->
+            <xsl:variable name="groupURI" select="svfn:groupURI(@id, @name)" />
             <!-- Output RDF for vivo:NonAcademicPosition individual -->
             <xsl:call-template name="render_rdf_object">
                 <xsl:with-param name="objectURI" select="$membershipURI" />
@@ -69,6 +70,7 @@
                     <vivo:relates rdf:resource="{$userURI}" />
                 </xsl:with-param>
             </xsl:call-template>
+
 
             <xsl:call-template name="render_rdf_object">
                 <xsl:with-param name="objectURI" select="$groupURI" />
