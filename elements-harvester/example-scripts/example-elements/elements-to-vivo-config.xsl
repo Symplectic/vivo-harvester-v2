@@ -57,7 +57,10 @@
     </xsl:param>
 
     <!-- whether to create an organisation object at the "department level" when creating objects to represent addresses -->
-    <xsl:variable name="includeDept" select="fn:normalize-space($loaded-config/config:includeDept)" />
+    <xsl:variable name="includeDept" select="fn:normalize-space($loaded-config/config:includeDept) = 'true'" />
+
+    <!-- whether to include "certifications" when mapping users - default is false as they do not display well in default Vivo 1.9.X interface -->
+    <xsl:variable name="mapUserCertificates" select="fn:normalize-space($loaded-config/config:mapUserCertificates) = 'true'" />
 
     <!-- whether to use the Symplectic namespace extensions - deprecated -->
     <xsl:variable name="useSympNS" select="fn:normalize-space($loaded-config/config:useSympNS)" />

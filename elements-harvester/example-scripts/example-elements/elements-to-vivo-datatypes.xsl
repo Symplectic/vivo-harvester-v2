@@ -38,7 +38,7 @@
         Note, unlike the other templates that have a "renderForProprty" mode (as they are outputting a named property element,
         this template is rendering two specific VIVO ontology properties (for use on a particular class).
     -->
-    <xsl:template match="api:date|api:start-date|api:end-date">
+    <xsl:template match="api:date|api:start-date|api:end-date|api:effective-date|api:expiry-date">
         <xsl:param name="precision" select="''" />
         <!-- Determine the date precision -->
         <xsl:variable name="datePrecision" select="svfn:datePrecision(., $precision)" />

@@ -114,6 +114,19 @@
 
     </xsl:function>
 
+
+    <!--
+        svfn:nonBaseUriFragment
+        ============
+    -->
+    <xsl:function name="svfn:nonBaseUriFragment">
+        <xsl:param name="uri" as="xs:string" />
+        <xsl:if test="starts-with($uri,$validatedBaseURI)">
+            <xsl:value-of select="substring-after($uri,$validatedBaseURI)" />
+        </xsl:if>
+    </xsl:function>
+
+
     <!--
         svfn:objectURI
         ==============
@@ -178,6 +191,11 @@
     </xsl:function>
 
 
+    <xsl:function name="svfn:organisationObjects">
+        <xsl:param name="address" />
+        <xsl:copy-of select="svfn:organisationObjects($address, $includeDept)" />
+    </xsl:function>
+
 
     <!--
         svfn:organisationObjects
@@ -186,6 +204,7 @@
     -->
     <xsl:function name="svfn:organisationObjects">
         <xsl:param name="address" />
+        <xsl:param name="createDepartment" as="xs:boolean" />
 
         <xsl:variable name="deptName"><xsl:value-of select="$address/api:line[@type='suborganisation']" /></xsl:variable>
         <xsl:variable name="instName">
@@ -211,7 +230,7 @@
             </xsl:choose>
         </xsl:variable>
 
-        <xsl:if test="$includeDept='true'">
+        <xsl:if test="$createDepartment">
             <xsl:if test="not($deptURI = '')">
                 <xsl:call-template name="render_rdf_object">
                     <xsl:with-param name="objectURI" select="$deptURI" />
@@ -233,7 +252,7 @@
                 <xsl:with-param name="rdfNodes">
                     <rdf:type rdf:resource="{svfn:getOrganizationType($instName,'http://vivoweb.org/ontology/core#University')}" />
                     <rdfs:label><xsl:value-of select="$instName" /></rdfs:label>
-                    <xsl:if test="not($deptURI='') and $includeDept='true'">
+                    <xsl:if test="not($deptURI='') and $createDepartment">
                         <obo:BFO_0000051 rdf:resource="{$deptURI}" />
                     </xsl:if>
                 </xsl:with-param>

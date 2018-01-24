@@ -24,6 +24,9 @@
     <!-- whether to create an organisation object at the "department level" when creating objects to represent addresses -->
     <config:includeDept>true</config:includeDept>
 
+    <!-- whether to include "certifications" when mapping users - default is false as they do not display well in default Vivo 1.9.X interface -->
+    <config:mapUserCertificates>false</config:mapUserCertificates>
+
     <!-- whether to use the Symplectic Vivo ontology extensions - deprecated, last used with vivo 1.5 -->
     <config:useSympNS />
 
