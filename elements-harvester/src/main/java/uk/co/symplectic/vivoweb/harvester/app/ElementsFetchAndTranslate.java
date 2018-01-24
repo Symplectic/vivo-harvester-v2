@@ -279,7 +279,7 @@ public class ElementsFetchAndTranslate {
                 ElementsItemKeyedCollection.ItemInfo includedUsers = CalculateIncludedUsers(userInfoCache, groupCache);
 
                 //work out the included groups too..
-                ElementsItemKeyedCollection.ItemInfo includedGroups = CalculateIncludedGroups(groupCache);
+                ElementsItemKeyedCollection.ItemInfo includedGroups = CalculateIncludedGroups(groupCache, includedUsers);
 
                 //set up some nicely uniqueified names for the groups we are about to send out - to make URI construction easier in the crosswalks.
                 groupCache.createCanonicalNames(includedGroups.keySet());
@@ -748,13 +748,13 @@ public class ElementsFetchAndTranslate {
      * @param groupCache the current
      * @return ElementsItemKeyedCollection.ItemInfo containing Groups to be included in Vivo.
      */
-    private static ElementsItemKeyedCollection.ItemInfo CalculateIncludedGroups(ElementsGroupCollection groupCache) {
+    private static ElementsItemKeyedCollection.ItemInfo CalculateIncludedGroups(ElementsGroupCollection groupCache, ElementsItemKeyedCollection.ItemInfo includedUsers) {
         ElementsItemKeyedCollection.ItemRestrictor restrictToGroupsOnly = new ElementsItemKeyedCollection.RestrictToType(ElementsItemType.GROUP);
         ElementsItemKeyedCollection.ItemInfo includedGroups = new ElementsItemKeyedCollection.ItemInfo(restrictToGroupsOnly);
 
         //only assume we include the org group by default if no groups (or child groups) are specified as to be included
         boolean assumeIncludeOrgGroup = !Configuration.getGroupsToHarvestMatcher().isActive() && !Configuration.getGroupsToIncludeChildrenOfMatcher().isActive();
-        getIncludedGroups(groupCache.GetTopLevel(), includedGroups, assumeIncludeOrgGroup);
+        getIncludedGroups(groupCache.GetTopLevel(), includedGroups, includedUsers, assumeIncludeOrgGroup);
 
         return includedGroups;
     }
@@ -765,7 +765,9 @@ public class ElementsFetchAndTranslate {
      * @param includedGroups the set of included groups.
      * @param assumeInclude whether we are currently including or excluding discovered nodes.
      */
-    private static void getIncludedGroups(ElementsGroupInfo.GroupHierarchyWrapper group, ElementsItemKeyedCollection.ItemInfo includedGroups, boolean assumeInclude){
+    private static void getIncludedGroups(ElementsGroupInfo.GroupHierarchyWrapper group, ElementsItemKeyedCollection.ItemInfo includedGroups, ElementsItemKeyedCollection.ItemInfo includedUsers, boolean assumeInclude){
+
+        boolean shouldRecurse = true;
 
         ElementsGroupInfo groupInfo = group.getGroupInfo();
         //ElementsItemId.GroupId groupId = (ElementsItemId.GroupId) groupInfo.getItemId();
@@ -773,24 +775,57 @@ public class ElementsFetchAndTranslate {
         boolean shouldIncludeGroup = assumeInclude;
         if(Configuration.getGroupsToHarvestMatcher().isMatch(groupInfo)){
             shouldIncludeGroup = true;
-        } else if(Configuration.getGroupsToExcludeMatcher().isMatch(groupInfo)){
+        }
+        else if(Configuration.getGroupsToExcludeMatcher().isMatch(groupInfo)){
             shouldIncludeGroup = false;
+        }
+        // if no explicit instructions about how to handle the group then decide based on whether we are set up to include "empty" groups
+        // empty being defined as having no included users in the set of implicit users of the group.
+        else if (!Configuration.getIncludeEmptyGroups()){
+            boolean groupContainsIncludedUsers = false;
+            if(group.getImplicitUsers().size() < includedUsers.keySet().size()){
+                for(ElementsItemId userID : group.getImplicitUsers()){
+                    if(includedUsers.keySet().contains(userID)){
+                        groupContainsIncludedUsers = true;
+                     break;
+                    }
+                }
+            }
+            else {
+                for(ElementsItemId userID : includedUsers.keySet()){
+                    if(group.getImplicitUsers().contains(userID)){
+                        groupContainsIncludedUsers = true;
+                        break;
+                    }
+                }
+            }
+
+            if(!groupContainsIncludedUsers){
+                shouldIncludeGroup = false;
+                shouldRecurse = false;
+            }
         }
 
         if(shouldIncludeGroup){
             includedGroups.put(groupInfo.getItemId(), groupInfo);
         }
 
-        //default to assuming if should include children based on if group itself is being included..
-        boolean shouldAssumeIncludeChildGroups = shouldIncludeGroup;
-        if(Configuration.getGroupsToIncludeChildrenOfMatcher().isMatch(groupInfo)){
-            shouldAssumeIncludeChildGroups = true;
-        } else if (Configuration.getGroupsToExcludeChildrenOfMatcher().isMatch(groupInfo)){
-            shouldAssumeIncludeChildGroups = false;
-        }
 
-        for(ElementsGroupInfo.GroupHierarchyWrapper child : group.getChildren()){
-            getIncludedGroups(child, includedGroups, shouldAssumeIncludeChildGroups);
+        //only worth recursing if we are really going to find anything
+        // e.g. we won't if we are excluding this group as it is empty of included users - as that means all this
+        // groups children must also be empty of included users..
+        if(shouldRecurse) {
+            //default to assuming if should include children based on if group itself is being included..
+            boolean shouldAssumeIncludeChildGroups = shouldIncludeGroup;
+            if (Configuration.getGroupsToIncludeChildrenOfMatcher().isMatch(groupInfo)) {
+                shouldAssumeIncludeChildGroups = true;
+            } else if (Configuration.getGroupsToExcludeChildrenOfMatcher().isMatch(groupInfo)) {
+                shouldAssumeIncludeChildGroups = false;
+            }
+
+            for (ElementsGroupInfo.GroupHierarchyWrapper child : group.getChildren()) {
+                getIncludedGroups(child, includedGroups, includedUsers, shouldAssumeIncludeChildGroups);
+            }
         }
     }
 

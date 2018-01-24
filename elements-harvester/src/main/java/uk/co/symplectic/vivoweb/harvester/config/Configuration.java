@@ -64,6 +64,7 @@ public class Configuration {
         private ConfigKey ARG_VIVO_IMAGE_BASE_PATH = new ConfigKey("vivoImageBasePath", "/harvestedImages/");
 
         private ConfigKey ARG_QUERY_CATEGORIES = new ConfigKey("queryObjects"); //TODO : rename this input param?
+        private ConfigKey ARG_INCLUDE_EMPTY_GROUPS = new ConfigKey("includeEmptyGroups", "true");
         private ConfigKey ARG_PARAMS_GROUPS = new ConfigKey("paramGroups");
         private ConfigKey ARG_PARAMS_GROUP_REGEXES = new ConfigKey("paramGroupRegexes");
         private ConfigKey ARG_EXCLUDE_GROUPS = new ConfigKey("excludeGroups");
@@ -121,6 +122,7 @@ public class Configuration {
         private int fullDetailPerPage = -1;
         private int refDetailPerPage = -1;
 
+        boolean includeEmptyGroups = true;
         private GroupMatcher groupsToExcludeMatcher = null;
         private GroupMatcher groupsToHarvestMatcher = null;
         private GroupMatcher groupsToIncludeChildrenOfMatcher = null;
@@ -361,6 +363,7 @@ public class Configuration {
             values.allowedUserChangeFraction = getDouble(ARG_ALLOWED_USER_CHANGE_FRACTION, (double) 0 ,(double) 1);
             values.allowedNonUserChangeFraction = getDouble(ARG_ALLOWED_NON_USER_CHANGE_FRACTION, (double) 0 ,(double) 1);
 
+            values.includeEmptyGroups = getBoolean(ARG_INCLUDE_EMPTY_GROUPS);
         }
     }
 
@@ -416,6 +419,10 @@ public class Configuration {
 
     public static int getMaxFragmentFileSize() {
         return values.maxFragmentFileSize;
+    }
+
+    public static boolean getIncludeEmptyGroups() {
+        return values.includeEmptyGroups;
     }
 
     public static GroupMatcher getGroupsToExcludeMatcher() {
