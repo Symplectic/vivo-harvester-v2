@@ -35,18 +35,24 @@
         objects where the type does not have it's own configuration.
 
         Use select-by="field" attribute to choose the field from the highest precedence record in which it occurs.
-
         Otherwise, it will select the highest precedence record that is present, regardless of whether the desired field exists in that record.
+
+        you can use the name "verified-manual" to place manual records that have been verified at a higher position in the precedence ordering than general manual ones.
+        or equivalently you can add a "verification-status="verified" attribute to any "manual" entry, i.e the two below are equivalent.
+            <config:record-precedence>verified-manual</config:record-precedence>
+            <config:record-precedence verification-status="verified">manual</config:record-precedence>
 
         If a record from a source not listed is present, it will generally still be used (if non of those listed are present) unless it is listed in the config:data-exclusions section.
         to disable this set use-unlisted-sources=false.
 
         Note that data in records being excluded (either by settings use-unlisted-source=false or by using the config:data-exclusions)
-        could still be used if the "fallback to first record" functions are used in the mappings.
+        could still be used if the "fallback to first record" (e.g. getRecordFieldOrFirst) functions are used in the mappings.
     -->
 
     <config:record-precedences>
         <config:record-precedences for="publication" select-by="field" use-unlisted-sources="true">
+            <config:record-precedence>verified-manual</config:record-precedence>
+            <!--<config:record-precedence verification-status="verified">manual</config:record-precedence>-->
             <config:record-precedence>pubmed</config:record-precedence>
             <config:record-precedence>epmc</config:record-precedence>
             <config:record-precedence>wos</config:record-precedence>
@@ -89,6 +95,7 @@
             <!-- we no longer exclude wos or wos-lite as Clarivate allow use in Vivo as long as it is attributed-->
             <!--<config:record-exclusion>wos</config:record-exclusion>-->
             <!--<config:record-exclusion>wos-lite</config:record-exclusion>-->
+            <!--<config:record-exclusion verification-status="verified">manual</config:record-exclusion>-->
             <config:field-exclusions for-source="scopus">
                 <config:excluded-field>abstract</config:excluded-field>
             </config:field-exclusions>

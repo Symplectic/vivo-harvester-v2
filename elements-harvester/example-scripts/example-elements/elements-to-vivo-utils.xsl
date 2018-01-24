@@ -671,19 +671,44 @@
         <xsl:choose>
             <!-- Whilst looping through the list of record precedences, try to grab a value from the current source being processed -->
             <xsl:when test="$records[$position]">
+
+                <xsl:variable name="currentSourceName">
+                    <xsl:choose>
+                        <xsl:when test="$records[$position] = 'verified-manual'">
+                            <xsl:text>manual</xsl:text>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:value-of select="$records[$position]" />
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
+                <xsl:variable name="requiredVerificatonStatus">
+                    <xsl:choose>
+                        <xsl:when test="$records[$position] = 'verified-manual'">
+                            <xsl:text>verified</xsl:text>
+                        </xsl:when>
+                        <xsl:when test="$records[$position] = 'manual' and $records[$position]/@verification-status">
+                            <xsl:value-of select="$records[$position]/@verification-status" />
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:text>any</xsl:text>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
+
                 <xsl:choose>
                     <!-- Don't use records that are restricted -->
-                    <xsl:when test="$exclusions/config:record-exclusion[text()=$records[$position]]">
+                    <xsl:when test="$exclusions/config:record-exclusion[text()=$currentSourceName and (text() != 'manual' or (not(@verification-status) or @verification-status = 'any' or @verification-status = $requiredVerificatonStatus))]">
                         <xsl:copy-of select="svfn:_getRecordField($object,$fieldName,$records,$select-by,$position+1,$useUnlistedSources,$useExcludedData)" />
                     </xsl:when>
                     <!-- don't use fields that are restricted -->
-                    <xsl:when test="$exclusions/config:field-exclusions[@for-source=$records[$position]]/config:excluded-field[text()=$fieldName]">
+                    <xsl:when test="$exclusions/config:field-exclusions[@for-source=$currentSourceName and (text() != 'manual' or (not(@verification-status) or @verification-status = 'any' or @verification-status = $requiredVerificatonStatus))]/config:excluded-field[text()=$fieldName]">
                         <xsl:copy-of select="svfn:_getRecordField($object,$fieldName,$records,$select-by,$position+1,$useUnlistedSources,$useExcludedData)" />
                     </xsl:when>
                     <xsl:when test="$select-by='field'">
                         <xsl:choose>
-                            <xsl:when test="$object/api:records/api:record[@source-name=$records[$position]]/api:native/api:field[@name=$fieldName]">
-                                <xsl:copy-of select="$object/api:records/api:record[@source-name=$records[$position]][1]/api:native/api:field[@name=$fieldName]" />
+                            <xsl:when test="$object/api:records/api:record[@source-name=$currentSourceName and ($requiredVerificatonStatus = 'any' or api:verification-status = $requiredVerificatonStatus)]/api:native/api:field[@name=$fieldName]">
+                                <xsl:copy-of select="$object/api:records/api:record[@source-name=$currentSourceName and ($requiredVerificatonStatus = 'any' or api:verification-status = $requiredVerificatonStatus)][1]/api:native/api:field[@name=$fieldName]" />
                             </xsl:when>
                             <xsl:otherwise>
                                 <xsl:copy-of select="svfn:_getRecordField($object,$fieldName,$records,$select-by,$position+1,$useUnlistedSources,$useExcludedData)" />
@@ -692,8 +717,8 @@
                     </xsl:when>
                     <xsl:otherwise>
                         <xsl:choose>
-                            <xsl:when test="$object/api:records/api:record[@source-name=$records[$position]]/api:native">
-                                <xsl:copy-of select="$object/api:records/api:record[@source-name=$records[$position]][1]/api:native/api:field[@name=$fieldName]" />
+                            <xsl:when test="$object/api:records/api:record[@source-name=$currentSourceName and ($requiredVerificatonStatus = 'any' or api:verification-status = $requiredVerificatonStatus)]/api:native">
+                                <xsl:copy-of select="$object/api:records/api:record[@source-name=$currentSourceName and ($requiredVerificatonStatus = 'any' or api:verification-status = $requiredVerificatonStatus)][1]/api:native/api:field[@name=$fieldName]" />
                             </xsl:when>
                             <xsl:otherwise>
                                 <xsl:copy-of select="svfn:_getRecordField($object,$fieldName,$records,$select-by,$position+1,$useUnlistedSources,$useExcludedData)" />
@@ -742,11 +767,11 @@
                 <xsl:variable name="current-record" select="$object/api:records/api:record[$position]" />
                 <xsl:choose>
                     <!-- Don't use records that are restricted unless otherwise instructed -->
-                    <xsl:when test="$exclusions/config:record-exclusion[text()=$current-record/@source-name]">
+                    <xsl:when test="$exclusions/config:record-exclusion[text()=$current-record/@source-name and (text() != 'manual' or (not(@verification-status) or @verification-status = 'any' or @verification-status = $current-record/api:verification-status))]">
                         <xsl:copy-of select="svfn:_getFirstNonExcludedRecord($object,$fieldName, $select-by, $exclusions,$position+1)" />
                     </xsl:when>
                     <!-- don't use fields that are restricted, unless otherwise instructed-->
-                    <xsl:when test="$exclusions/config:field-exclusions[@for-source=$current-record/@source-name]/config:excluded-field[text()=$fieldName]">
+                    <xsl:when test="$exclusions/config:field-exclusions[@for-source=$current-record/@source-name and (text() != 'manual' or (not(@verification-status) or @verification-status = 'any' or @verification-status = $current-record/api:verification-status))]/config:excluded-field[text()=$fieldName]">
                         <xsl:copy-of select="svfn:_getFirstNonExcludedRecord($object,$fieldName, $select-by, $exclusions,$position+1)" />
                     </xsl:when>
                     <!-- or we are selecting by field and there is no field value in this record -->
