@@ -17,6 +17,8 @@ import uk.co.symplectic.utils.configuration.ConfigKey;
 import uk.co.symplectic.utils.configuration.ConfigParser;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
+import uk.co.symplectic.vivoweb.harvester.utils.GroupMatcher;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -63,17 +65,23 @@ public class Configuration {
 
         private ConfigKey ARG_QUERY_CATEGORIES = new ConfigKey("queryObjects"); //TODO : rename this input param?
         private ConfigKey ARG_PARAMS_GROUPS = new ConfigKey("paramGroups");
+        private ConfigKey ARG_PARAMS_GROUP_REGEXES = new ConfigKey("paramGroupRegexes");
         private ConfigKey ARG_EXCLUDE_GROUPS = new ConfigKey("excludeGroups");
+        private ConfigKey ARG_EXCLUDE_GROUP_REGEXES = new ConfigKey("excludeGroupRegexes");
         private ConfigKey ARG_INCLUDE_CHILD_GROUPS = new ConfigKey("includeChildGroupsOf");
+        private ConfigKey ARG_INCLUDE_CHILD_GROUPS_REGEXES = new ConfigKey("includeChildGroupRegexes");
         private ConfigKey ARG_EXCLUDE_CHILD_GROUPS = new ConfigKey("excludeChildGroupsOf");
+        private ConfigKey ARG_EXCLUDE_CHILD_GROUPS_REGEXES = new ConfigKey("excludeChildGroupRegexes");
 
         private ConfigKey ARG_PARAMS_USER_GROUPS = new ConfigKey("paramUserGroups");
+        private ConfigKey ARG_PARAMS_USER_GROUP_REGEXES = new ConfigKey("paramUserGroupRegexes");
         private ConfigKey ARG_EXCLUDE_USER_GROUPS = new ConfigKey("excludeUserGroups");
+        private ConfigKey ARG_EXCLUDE_USER_GROUP_REGEXES = new ConfigKey("excludeUserGroupRegexes");
 
-        private ConfigKey ARG_ELLIGIBILITY_TYPE = new ConfigKey("elligibilityFilterType");
-        private ConfigKey ARG_ELLIGIBILITY_NAME = new ConfigKey("elligibilityFilterName");
-        private ConfigKey ARG_ELLIGIBILITY_INLCUDE_VALUE = new ConfigKey("elligibilityFilterInclusionValue");
-        private ConfigKey ARG_ELLIGIBILITY_EXLCUDE_VALUE = new ConfigKey("elligibilityFilterExclusionValue");
+        private ConfigKey ARG_ELIGIBILITY_TYPE = new ConfigKey("elligibilityFilterType");
+        private ConfigKey ARG_ELIGIBILITY_NAME = new ConfigKey("elligibilityFilterName");
+        private ConfigKey ARG_ELIGIBILITY_INCLUDE_VALUE = new ConfigKey("elligibilityFilterInclusionValue");
+        private ConfigKey ARG_ELIGIBILITY_EXCLUDE_VALUE = new ConfigKey("elligibilityFilterExclusionValue");
 
         private ConfigKey ARG_API_FULL_DETAIL_PER_PAGE = new ConfigKey("fullDetailPerPage", "25");
         private ConfigKey ARG_API_REF_DETAIL_PER_PAGE = new ConfigKey("refDetailPerPage", "100");
@@ -113,19 +121,20 @@ public class Configuration {
         private int fullDetailPerPage = -1;
         private int refDetailPerPage = -1;
 
-        private List<ElementsItemId.GroupId> groupsToExclude;
-        private List<ElementsItemId.GroupId> groupsToHarvest;
-        private List<ElementsItemId.GroupId> groupsToIncludeChildrenOf;
-        private List<ElementsItemId.GroupId> groupsToExcludeChildrenOf;
-
-        private List<ElementsItemId.GroupId> groupsOfUsersToHarvest;
-        private List<ElementsItemId.GroupId> groupsOfUsersToExclude;
+        private GroupMatcher groupsToExcludeMatcher = null;
+        private GroupMatcher groupsToHarvestMatcher = null;
+        private GroupMatcher groupsToIncludeChildrenOfMatcher = null;
+        private GroupMatcher groupsToExcludeChildrenOfMatcher = null;
+        private GroupMatcher groupsOfUsersToHarvestMatcher = null;
+        private GroupMatcher groupsOfUsersToExcludeMatcher = null;
 
         private List<ElementsObjectCategory> categoriesToHarvest;
 
         private boolean visibleLinksOnly = false;
         private boolean repullRelsToCorrectVisibility = true;
         Set<String> relTypesToReprocess;
+
+
 
         private boolean useFullUTF8 = false;
 
@@ -221,6 +230,25 @@ public class Configuration {
             return imageType;
         }
 
+
+        private GroupMatcher getGroupMatcher(ConfigKey groupIdsKey, ConfigKey groupRegexesKey) {
+            List<ElementsItemId.GroupId> groupIds = new ArrayList<ElementsItemId.GroupId>();
+            //allow null as that means exclude nothing
+            if(groupIdsKey != null) {
+                for (Integer groupId : getIntegers(groupIdsKey, true))
+                    groupIds.add(ElementsItemId.createGroupId(groupId));
+            }
+
+            Set<String> groupRegexes = null;
+            if(groupRegexesKey != null) {
+                //allow null input as that means exclude nothing
+                groupRegexes = new HashSet<String>(getStringsFromCSVFragment(groupRegexesKey, true));
+            }
+
+            //parsing of sets above will have created appropriate errors if necessary...
+            return new GroupMatcher(groupIds, groupRegexes);
+        }
+
         /**
          * Custom parsing utility function to extract an EligibilityFilter object from a specific hard coded set of
          * configKeys
@@ -228,10 +256,10 @@ public class Configuration {
          */
         private EligibilityFilter getEligibilityScheme() {
 
-            String schemeType = getString(ARG_ELLIGIBILITY_TYPE, true);
-            String schemeName = getString(ARG_ELLIGIBILITY_NAME, true);
-            String includeValue = getString(ARG_ELLIGIBILITY_INLCUDE_VALUE, true);
-            String excludeValue = getString(ARG_ELLIGIBILITY_EXLCUDE_VALUE, true);
+            String schemeType = getString(ARG_ELIGIBILITY_TYPE, true);
+            String schemeName = getString(ARG_ELIGIBILITY_NAME, true);
+            String includeValue = getString(ARG_ELIGIBILITY_INCLUDE_VALUE, true);
+            String excludeValue = getString(ARG_ELIGIBILITY_EXCLUDE_VALUE, true);
 
             boolean academicsOnly = getBoolean(ARG_ACADEMICS_ONLY);
             boolean currentStaffOnly = getBoolean(ARG_CURRENT_STAFF_ONLY);
@@ -292,35 +320,12 @@ public class Configuration {
             values.apiSoTimeout = getInt(ARG_API_SOCKET_TIMEOUT);
             values.apiRequestDelay = getInt(ARG_API_REQUEST_DELAY);
 
-            List<ElementsItemId.GroupId> groups = new ArrayList<ElementsItemId.GroupId>();
-            //allow null when getting integers as that means include everything
-            for (Integer groupId : getIntegers(ARG_PARAMS_GROUPS, true)) groups.add(ElementsItemId.createGroupId(groupId));
-            values.groupsToHarvest = groups;
-
-            groups = new ArrayList<ElementsItemId.GroupId>();
-            //allow null as that means exclude nothing
-            for (Integer groupId : getIntegers(ARG_EXCLUDE_GROUPS, true)) groups.add(ElementsItemId.createGroupId(groupId));
-            values.groupsToExclude = groups;
-
-            groups = new ArrayList<ElementsItemId.GroupId>();
-            //allow null when getting integers as that means include everything
-            for (Integer groupId : getIntegers(ARG_INCLUDE_CHILD_GROUPS, true)) groups.add(ElementsItemId.createGroupId(groupId));
-            values.groupsToIncludeChildrenOf = groups;
-
-            groups = new ArrayList<ElementsItemId.GroupId>();
-            //allow null when getting integers as that means include everything
-            for (Integer groupId : getIntegers(ARG_EXCLUDE_CHILD_GROUPS, true)) groups.add(ElementsItemId.createGroupId(groupId));
-            values.groupsToExcludeChildrenOf = groups;
-
-            groups = new ArrayList<ElementsItemId.GroupId>();
-            //allow null as that means exclude nothing
-            for (Integer groupId : getIntegers(ARG_PARAMS_USER_GROUPS, true)) groups.add(ElementsItemId.createGroupId(groupId));
-            values.groupsOfUsersToHarvest = groups;
-
-            groups = new ArrayList<ElementsItemId.GroupId>();
-            //allow null as that means exclude nothing
-            for (Integer groupId : getIntegers(ARG_EXCLUDE_USER_GROUPS, true)) groups.add(ElementsItemId.createGroupId(groupId));
-            values.groupsOfUsersToExclude = groups;
+            values.groupsToHarvestMatcher = getGroupMatcher(ARG_PARAMS_GROUPS, ARG_PARAMS_GROUP_REGEXES);
+            values.groupsToExcludeMatcher = getGroupMatcher(ARG_EXCLUDE_GROUPS, ARG_EXCLUDE_GROUP_REGEXES);
+            values.groupsToIncludeChildrenOfMatcher = getGroupMatcher(ARG_INCLUDE_CHILD_GROUPS, ARG_INCLUDE_CHILD_GROUPS_REGEXES);
+            values.groupsToExcludeChildrenOfMatcher = getGroupMatcher(ARG_EXCLUDE_CHILD_GROUPS, ARG_EXCLUDE_CHILD_GROUPS_REGEXES);
+            values.groupsOfUsersToHarvestMatcher = getGroupMatcher(ARG_PARAMS_USER_GROUPS, ARG_PARAMS_USER_GROUP_REGEXES);
+            values.groupsOfUsersToExcludeMatcher = getGroupMatcher(ARG_EXCLUDE_USER_GROUPS, ARG_EXCLUDE_USER_GROUP_REGEXES);
 
             values.categoriesToHarvest = getCategories(ARG_QUERY_CATEGORIES, false); //do not allow null for categories to query
 
@@ -413,28 +418,28 @@ public class Configuration {
         return values.maxFragmentFileSize;
     }
 
-    public static List<ElementsItemId.GroupId> getGroupsToExclude() {
-        return values.groupsToExclude;
+    public static GroupMatcher getGroupsToExcludeMatcher() {
+        return values.groupsToExcludeMatcher;
     }
 
-    public static List<ElementsItemId.GroupId> getGroupsToHarvest() {
-        return values.groupsToHarvest;
+    public static GroupMatcher getGroupsToHarvestMatcher() {
+        return values.groupsToHarvestMatcher;
     }
 
-    public static List<ElementsItemId.GroupId> getGroupsToIncludeChildrenOf() {
-        return values.groupsToIncludeChildrenOf;
+    public static GroupMatcher getGroupsToIncludeChildrenOfMatcher() {
+        return values.groupsToIncludeChildrenOfMatcher;
     }
 
-    public static List<ElementsItemId.GroupId> getGroupsToExcludeChildrenOf() {
-        return values.groupsToExcludeChildrenOf;
+    public static GroupMatcher getGroupsToExcludeChildrenOfMatcher() {
+        return values.groupsToExcludeChildrenOfMatcher;
     }
 
-    public static List<ElementsItemId.GroupId> getGroupsOfUsersToExclude() {
-        return values.groupsOfUsersToExclude;
+    public static GroupMatcher getGroupsOfUsersToExcludeMatcher() {
+        return values.groupsOfUsersToExcludeMatcher;
     }
 
-    public static List<ElementsItemId.GroupId> getGroupsOfUsersToHarvest() {
-        return values.groupsOfUsersToHarvest;
+    public static GroupMatcher getGroupsOfUsersToHarvestMatcher() {
+        return values.groupsOfUsersToHarvestMatcher;
     }
 
     public static List<ElementsObjectCategory> getCategoriesToHarvest() {

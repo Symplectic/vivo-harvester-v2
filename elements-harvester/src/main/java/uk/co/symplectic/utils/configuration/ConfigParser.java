@@ -8,6 +8,9 @@
  */
 
 package uk.co.symplectic.utils.configuration;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.lang.NullArgumentException;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -89,6 +92,40 @@ public abstract class ConfigParser {
                 String trimmedSplitValue = StringUtils.trimToNull(splitValue);
                 if (trimmedSplitValue != null)
                     detectedValues.add(trimmedSplitValue);
+            }
+        }
+
+        if (!tolerateNull && detectedValues.size() == 0) {
+            configErrors.add(MessageFormat.format("Invalid value provided within argument {0} : {1} (must supply at least one string value)", key, value));
+        }
+        return detectedValues;
+    }
+
+    /**
+     * method to extract a set of Strings from the named configKey (delimited by ",") where the key is formatted as
+     * a line in a CSV document would be - to allow possibility of complex characters and reuse of , in values.
+     * @param configKey
+     * @param tolerateNull whether parsing no value is acceptable.
+     * @return
+     */
+    protected List<String> getStringsFromCSVFragment(ConfigKey configKey, boolean tolerateNull) {
+        String key = configKey.getName();
+        List<String> detectedValues = new ArrayList<String>();
+        String value = configKey.getValue(props);
+        if (!StringUtils.isEmpty(value)) {
+            try {
+                CSVParser parser = CSVParser.parse(value, CSVFormat.RFC4180.withIgnoreSurroundingSpaces(true));
+                for(CSVRecord record : parser){
+                    for(String parsedValue : record){
+                        detectedValues.add(parsedValue);
+                    }
+                    //Only parse one record as we are dealing with a single line from the properties file..
+                    break;
+                }
+            }
+            catch(IOException e){
+                configErrors.add(MessageFormat.format("Invalid value provided for argument {0} : {1} (could not be parsed as a CSV fragment)", key, value));
+                return detectedValues;
             }
         }
 

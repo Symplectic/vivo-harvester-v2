@@ -47,7 +47,7 @@ import java.util.*;
 //import org.vivoweb.harvester.util.args.UsageException;
 
 public class ElementsFetchAndTranslate {
-    /**
+     /**
      * SLF4J Logger
      */
     final private static Logger log = LoggerFactory.getLogger(ElementsFetchAndTranslate.class);
@@ -88,7 +88,6 @@ public class ElementsFetchAndTranslate {
             //only one of these will be true, both can be false
             boolean forceFullPull = args.length != 0 && args[0].equals("--full");
             boolean reprocessTranslations = args.length != 0 && args[0].equals("--reprocess");
-
             boolean skipGroups = args.length != 0 && ArrayUtils.contains(args, "--skipgroups");
 
             boolean ignoreChangeProtectionThisRun = args.length != 0 && ArrayUtils.contains(args, "--disableChangeProtection");
@@ -749,7 +748,7 @@ public class ElementsFetchAndTranslate {
         ElementsItemKeyedCollection.ItemInfo includedGroups = new ElementsItemKeyedCollection.ItemInfo(restrictToGroupsOnly);
 
         //only assume we include the org group by default if no groups (or child groups) are specified as to be included
-        boolean assumeIncludeOrgGroup = Configuration.getGroupsToHarvest().isEmpty() && Configuration.getGroupsToIncludeChildrenOf().isEmpty();
+        boolean assumeIncludeOrgGroup = !Configuration.getGroupsToHarvestMatcher().isActive() && !Configuration.getGroupsToIncludeChildrenOfMatcher().isActive();
         getIncludedGroups(groupCache.GetTopLevel(), includedGroups, assumeIncludeOrgGroup);
 
         return includedGroups;
@@ -763,25 +762,25 @@ public class ElementsFetchAndTranslate {
      */
     private static void getIncludedGroups(ElementsGroupInfo.GroupHierarchyWrapper group, ElementsItemKeyedCollection.ItemInfo includedGroups, boolean assumeInclude){
 
-        ElementsItemId.GroupId groupId = (ElementsItemId.GroupId) group.getGroupInfo().getItemId();
+        ElementsGroupInfo groupInfo = group.getGroupInfo();
+        //ElementsItemId.GroupId groupId = (ElementsItemId.GroupId) groupInfo.getItemId();
 
         boolean shouldIncludeGroup = assumeInclude;
-        if(Configuration.getGroupsToHarvest().contains(groupId)){
+        if(Configuration.getGroupsToHarvestMatcher().isMatch(groupInfo)){
             shouldIncludeGroup = true;
-        } else if(Configuration.getGroupsToExclude().contains(groupId)){
+        } else if(Configuration.getGroupsToExcludeMatcher().isMatch(groupInfo)){
             shouldIncludeGroup = false;
         }
 
         if(shouldIncludeGroup){
-            ElementsGroupInfo groupInfo = group.getGroupInfo();
             includedGroups.put(groupInfo.getItemId(), groupInfo);
         }
 
         //default to assuming if should include children based on if group itself is being included..
         boolean shouldAssumeIncludeChildGroups = shouldIncludeGroup;
-        if(Configuration.getGroupsToIncludeChildrenOf().contains(groupId)){
+        if(Configuration.getGroupsToIncludeChildrenOfMatcher().isMatch(groupInfo)){
             shouldAssumeIncludeChildGroups = true;
-        } else if (Configuration.getGroupsToExcludeChildrenOf().contains(groupId)){
+        } else if (Configuration.getGroupsToExcludeChildrenOfMatcher().isMatch(groupInfo)){
             shouldAssumeIncludeChildGroups = false;
         }
 
@@ -811,11 +810,22 @@ public class ElementsFetchAndTranslate {
             if (!filter.isUserEligible(userInfo)) invalidUsers.add(userInfo.getObjectId());
         }
 
+        //create list of group ids that are definitively being excluded or included
+        Set<ElementsItemId.GroupId> includedGroups = new HashSet<ElementsItemId.GroupId>();
+        Set<ElementsItemId.GroupId> excludedGroups = new HashSet<ElementsItemId.GroupId>();
+        for(ElementsGroupInfo.GroupHierarchyWrapper groupWrapper : groupCache.values()){
+            if(Configuration.getGroupsOfUsersToHarvestMatcher().isMatch(groupWrapper.getGroupInfo())) {
+                includedGroups.add((ElementsItemId.GroupId) groupWrapper.getGroupInfo().getItemId());
+            }
+            if(Configuration.getGroupsOfUsersToExcludeMatcher().isMatch(groupWrapper.getGroupInfo())){
+                excludedGroups.add((ElementsItemId.GroupId) groupWrapper.getGroupInfo().getItemId());
+            }
+        }
         //Work out which users we are planning to include (i.e who is in the included set, not in the excluded set
 
         ElementsItemKeyedCollection.ItemRestrictor restrictToUsersOnly = new ElementsItemKeyedCollection.RestrictToSubTypes(ElementsObjectCategory.USER);
         ElementsItemKeyedCollection.ItemInfo includedUsers = new ElementsItemKeyedCollection.ItemInfo(restrictToUsersOnly);
-        if(Configuration.getGroupsOfUsersToHarvest().isEmpty()) {
+        if(includedGroups.isEmpty()) {
             //we need to copy the users over as we do more filtering below
             for(ElementsItemInfo userInfo : userInfoCache.values()) {
                 if(!invalidUsers.contains(userInfo.getItemId()))
@@ -823,7 +833,7 @@ public class ElementsFetchAndTranslate {
             }
         }
         else {
-            for (ElementsItemId.GroupId groupId : Configuration.getGroupsOfUsersToHarvest()) {
+            for (ElementsItemId.GroupId groupId : includedGroups) {
                 ElementsGroupInfo.GroupHierarchyWrapper group = groupCache.get(groupId);
                 if(group != null) {
                     for (ElementsItemId userId : group.getImplicitUsers()) {
@@ -837,7 +847,7 @@ public class ElementsFetchAndTranslate {
             }
         }
 
-        for(ElementsItemId.GroupId groupId : Configuration.getGroupsOfUsersToExclude()){
+        for(ElementsItemId.GroupId groupId : excludedGroups){
             ElementsGroupInfo.GroupHierarchyWrapper group = groupCache.get(groupId);
             if(group != null) {
                 includedUsers.removeAll(group.getImplicitUsers());
