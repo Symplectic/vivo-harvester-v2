@@ -9,9 +9,10 @@
  * ******************************************************************************
  */
 
-package uk.co.symplectic.vivoweb.harvester.fetch;
+package uk.co.symplectic.vivoweb.harvester.utils;
 
 import org.apache.commons.lang.NullArgumentException;
+import uk.co.symplectic.vivoweb.harvester.fetch.ElementsFetch;
 import uk.co.symplectic.vivoweb.harvester.model.*;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsItemStore;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItemInfo;

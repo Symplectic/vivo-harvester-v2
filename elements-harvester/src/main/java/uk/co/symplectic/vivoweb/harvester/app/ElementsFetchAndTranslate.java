@@ -31,6 +31,8 @@ import uk.co.symplectic.vivoweb.harvester.fetch.*;
 import uk.co.symplectic.vivoweb.harvester.model.*;
 import uk.co.symplectic.vivoweb.harvester.store.*;
 import uk.co.symplectic.vivoweb.harvester.translate.*;
+import uk.co.symplectic.vivoweb.harvester.utils.ElementsGroupCollection;
+import uk.co.symplectic.vivoweb.harvester.utils.ElementsItemKeyedCollection;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;

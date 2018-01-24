@@ -11,8 +11,8 @@ package uk.co.symplectic.vivoweb.harvester.translate;
 
 import org.apache.commons.lang.NullArgumentException;
 import org.w3c.dom.Document;
-import uk.co.symplectic.vivoweb.harvester.fetch.ElementsGroupCollection;
-import uk.co.symplectic.vivoweb.harvester.fetch.ElementsItemKeyedCollection;
+import uk.co.symplectic.vivoweb.harvester.utils.ElementsGroupCollection;
+import uk.co.symplectic.vivoweb.harvester.utils.ElementsItemKeyedCollection;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsGroupInfo;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsRdfStore;

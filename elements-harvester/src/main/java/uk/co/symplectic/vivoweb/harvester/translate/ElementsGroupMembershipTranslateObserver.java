@@ -15,8 +15,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import uk.co.symplectic.vivoweb.harvester.fetch.ElementsGroupCollection;
-import uk.co.symplectic.vivoweb.harvester.fetch.ElementsItemKeyedCollection;
+import uk.co.symplectic.vivoweb.harvester.utils.ElementsGroupCollection;
+import uk.co.symplectic.vivoweb.harvester.utils.ElementsItemKeyedCollection;
 import uk.co.symplectic.vivoweb.harvester.model.*;
 import uk.co.symplectic.vivoweb.harvester.store.*;
 

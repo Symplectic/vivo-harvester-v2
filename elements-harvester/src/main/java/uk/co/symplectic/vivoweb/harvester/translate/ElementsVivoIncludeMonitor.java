@@ -9,7 +9,7 @@
 package uk.co.symplectic.vivoweb.harvester.translate;
 
 import org.apache.commons.lang.NullArgumentException;
-import uk.co.symplectic.vivoweb.harvester.fetch.ElementsItemCollection;
+import uk.co.symplectic.vivoweb.harvester.utils.ElementsItemCollection;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsRelationshipInfo;
