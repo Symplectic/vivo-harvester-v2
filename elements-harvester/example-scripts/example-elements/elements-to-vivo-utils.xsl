@@ -162,7 +162,7 @@
         <xsl:param name="id" as="xs:integer"/>
         <xsl:param name="name" as="xs:string"/>
         <!--<xsl:value-of select="svfn:makeURI('institutional-user-group-', string($id))" />-->
-        <xsl:value-of select="svfn:makeURI(string($id), concat('-', $name))" />
+        <xsl:value-of select="svfn:makeURI('g-', concat(string($id), '-', $name))" />
     </xsl:function>
 
 
