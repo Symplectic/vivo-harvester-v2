@@ -198,6 +198,24 @@
 
 
     <!--
+    svfn:userGivenName
+    ======================
+    Abstract over user object to return the "firstName
+    -->
+    <xsl:function name="svfn:userGivenName" as="xs:string">
+        <xsl:param name="user" />
+        <xsl:choose>
+            <xsl:when test="api:known-as and normalize-space(api:known-as) != ''">
+                <xsl:value-of select="api:known-as" />
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:value-of select="api:first-name" />
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:function>
+
+
+    <!--
         svfn:organisationObjects
         ====================
         Create objects representing an an institution and any sub organisation if present from an api:address or api:institution object

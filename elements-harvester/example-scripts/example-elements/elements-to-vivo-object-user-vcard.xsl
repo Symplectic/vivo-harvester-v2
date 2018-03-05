@@ -193,9 +193,10 @@
             <xsl:with-param name="objectURI" select="$vcardNameURI" />
             <xsl:with-param name="rdfNodes">
                 <rdf:type rdf:resource="http://www.w3.org/2006/vcard/ns#Name" />
-                <vcard:givenName><xsl:value-of select="$object/api:first-name" /></vcard:givenName>
+                <vcard:givenName><xsl:value-of select="svfn:userGivenName($object)" /></vcard:givenName>
                 <vcard:familyName><xsl:value-of select="$object/api:last-name" /></vcard:familyName>
                 <xsl:if test="$object/api:suffix"><vcard:honorificSuffix><xsl:value-of select="$object/api:suffix" /></vcard:honorificSuffix></xsl:if>
+                <xsl:if test="$object/api:title"><vcard:honorificPrefix><xsl:value-of select="$object/api:title" /></vcard:honorificPrefix></xsl:if>
             </xsl:with-param>
         </xsl:call-template>
     </xsl:function>

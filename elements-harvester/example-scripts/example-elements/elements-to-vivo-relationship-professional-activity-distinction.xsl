@@ -101,7 +101,7 @@
                     <rdfs:label>
                         <xsl:apply-templates select="$awardName" />
                         <xsl:text> (</xsl:text>
-                        <xsl:value-of select="$userObj/api:last-name,$userObj/api:first-name" separator=", " />
+                        <xsl:value-of select="$userObj/api:last-name, svfn:userGivenName($userObj)" separator=", " />
                         <xsl:if test="$awardDate/*">
                             <xsl:text> - </xsl:text>
                         </xsl:if>

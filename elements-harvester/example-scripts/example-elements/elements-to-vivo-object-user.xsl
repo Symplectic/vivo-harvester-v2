@@ -40,7 +40,7 @@
         <xsl:variable name="userURI" select="svfn:userURI(.)" />
 
         <xsl:variable name="isAcademic"><xsl:value-of select="api:is-academic" /></xsl:variable>
-        <xsl:variable name="firstName"><xsl:value-of select="api:first-name" /></xsl:variable>
+        <xsl:variable name="firstName" select="svfn:userGivenName(.)" />
         <xsl:variable name="lastName"><xsl:value-of select="api:last-name" /></xsl:variable>
         <xsl:variable name="degrees" select="svfn:getRecordFieldOrFirst(.,'degrees')" />
         <xsl:variable name="postgraduate-trainings" select="svfn:getRecordFieldOrFirst(.,'postgraduate-trainings')" />
