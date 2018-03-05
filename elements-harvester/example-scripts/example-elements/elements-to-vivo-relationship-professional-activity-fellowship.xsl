@@ -133,9 +133,7 @@
 
     <xsl:function name="svfn:fellowshipReceiptUserLabel">
         <xsl:param name="user" />
-        <xsl:variable name="firstName" select="svfn:userGivenName($user)" />
-        <xsl:variable name="lastName"><xsl:value-of select="$user/api:last-name" /></xsl:variable>
-        <xsl:value-of select="$lastName, $firstName" separator=", " />
+        <xsl:value-of select="svfn:userLabel($user)" />
     </xsl:function>
 
 </xsl:stylesheet>

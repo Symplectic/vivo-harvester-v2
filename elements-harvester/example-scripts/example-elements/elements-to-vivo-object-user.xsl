@@ -68,7 +68,7 @@
 
                 <xsl:if test="$internalClass!=''"><rdf:type rdf:resource="{$internalClass}" /></xsl:if>
                 <!-- rdf:type rdf:resource="http://vivoweb.org/harvester/excludeEntity" / -->
-                <rdfs:label><xsl:value-of select="svfn:userLabel(current())" /></rdfs:label>
+                <rdfs:label><xsl:value-of select="svfn:mainUserLabel(current())" /></rdfs:label>
                 <xsl:copy-of select="svfn:renderPropertyFromFieldOrFirst(.,'vivo:overview','overview', '')" />
 
                 <!-- render any user labels that are relevant -->
@@ -175,7 +175,7 @@
                     <xsl:with-param name="objectURI" select="$awardedDegreeURI" />
                     <xsl:with-param name="rdfNodes">
                         <rdf:type rdf:resource="http://vivoweb.org/ontology/core#AwardedDegree" />
-                        <rdfs:label><xsl:value-of select="concat(svfn:userLabel($currentUser), ': ', $awardedDegreeName, ' ', $awardedDegreeField)" /></rdfs:label>  <!-- VIVO includes name, e.g. "Smith, John: B.S. Bachelor of Science" -->
+                        <rdfs:label><xsl:value-of select="concat(svfn:awardedDegreeUserLabel($currentUser), ': ', $awardedDegreeName, ' ', $awardedDegreeField)" /></rdfs:label>  <!-- VIVO includes name, e.g. "Smith, John: B.S. Bachelor of Science" -->
                         <xsl:if test="$hasLinkedOrg"><vivo:assignedBy rdf:resource="{$orgURI}" /></xsl:if>
                         <vivo:relates rdf:resource="{$degreeURI}" />
                         <vivo:relates rdf:resource="{$userURI}" />
@@ -472,11 +472,14 @@
         </xsl:if>
     </xsl:template>
 
-    <xsl:function name="svfn:userLabel">
+    <xsl:function name="svfn:mainUserLabel">
         <xsl:param name="user" />
-        <xsl:variable name="firstName" select="svfn:userGivenName($user)" />
-        <xsl:variable name="lastName"><xsl:value-of select="$user/api:last-name" /></xsl:variable>
-        <xsl:value-of select="$lastName, $firstName" separator=", " />
+        <xsl:value-of select="svfn:userLabel($user)" />
+    </xsl:function>
+
+    <xsl:function name="svfn:awardedDegreeUserLabel">
+        <xsl:param name="user" />
+        <xsl:value-of select="svfn:userLabel($user)" />
     </xsl:function>
 
 </xsl:stylesheet>

@@ -196,22 +196,25 @@
         <xsl:copy-of select="svfn:organisationObjects($address, $includeDept)" />
     </xsl:function>
 
-
     <!--
-    svfn:userGivenName
+    svfn:userLabel
     ======================
-    Abstract over user object to return the "firstName
+    default of how a user should be described in a "label"
     -->
-    <xsl:function name="svfn:userGivenName" as="xs:string">
+    <xsl:function name="svfn:userLabel">
         <xsl:param name="user" />
-        <xsl:choose>
-            <xsl:when test="$user/api:known-as and normalize-space($user/api:known-as) != ''">
-                <xsl:value-of select="$user/api:known-as" />
-            </xsl:when>
-            <xsl:otherwise>
-                <xsl:value-of select="$user/api:first-name" />
-            </xsl:otherwise>
-        </xsl:choose>
+        <xsl:variable name="firstName">
+            <xsl:choose>
+                <xsl:when test="$user/api:known-as and normalize-space($user/api:known-as) != ''">
+                    <xsl:value-of select="$user/api:known-as" />
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:value-of select="$user/api:first-name" />
+                </xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
+        <xsl:variable name="lastName"><xsl:value-of select="$user/api:last-name" /></xsl:variable>
+        <xsl:value-of select="$lastName, $firstName" separator=", " />
     </xsl:function>
 
 
