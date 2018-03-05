@@ -52,6 +52,22 @@ public final class ImageUtils {
         return false;
     }
 
+    public static BufferedImage cropToSquare(BufferedImage inputImage){
+        int height = inputImage.getHeight();
+        int width = inputImage.getWidth();
+
+        if(height == width) return inputImage;
+
+        int size = Math.min(height, width);
+        int offset = Math.abs(height-width)/2;
+
+        int offsetX = height > width ? 0 : offset;
+        int offsetY = height > width ? offset : 0;
+
+        return inputImage.getSubimage(offsetX, offsetY, size, size);
+    }
+
+
     /**
      * Convenience method that returns a scaled instance of the
      * provided {@code BufferedImage}.

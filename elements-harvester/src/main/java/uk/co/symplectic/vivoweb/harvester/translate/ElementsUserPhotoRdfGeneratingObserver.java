@@ -133,6 +133,7 @@ public class ElementsUserPhotoRdfGeneratingObserver extends ElementsTranslateObs
                 fullImageDir.mkdirs();
             }
 
+            //image = ImageUtils.cropToSquare(image);
             boolean returnValue = ImageUtils.writeFile(image, fullImageFile, "jpeg");
 
             // Write out thumbnail

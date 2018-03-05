@@ -64,15 +64,23 @@ public class Configuration {
         private ConfigKey ARG_VIVO_IMAGE_BASE_PATH = new ConfigKey("vivoImageBasePath", "/harvestedImages/");
 
         private ConfigKey ARG_QUERY_CATEGORIES = new ConfigKey("queryObjects"); //TODO : rename this input param?
+
         private ConfigKey ARG_INCLUDE_EMPTY_GROUPS = new ConfigKey("includeEmptyGroups", "true");
+
         private ConfigKey ARG_PARAMS_GROUPS = new ConfigKey("paramGroups");
         private ConfigKey ARG_PARAMS_GROUP_REGEXES = new ConfigKey("paramGroupRegexes");
-        private ConfigKey ARG_EXCLUDE_GROUPS = new ConfigKey("excludeGroups");
-        private ConfigKey ARG_EXCLUDE_GROUP_REGEXES = new ConfigKey("excludeGroupRegexes");
         private ConfigKey ARG_INCLUDE_CHILD_GROUPS = new ConfigKey("includeChildGroupsOf");
         private ConfigKey ARG_INCLUDE_CHILD_GROUPS_REGEXES = new ConfigKey("includeChildGroupRegexes");
+
+        private ConfigKey ARG_EXCLUDE_GROUPS = new ConfigKey("excludeGroups");
+        private ConfigKey ARG_EXCLUDE_GROUP_REGEXES = new ConfigKey("excludeGroupRegexes");
         private ConfigKey ARG_EXCLUDE_CHILD_GROUPS = new ConfigKey("excludeChildGroupsOf");
         private ConfigKey ARG_EXCLUDE_CHILD_GROUPS_REGEXES = new ConfigKey("excludeChildGroupRegexes");
+
+        private ConfigKey ARG_EXCISE_GROUPS = new ConfigKey("exciseGroups");
+        private ConfigKey ARG_EXCISE_GROUP_REGEXES = new ConfigKey("exciseGroupRegexes");
+        private ConfigKey ARG_EXCISE_CHILD_GROUPS = new ConfigKey("exiseChildGroupsOf");
+        private ConfigKey ARG_EXCISE_CHILD_GROUPS_REGEXES = new ConfigKey("exciseChildGroupRegexes");
 
         private ConfigKey ARG_PARAMS_USER_GROUPS = new ConfigKey("paramUserGroups");
         private ConfigKey ARG_PARAMS_USER_GROUP_REGEXES = new ConfigKey("paramUserGroupRegexes");
@@ -123,10 +131,14 @@ public class Configuration {
         private int refDetailPerPage = -1;
 
         boolean includeEmptyGroups = true;
-        private GroupMatcher groupsToExcludeMatcher = null;
+
         private GroupMatcher groupsToHarvestMatcher = null;
         private GroupMatcher groupsToIncludeChildrenOfMatcher = null;
+        private GroupMatcher groupsToExcludeMatcher = null;
         private GroupMatcher groupsToExcludeChildrenOfMatcher = null;
+        private GroupMatcher groupsToExciseMatcher = null;
+        private GroupMatcher groupsToExciseChildrenOfMatcher = null;
+
         private GroupMatcher groupsOfUsersToHarvestMatcher = null;
         private GroupMatcher groupsOfUsersToExcludeMatcher = null;
 
@@ -323,9 +335,14 @@ public class Configuration {
             values.apiRequestDelay = getInt(ARG_API_REQUEST_DELAY);
 
             values.groupsToHarvestMatcher = getGroupMatcher(ARG_PARAMS_GROUPS, ARG_PARAMS_GROUP_REGEXES);
-            values.groupsToExcludeMatcher = getGroupMatcher(ARG_EXCLUDE_GROUPS, ARG_EXCLUDE_GROUP_REGEXES);
             values.groupsToIncludeChildrenOfMatcher = getGroupMatcher(ARG_INCLUDE_CHILD_GROUPS, ARG_INCLUDE_CHILD_GROUPS_REGEXES);
+
+            values.groupsToExcludeMatcher = getGroupMatcher(ARG_EXCLUDE_GROUPS, ARG_EXCLUDE_GROUP_REGEXES);
             values.groupsToExcludeChildrenOfMatcher = getGroupMatcher(ARG_EXCLUDE_CHILD_GROUPS, ARG_EXCLUDE_CHILD_GROUPS_REGEXES);
+
+            values.groupsToExciseMatcher = getGroupMatcher(ARG_EXCISE_GROUPS, ARG_EXCISE_GROUP_REGEXES);
+            values.groupsToExciseChildrenOfMatcher = getGroupMatcher(ARG_EXCISE_CHILD_GROUPS, ARG_EXCISE_CHILD_GROUPS_REGEXES);
+
             values.groupsOfUsersToHarvestMatcher = getGroupMatcher(ARG_PARAMS_USER_GROUPS, ARG_PARAMS_USER_GROUP_REGEXES);
             values.groupsOfUsersToExcludeMatcher = getGroupMatcher(ARG_EXCLUDE_USER_GROUPS, ARG_EXCLUDE_USER_GROUP_REGEXES);
 
@@ -425,10 +442,6 @@ public class Configuration {
         return values.includeEmptyGroups;
     }
 
-    public static GroupMatcher getGroupsToExcludeMatcher() {
-        return values.groupsToExcludeMatcher;
-    }
-
     public static GroupMatcher getGroupsToHarvestMatcher() {
         return values.groupsToHarvestMatcher;
     }
@@ -437,16 +450,28 @@ public class Configuration {
         return values.groupsToIncludeChildrenOfMatcher;
     }
 
+    public static GroupMatcher getGroupsToExcludeMatcher() {
+        return values.groupsToExcludeMatcher;
+    }
+
     public static GroupMatcher getGroupsToExcludeChildrenOfMatcher() {
         return values.groupsToExcludeChildrenOfMatcher;
     }
 
-    public static GroupMatcher getGroupsOfUsersToExcludeMatcher() {
-        return values.groupsOfUsersToExcludeMatcher;
+    public static GroupMatcher getGroupsToExciseMatcher() {
+        return values.groupsToExciseMatcher;
+    }
+
+    public static GroupMatcher getGroupsToExciseChildrenOfMatcher() {
+        return values.groupsToExciseChildrenOfMatcher;
     }
 
     public static GroupMatcher getGroupsOfUsersToHarvestMatcher() {
         return values.groupsOfUsersToHarvestMatcher;
+    }
+
+    public static GroupMatcher getGroupsOfUsersToExcludeMatcher() {
+        return values.groupsOfUsersToExcludeMatcher;
     }
 
     public static List<ElementsObjectCategory> getCategoriesToHarvest() {

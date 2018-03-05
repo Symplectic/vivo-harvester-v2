@@ -18,6 +18,7 @@ import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsRdfStore;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItemInfo;
 import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
+import uk.co.symplectic.vivoweb.harvester.utils.IncludedGroups;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -28,10 +29,10 @@ import java.util.Map;
 public class ElementsGroupTranslateObserver extends ElementsTranslateObserver {
 
     private final ElementsGroupCollection groupCache;
-    private final ElementsItemKeyedCollection.ItemInfo includedGroups;
+    private final IncludedGroups includedGroups;
 
     public ElementsGroupTranslateObserver(ElementsRdfStore rdfStore, String xslFilename, ElementsGroupCollection groupCache,
-                                          ElementsItemKeyedCollection.ItemInfo includedGroups){
+                                          IncludedGroups includedGroups){
         super(rdfStore, xslFilename, StorableResourceType.RAW_GROUP, StorableResourceType.TRANSLATED_GROUP);
         if (groupCache == null) throw new NullArgumentException("groupCache");
         if (includedGroups == null) throw new NullArgumentException("includedGroups");
@@ -53,7 +54,7 @@ public class ElementsGroupTranslateObserver extends ElementsTranslateObserver {
         while(groupDescription.getParent() != null){
             ElementsGroupInfo.GroupHierarchyWrapper parentDescription = groupDescription.getParent();
             ElementsItemId parentGroupId = parentDescription.getGroupInfo().getItemId();
-            if(includedGroups.keySet().contains(parentGroupId)) return parentGroupId;
+            if(includedGroups.getIncludedGroups().keySet().contains(parentGroupId)) return parentGroupId;
             groupDescription = parentDescription;
         }
         return null;

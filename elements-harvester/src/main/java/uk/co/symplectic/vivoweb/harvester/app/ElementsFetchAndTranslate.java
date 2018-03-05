@@ -33,6 +33,7 @@ import uk.co.symplectic.vivoweb.harvester.store.*;
 import uk.co.symplectic.vivoweb.harvester.translate.*;
 import uk.co.symplectic.vivoweb.harvester.utils.ElementsGroupCollection;
 import uk.co.symplectic.vivoweb.harvester.utils.ElementsItemKeyedCollection;
+import uk.co.symplectic.vivoweb.harvester.utils.IncludedGroups;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -205,12 +206,14 @@ public class ElementsFetchAndTranslate {
 
                 //TODO: work out how to marshall user photos into a web accessible area in a sensible manner based on included user set...
                 //Hook a photo retrieval observer onto the rdf store so that photos will be fetched and dropped in the object store for any translated users.
+                ElementsUserPhotoRetrievalObserver photoRetrievalObserver = null;
                 if(currentRunClassification != StateManagement.RunClassification.REPROCESSING) {
-                    objectStore.addItemObserver(new ElementsUserPhotoRetrievalObserver(elementsAPI, Configuration.getImageType(), objectStore));
+                    photoRetrievalObserver = new ElementsUserPhotoRetrievalObserver(elementsAPI, Configuration.getImageType(), objectStore);
                 }
                 else{
-                    objectStore.addItemObserver(new ElementsUserPhotoRetrievalObserver.ReprocessingObserver(elementsAPI, Configuration.getImageType(), objectStore));
+                    photoRetrievalObserver = new ElementsUserPhotoRetrievalObserver.ReprocessingObserver(elementsAPI, Configuration.getImageType(), objectStore);
                 }
+                objectStore.addItemObserver(photoRetrievalObserver);
                 //Hook a photo RDF generating observer onto the object store so that any fetched photos have corresponding "rdf" created in the translated output.
                 objectStore.addItemObserver(new ElementsUserPhotoRdfGeneratingObserver(rdfStore, xslFilename, processedImageDir, Configuration.getVivoImageBasePath()));
 
@@ -279,10 +282,10 @@ public class ElementsFetchAndTranslate {
                 ElementsItemKeyedCollection.ItemInfo includedUsers = CalculateIncludedUsers(userInfoCache, groupCache);
 
                 //work out the included groups too..
-                ElementsItemKeyedCollection.ItemInfo includedGroups = CalculateIncludedGroups(groupCache, includedUsers);
+                IncludedGroups includedGroups = CalculateIncludedGroups(groupCache, includedUsers);
 
                 //set up some nicely uniqueified names for the groups we are about to send out - to make URI construction easier in the crosswalks.
-                groupCache.createCanonicalNames(includedGroups.keySet());
+                groupCache.createCanonicalNames(includedGroups.getIncludedGroups().keySet());
 
                 //Wire up the group translation observer...(needs group cache to work out members Ids and included users to get the user info of those members)
                 objectStore.addItemObserver(new ElementsGroupTranslateObserver(rdfStore, xslFilename, groupCache, includedGroups));
@@ -304,6 +307,11 @@ public class ElementsFetchAndTranslate {
                 //delta - group memberships may have changed.
                 //full - group memberships may have changed.
                 //TODO : method to decide if we need to do group membership this way?
+
+                //Note all "enqueings" should have been done on this thread - only the translations and retrievals of photos should be off main thread
+                //so we can happily remove observers like this..
+                objectStore.removeItemObserver(photoRetrievalObserver);
+
                 ElementsGroupMembershipTranslateObserver groupMembershipTranslateObserver =
                         new ElementsGroupMembershipTranslateObserver(rdfStore, xslFilename, groupCache, includedGroups);
                 //cleardown the group memberships
@@ -331,7 +339,7 @@ public class ElementsFetchAndTranslate {
                 //TODO: test performance against spinning rust...
 
                 boolean visibleLinksOnly = Configuration.getVisibleLinksOnly();
-                ElementsVivoIncludeMonitor monitor = new ElementsVivoIncludeMonitor(includedUsers.keySet(), includedGroups.keySet(), Configuration.getCategoriesToHarvest(), visibleLinksOnly);
+                ElementsVivoIncludeMonitor monitor = new ElementsVivoIncludeMonitor(includedUsers.keySet(), includedGroups.getIncludedGroups().keySet(), Configuration.getCategoriesToHarvest(), visibleLinksOnly);
 
                 counter = 0;
                 for (StoredData.InFile relData : objectStore.getAllExistingFilesOfType(StorableResourceType.RAW_RELATIONSHIP)) {
@@ -748,36 +756,48 @@ public class ElementsFetchAndTranslate {
      * @param groupCache the current
      * @return ElementsItemKeyedCollection.ItemInfo containing Groups to be included in Vivo.
      */
-    private static ElementsItemKeyedCollection.ItemInfo CalculateIncludedGroups(ElementsGroupCollection groupCache, ElementsItemKeyedCollection.ItemInfo includedUsers) {
-        ElementsItemKeyedCollection.ItemRestrictor restrictToGroupsOnly = new ElementsItemKeyedCollection.RestrictToType(ElementsItemType.GROUP);
-        ElementsItemKeyedCollection.ItemInfo includedGroups = new ElementsItemKeyedCollection.ItemInfo(restrictToGroupsOnly);
+    private static IncludedGroups CalculateIncludedGroups(ElementsGroupCollection groupCache, ElementsItemKeyedCollection.ItemInfo includedUsers) {
+        IncludedGroups includedGroups = new IncludedGroups();
 
         //only assume we include the org group by default if no groups (or child groups) are specified as to be included
         boolean assumeIncludeOrgGroup = !Configuration.getGroupsToHarvestMatcher().isActive() && !Configuration.getGroupsToIncludeChildrenOfMatcher().isActive();
-        getIncludedGroups(groupCache.GetTopLevel(), includedGroups, includedUsers, assumeIncludeOrgGroup);
+        GroupAction assumedTopLevelAction = assumeIncludeOrgGroup ? GroupAction.INCLUDE : GroupAction.EXCLUDE;
+        getIncludedGroups(groupCache.GetTopLevel(), includedGroups, includedUsers, assumedTopLevelAction);
 
         return includedGroups;
+    }
+
+    /**
+     * what action should be taken for a particular group in elements with regard to Vivo
+     */
+    private static enum GroupAction {
+        INCLUDE, //group will appear in Vivo with its members wired up to it
+        EXCLUDE, //group will not appear in Vivo, its members will be wired up to the nearest parent group being send to Vivo (if one exists)
+        EXCISE //group will not appear in Vivo, memberships will not appear in Vivo anywhere.
     }
 
     /**
      * internal helper to walk the GroupHierarchyWrapper tree and work out which groups to include.
      * @param group current node in the tree being processed.
      * @param includedGroups the set of included groups.
-     * @param assumeInclude whether we are currently including or excluding discovered nodes.
+     * @param assumeAction whether we are currently including, excluding or excising discovered nodes.
      */
-    private static void getIncludedGroups(ElementsGroupInfo.GroupHierarchyWrapper group, ElementsItemKeyedCollection.ItemInfo includedGroups, ElementsItemKeyedCollection.ItemInfo includedUsers, boolean assumeInclude){
+    private static void getIncludedGroups(ElementsGroupInfo.GroupHierarchyWrapper group, IncludedGroups includedGroups, ElementsItemKeyedCollection.ItemInfo includedUsers, GroupAction assumeAction){
 
         boolean shouldRecurse = true;
 
         ElementsGroupInfo groupInfo = group.getGroupInfo();
         //ElementsItemId.GroupId groupId = (ElementsItemId.GroupId) groupInfo.getItemId();
 
-        boolean shouldIncludeGroup = assumeInclude;
+        GroupAction actionToTake = assumeAction;
         if(Configuration.getGroupsToHarvestMatcher().isMatch(groupInfo)){
-            shouldIncludeGroup = true;
+            actionToTake = GroupAction.INCLUDE;
         }
         else if(Configuration.getGroupsToExcludeMatcher().isMatch(groupInfo)){
-            shouldIncludeGroup = false;
+            actionToTake = GroupAction.EXCLUDE;
+        }
+        else if (Configuration.getGroupsToExciseMatcher().isMatch(groupInfo)){
+            actionToTake = GroupAction.EXCISE;
         }
         // if no explicit instructions about how to handle the group then decide based on whether we are set up to include "empty" groups
         // empty being defined as having no included users in the set of implicit users of the group.
@@ -801,30 +821,41 @@ public class ElementsFetchAndTranslate {
             }
 
             if(!groupContainsIncludedUsers){
-                shouldIncludeGroup = false;
+                //No need to worry about excision - we are dealing with empty groups - no memberships to worry about.
+                actionToTake = GroupAction.EXCISE;
                 shouldRecurse = false;
             }
         }
 
-        if(shouldIncludeGroup){
-            includedGroups.put(groupInfo.getItemId(), groupInfo);
+        switch(actionToTake){
+            case INCLUDE:
+                includedGroups.getIncludedGroups().put(groupInfo.getItemId(), groupInfo);
+                break;
+            case EXCLUDE: //do nothing
+                break;
+            case EXCISE:
+                includedGroups.getExcisedGroups().put(groupInfo.getItemId(), groupInfo);
+                break;
+            default :
+                throw new IllegalStateException("Invalid GroupAction type detected");
         }
-
 
         //only worth recursing if we are really going to find anything
         // e.g. we won't if we are excluding this group as it is empty of included users - as that means all this
         // groups children must also be empty of included users..
         if(shouldRecurse) {
-            //default to assuming if should include children based on if group itself is being included..
-            boolean shouldAssumeIncludeChildGroups = shouldIncludeGroup;
+            //default to assuming children should behave like their parent ..
+            GroupAction actionToAssumeForChildGroups = actionToTake;
             if (Configuration.getGroupsToIncludeChildrenOfMatcher().isMatch(groupInfo)) {
-                shouldAssumeIncludeChildGroups = true;
+                actionToAssumeForChildGroups = GroupAction.INCLUDE;
             } else if (Configuration.getGroupsToExcludeChildrenOfMatcher().isMatch(groupInfo)) {
-                shouldAssumeIncludeChildGroups = false;
+                actionToAssumeForChildGroups = GroupAction.EXCLUDE;
+            } else if (Configuration.getGroupsToExciseChildrenOfMatcher().isMatch(groupInfo)){
+                actionToAssumeForChildGroups = GroupAction.EXCISE;
             }
 
             for (ElementsGroupInfo.GroupHierarchyWrapper child : group.getChildren()) {
-                getIncludedGroups(child, includedGroups, includedUsers, shouldAssumeIncludeChildGroups);
+                getIncludedGroups(child, includedGroups, includedUsers, actionToAssumeForChildGroups);
             }
         }
     }

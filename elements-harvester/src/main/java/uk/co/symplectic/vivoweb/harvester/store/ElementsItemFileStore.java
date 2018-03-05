@@ -60,6 +60,10 @@ public class ElementsItemFileStore implements ElementsItemStore.ElementsDeletabl
 
     public void addItemObserver(IElementsStoredItemObserver observer){ itemObservers.add(observer); }
 
+    public void removeItemObserver(IElementsStoredItemObserver observer){
+        itemObservers.remove(observer);
+    }
+
     public Collection<BasicElementsStoredItem> retrieveAllRelatedResources(ElementsItemId itemId){
         List<BasicElementsStoredItem> items = new ArrayList<BasicElementsStoredItem>();
         for(StorableResourceType resourceType : supportedTypes){

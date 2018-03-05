@@ -19,6 +19,7 @@ import uk.co.symplectic.vivoweb.harvester.utils.ElementsGroupCollection;
 import uk.co.symplectic.vivoweb.harvester.utils.ElementsItemKeyedCollection;
 import uk.co.symplectic.vivoweb.harvester.model.*;
 import uk.co.symplectic.vivoweb.harvester.store.*;
+import uk.co.symplectic.vivoweb.harvester.utils.IncludedGroups;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -33,11 +34,10 @@ public class ElementsGroupMembershipTranslateObserver extends ElementsTranslateO
 
     private static final Logger log = LoggerFactory.getLogger(ElementsGroupMembershipTranslateObserver.class);
     private final ElementsGroupCollection groupCache;
-    private final ElementsItemKeyedCollection.ItemInfo includedGroups;
-
+    private final IncludedGroups includedGroups;
 
     public ElementsGroupMembershipTranslateObserver(ElementsRdfStore rdfStore, String xslFilename,
-                                                    ElementsGroupCollection groupCache, ElementsItemKeyedCollection.ItemInfo includedGroups){
+                                                    ElementsGroupCollection groupCache, IncludedGroups includedGroups){
         super(rdfStore, xslFilename, StorableResourceType.RAW_OBJECT, StorableResourceType.TRANSLATED_USER_GROUP_MEMBERSHIP);
         if (groupCache == null) throw new NullArgumentException("groupCache");
         if (includedGroups == null) throw new NullArgumentException("includedGroups");
@@ -62,7 +62,7 @@ public class ElementsGroupMembershipTranslateObserver extends ElementsTranslateO
     }
 
     private Set<ElementsItemId.GroupId> getUsersIncludedGroups(ElementsUserInfo info){
-        if(includedGroups.keySet().size() == 0) return null;
+        if(includedGroups.getIncludedGroups().keySet().size() == 0) return null;
 
         Set<ElementsItemId.GroupId> usersRawGroups = groupCache.getUsersGroups(info.getObjectId());
         if(usersRawGroups == null) return null;
@@ -79,10 +79,18 @@ public class ElementsGroupMembershipTranslateObserver extends ElementsTranslateO
     private ElementsItemId.GroupId getNearestIncludedGroup(ElementsGroupInfo.GroupHierarchyWrapper group){
         if(group == null) return null;
         ElementsItemId.GroupId groupId = (ElementsItemId.GroupId) group.getGroupInfo().getItemId();
-        if(includedGroups.keySet().contains(groupId)) return groupId;
-        return getNearestIncludedGroup(group.getParent());
+        //if this specific group is excised then we should not try to rewire memberships
+        if(includedGroups.getExcisedGroups().keySet().contains(groupId)) return null;
+        return getNearestIncludedGroupWalker(group);
     }
 
+    private ElementsItemId.GroupId getNearestIncludedGroupWalker(ElementsGroupInfo.GroupHierarchyWrapper group){
+        //note - as long as the source group of the membership is not excised then regardless of whether we pass through excised ones
+        //we still want to traverse upwards though them hierarchically to find a valid parent to re-wire membership to.
+        ElementsItemId.GroupId groupId = (ElementsItemId.GroupId) group.getGroupInfo().getItemId();
+        if(includedGroups.getIncludedGroups().keySet().contains(groupId)) return groupId;
+        return getNearestIncludedGroupWalker(group.getParent());
+    }
 
     /**
      * Get an XML description of the groups that this user is a member of
