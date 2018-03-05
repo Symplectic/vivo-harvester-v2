@@ -205,11 +205,11 @@
     <xsl:function name="svfn:userGivenName" as="xs:string">
         <xsl:param name="user" />
         <xsl:choose>
-            <xsl:when test="api:known-as and normalize-space(api:known-as) != ''">
-                <xsl:value-of select="api:known-as" />
+            <xsl:when test="$user/api:known-as and normalize-space($user/api:known-as) != ''">
+                <xsl:value-of select="$user/api:known-as" />
             </xsl:when>
             <xsl:otherwise>
-                <xsl:value-of select="api:first-name" />
+                <xsl:value-of select="$user/api:first-name" />
             </xsl:otherwise>
         </xsl:choose>
     </xsl:function>

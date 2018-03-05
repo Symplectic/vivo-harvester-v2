@@ -101,7 +101,8 @@
                     <rdfs:label>
                         <xsl:apply-templates select="$awardName" />
                         <xsl:text> (</xsl:text>
-                        <xsl:value-of select="$userObj/api:last-name, svfn:userGivenName($userObj)" separator=", " />
+                        <!--<xsl:value-of select="$userObj/api:last-name, svfn:userGivenName($userObj)" separator=", " />-->
+                        <xsl:value-of select="svfn:fellowshipReceiptUserLabel($userObj)" />
                         <xsl:if test="$awardDate/*">
                             <xsl:text> - </xsl:text>
                         </xsl:if>
@@ -129,4 +130,12 @@
             </xsl:call-template>
         </xsl:if>
     </xsl:template>
+
+    <xsl:function name="svfn:fellowshipReceiptUserLabel">
+        <xsl:param name="user" />
+        <xsl:variable name="firstName" select="svfn:userGivenName($user)" />
+        <xsl:variable name="lastName"><xsl:value-of select="$user/api:last-name" /></xsl:variable>
+        <xsl:value-of select="$lastName, $firstName" separator=", " />
+    </xsl:function>
+
 </xsl:stylesheet>

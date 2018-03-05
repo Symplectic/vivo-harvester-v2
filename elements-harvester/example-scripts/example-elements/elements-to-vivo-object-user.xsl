@@ -40,8 +40,8 @@
         <xsl:variable name="userURI" select="svfn:userURI(.)" />
 
         <xsl:variable name="isAcademic"><xsl:value-of select="api:is-academic" /></xsl:variable>
-        <xsl:variable name="firstName" select="svfn:userGivenName(.)" />
-        <xsl:variable name="lastName"><xsl:value-of select="api:last-name" /></xsl:variable>
+        <!--<xsl:variable name="firstName" select="api:first-name" />
+        <xsl:variable name="lastName"><xsl:value-of select="api:last-name" /></xsl:variable>-->
         <xsl:variable name="degrees" select="svfn:getRecordFieldOrFirst(.,'degrees')" />
         <xsl:variable name="postgraduate-trainings" select="svfn:getRecordFieldOrFirst(.,'postgraduate-trainings')" />
         <xsl:variable name="academic-appointments" select="svfn:getRecordFieldOrFirst(.,'academic-appointments')" />
@@ -68,7 +68,7 @@
 
                 <xsl:if test="$internalClass!=''"><rdf:type rdf:resource="{$internalClass}" /></xsl:if>
                 <!-- rdf:type rdf:resource="http://vivoweb.org/harvester/excludeEntity" / -->
-                <rdfs:label><xsl:value-of select="$lastName" />, <xsl:value-of select="$firstName" /></rdfs:label>
+                <rdfs:label><xsl:value-of select="svfn:userLabel(current())" /></rdfs:label>
                 <xsl:copy-of select="svfn:renderPropertyFromFieldOrFirst(.,'vivo:overview','overview', '')" />
 
                 <!-- render any user labels that are relevant -->
@@ -109,6 +109,7 @@
         <xsl:apply-templates select="." mode="vcard" />
 
         <xsl:if test="$degrees/*">
+            <xsl:variable name="currentUser" select="current()" />
             <xsl:for-each select="$degrees/api:degrees/api:degree[@privacy='public']">
                 <xsl:variable name="awardedDegreeName" select="api:name" />
                 <xsl:variable name="awardedDegreeField" select="api:field-of-study" />
@@ -174,7 +175,7 @@
                     <xsl:with-param name="objectURI" select="$awardedDegreeURI" />
                     <xsl:with-param name="rdfNodes">
                         <rdf:type rdf:resource="http://vivoweb.org/ontology/core#AwardedDegree" />
-                        <rdfs:label><xsl:value-of select="concat($lastName, ', ', $firstName, ': ', $awardedDegreeName, ' ', $awardedDegreeField)" /></rdfs:label>  <!-- VIVO includes name, e.g. "Smith, John: B.S. Bachelor of Science" -->
+                        <rdfs:label><xsl:value-of select="concat(svfn:userLabel($currentUser), ': ', $awardedDegreeName, ' ', $awardedDegreeField)" /></rdfs:label>  <!-- VIVO includes name, e.g. "Smith, John: B.S. Bachelor of Science" -->
                         <xsl:if test="$hasLinkedOrg"><vivo:assignedBy rdf:resource="{$orgURI}" /></xsl:if>
                         <vivo:relates rdf:resource="{$degreeURI}" />
                         <vivo:relates rdf:resource="{$userURI}" />
@@ -470,4 +471,12 @@
             </xsl:for-each>
         </xsl:if>
     </xsl:template>
+
+    <xsl:function name="svfn:userLabel">
+        <xsl:param name="user" />
+        <xsl:variable name="firstName" select="svfn:userGivenName($user)" />
+        <xsl:variable name="lastName"><xsl:value-of select="$user/api:last-name" /></xsl:variable>
+        <xsl:value-of select="$lastName, $firstName" separator=", " />
+    </xsl:function>
+
 </xsl:stylesheet>

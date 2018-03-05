@@ -46,6 +46,9 @@
         <xsl:variable name="vcardNameURI" select="svfn:makeURI('vcardName-',$userId)" />
         <xsl:variable name="vcardNameObject" select="svfn:renderVcardNameObject(.,$vcardNameURI)" />
 
+        <xsl:variable name="vcardNicknameURI" select="svfn:makeURI('vcardNickname-',$userId)" />
+        <xsl:variable name="vcardNicknameObject" select="svfn:renderVcardNicknameObject(.,$vcardNicknameURI)" />
+
         <xsl:variable name="vcardTitleURI" select="svfn:makeURI('vcardTitle-',$userId)" />
         <xsl:variable name="vcardTitleObject" select="svfn:renderVcardTitleObject(.,$vcardTitleURI)" />
 
@@ -75,6 +78,9 @@
                 <xsl:if test="$vcardNameObject">
                     <vcard:hasName rdf:resource="{$vcardNameURI}" />
                 </xsl:if>
+                <xsl:if test="$vcardNicknameObject">
+                    <vcard:hasNickname rdf:resource="{$vcardNicknameURI}" />
+                </xsl:if>
                 <xsl:if test="$vcardTitleObject">
                     <vcard:hasTitle rdf:resource="{$vcardTitleURI}" />
                 </xsl:if>
@@ -103,6 +109,7 @@
 
         <xsl:copy-of select="$vcardEmailObject" />
         <xsl:copy-of select="$vcardNameObject" />
+        <xsl:copy-of select="$vcardNicknameObject" />
         <xsl:copy-of select="$vcardTitleObject" />
         <xsl:if test="$vcardAddresses">
             <xsl:for-each select="$vcardAddresses/api:addresses/api:address[@privacy='public']">
@@ -193,10 +200,30 @@
             <xsl:with-param name="objectURI" select="$vcardNameURI" />
             <xsl:with-param name="rdfNodes">
                 <rdf:type rdf:resource="http://www.w3.org/2006/vcard/ns#Name" />
-                <vcard:givenName><xsl:value-of select="svfn:userGivenName($object)" /></vcard:givenName>
+                <!--<vcard:givenName><xsl:value-of select="svfn:userGivenName($object)" /></vcard:givenName>-->
+                <vcard:givenName><xsl:value-of select="$object/api:first-name" /></vcard:givenName>
                 <vcard:familyName><xsl:value-of select="$object/api:last-name" /></vcard:familyName>
                 <xsl:if test="$object/api:suffix"><vcard:honorificSuffix><xsl:value-of select="$object/api:suffix" /></vcard:honorificSuffix></xsl:if>
                 <xsl:if test="$object/api:title"><vcard:honorificPrefix><xsl:value-of select="$object/api:title" /></vcard:honorificPrefix></xsl:if>
+            </xsl:with-param>
+        </xsl:call-template>
+    </xsl:function>
+
+    <xsl:function name="svfn:renderVcardNicknameObject">
+        <xsl:param name="object" />
+        <xsl:param name="vcardNicknameURI" as="xs:string" />
+
+        <xsl:call-template name="render_rdf_object">
+            <xsl:with-param name="objectURI" select="$vcardNicknameURI" />
+            <xsl:with-param name="rdfNodes">
+                <xsl:call-template name="_concat_nodes_if">
+                   <xsl:with-param name="nodesRequired">
+                       <xsl:if test="$object/api:known-as"><vcard:nickName><xsl:value-of select="$object/api:known-as" /></vcard:nickName></xsl:if>
+                   </xsl:with-param>
+                    <xsl:with-param name="nodesToAdd">
+                        <rdf:type rdf:resource="http://www.w3.org/2006/vcard/ns#Nickname" />
+                    </xsl:with-param>
+                </xsl:call-template>
             </xsl:with-param>
         </xsl:call-template>
     </xsl:function>
