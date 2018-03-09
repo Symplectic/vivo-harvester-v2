@@ -96,7 +96,7 @@
                     <xsl:variable name="id" select="api:user-identifier-associations/api:user-identifier-association[@scheme='scopus-author-id' and @decision='always-me'][1]" />
                     <vivo:scopusId><xsl:value-of select="$id" /></vivo:scopusId>
                 </xsl:if>
-
+                <xsl:apply-templates select="." mode="customAdditions" />
             </xsl:with-param>
         </xsl:call-template>
 

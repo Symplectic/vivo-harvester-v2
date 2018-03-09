@@ -69,4 +69,6 @@
         </xsl:call-template>
     </xsl:template>
 
+    <xsl:template match="*" mode="customAdditions" />
+
 </xsl:stylesheet>

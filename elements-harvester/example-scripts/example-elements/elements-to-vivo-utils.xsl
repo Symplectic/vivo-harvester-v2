@@ -941,6 +941,8 @@
         <xsl:for-each select="$label-schemes[@for=$object/@category]/config:label-scheme">
             <xsl:variable name="scheme-name" select="fn:normalize-space(./@name)" />
             <xsl:variable name="target-type" select="fn:normalize-space(./@target)" />
+            <xsl:variable name="target-property" select="fn:normalize-space(./@target-property)" />
+            <xsl:variable name="target-ontology" select="fn:normalize-space(./@target-ontology)" />
             <xsl:for-each select="fn:distinct-values($allLabels/api:keywords/api:keyword[@scheme=$scheme-name and ($origin = '' or @origin = $origin)])">
                 <xsl:variable name="targetObjectUri" >
                     <xsl:choose>
@@ -977,14 +979,30 @@
                             </vivo:geographicFocus>
                         </xsl:when>
                         <xsl:otherwise>
-                            <vivo:hasSubjectArea>
-                                <xsl:call-template name="render_rdf_object">
-                                    <xsl:with-param name="objectURI" select="$targetObjectUri" />
-                                    <xsl:with-param name="rdfNodes">
-                                        <vivo:subjectAreaOf rdf:resource="{$objectUri}" />
-                                    </xsl:with-param>
-                                </xsl:call-template>
-                            </vivo:hasSubjectArea>
+                            <xsl:choose>
+                                <xsl:when test="$target-property and $target-ontology">
+                                    <xsl:element namespace="{$target-ontology}" name="{$target-property}">
+                                        <xsl:call-template name="render_rdf_object">
+                                            <xsl:with-param name="objectURI" select="$targetObjectUri" />
+                                            <xsl:with-param name="rdfNodes">
+                                                <!-- we do not know the inverse property - so rely on inferencing -->
+                                                <!-- add type here to ensure we output something from render_rdf_object -->
+                                                <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept" />
+                                            </xsl:with-param>
+                                        </xsl:call-template>
+                                    </xsl:element>
+                                </xsl:when>
+                                <xsl:otherwise>
+                                    <vivo:hasSubjectArea>
+                                        <xsl:call-template name="render_rdf_object">
+                                            <xsl:with-param name="objectURI" select="$targetObjectUri" />
+                                            <xsl:with-param name="rdfNodes">
+                                                <vivo:subjectAreaOf rdf:resource="{$objectUri}" />
+                                            </xsl:with-param>
+                                        </xsl:call-template>
+                                    </vivo:hasSubjectArea>
+                                </xsl:otherwise>
+                            </xsl:choose>
                         </xsl:otherwise>
                     </xsl:choose>
                 </xsl:if>
