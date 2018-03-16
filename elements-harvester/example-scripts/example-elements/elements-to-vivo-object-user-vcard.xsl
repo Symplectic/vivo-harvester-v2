@@ -169,7 +169,10 @@
                             <xsl:when test="api:type='company'"><rdf:type rdf:resource="http://www.w3.org/2006/vcard/ns#Work"/></xsl:when>
                         </xsl:choose>
                         <vcard:url><xsl:value-of select="api:url" /></vcard:url>
-                        <rdfs:label><xsl:value-of select="api:label" /></rdfs:label>
+                        <xsl:if test="api:label">
+                            <rdfs:label><xsl:value-of select="api:label" /></rdfs:label>
+                        </xsl:if>
+                        <vivo:rank><xsl:value-of select="position()" /></vivo:rank>
                     </xsl:with-param>
                 </xsl:call-template>
             </xsl:for-each>
