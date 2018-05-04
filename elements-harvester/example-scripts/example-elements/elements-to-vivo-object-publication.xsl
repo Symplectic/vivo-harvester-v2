@@ -307,7 +307,7 @@
                 <xsl:choose>
                     <!-- If the precedence is for an authority record, and we have that authority record in the API feed, use the journal title in the preferred authority source -->
                     <xsl:when test="$object/api:journal/api:records/api:record[@source-name=$current-precedence]/api:title">
-                        <xsl:value-of select="$object/api:journal/api:records/api:record[@source-name=$current-precedence]/api:title" />
+                        <xsl:value-of select="$object/api:journal/api:records/api:record[@source-name=$current-precedence][1]/api:title" />
                     </xsl:when>
                     <!-- No title found for the current precedence setting, try again with the next entry -->
                     <xsl:otherwise>
@@ -340,7 +340,7 @@
                 <xsl:choose>
                     <!-- If the precedence if for a record value from a specific field, use that value if it exists -->
                     <xsl:when test="$object/api:records/api:record[@source-name=$current-precedence]/api:native/api:field[@name=$field-name-to-use]/api:text">
-                        <xsl:value-of select="$object/api:records/api:record[@source-name=$current-precedence]/api:native/api:field[@name=$field-name-to-use]/api:text" />
+                        <xsl:value-of select="$object/api:records/api:record[@source-name=$current-precedence][1]/api:native/api:field[@name=$field-name-to-use]/api:text" />
                     </xsl:when>
                     <!-- No title found for the current precedence setting, try again with the next entry -->
                     <xsl:otherwise>
