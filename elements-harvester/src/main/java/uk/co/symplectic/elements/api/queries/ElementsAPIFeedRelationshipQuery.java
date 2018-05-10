@@ -66,7 +66,7 @@ public class ElementsAPIFeedRelationshipQuery extends ElementsFeedQuery.DeltaCap
             do{
                 //do batches in the amount set in per page..
                 maxIndex = Math.min((counter+1)*perPage, relationshipIds.size());
-                List<Integer> batch = relationshipIds.subList(counter*100, maxIndex);
+                List<Integer> batch = relationshipIds.subList(counter*perPage, maxIndex);
                 queries.add(builder.buildRelationshipFeedQuery(apiBaseUrl, this, new HashSet<Integer>(batch)));
                 counter++;
             } while (maxIndex != relationshipIds.size());
