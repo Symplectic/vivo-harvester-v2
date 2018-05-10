@@ -11,6 +11,8 @@ package uk.co.symplectic.vivoweb.harvester.model;
 import org.apache.commons.lang.StringUtils;
 import uk.co.symplectic.utils.ImageUtils;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -48,11 +50,19 @@ public class ElementsUserInfo extends ElementsObjectInfo {
         if(!isFullyPopulated()) throw new IllegalAccessError("Cannot access photo-url if ElementsUserInfo is not fully populated");
         //Note: additionalInfo.photoUrl is trimmed to null in setter
         if(additionalInfo.photoUrl == null || photoType == null) return additionalInfo.photoUrl;
-        switch(photoType){
-            case NONE: return null;
-            case ORIGINAL: return additionalInfo.photoUrl + "?type=original";
-            case THUMBNAIL: return additionalInfo.photoUrl + "?type=thumbnail";
-            default : return additionalInfo.photoUrl;
+        try {
+            URI photoUrl = new URI(additionalInfo.photoUrl);
+            //strip out parameters if any are present
+            photoUrl = new URI(photoUrl.getScheme(), null , photoUrl.getHost(), photoUrl.getPort(), photoUrl.getPath(), null, null);
+            switch(photoType){
+                case NONE: return null;
+                case ORIGINAL: return photoUrl.toString() + "?type=original";
+                case THUMBNAIL: return photoUrl.toString() + "?type=thumbnail";
+                default : return photoUrl.toString();
+            }
+        }
+        catch (URISyntaxException e){
+            throw new IllegalStateException(e);
         }
     }
 
