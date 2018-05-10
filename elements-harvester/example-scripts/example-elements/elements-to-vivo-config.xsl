@@ -42,10 +42,22 @@
 
     <xsl:variable name="validatedBaseURI">
         <xsl:variable name="baseUriValidation" select="fn:resolve-uri('', fn:normalize-space($baseURI))" />
+        <xsl:variable name="intermediateURI" >
+            <xsl:choose>
+                <xsl:when test="ends-with($baseUriValidation, '/')"><xsl:value-of select="$baseUriValidation" /></xsl:when>
+                <xsl:otherwise><xsl:value-of select="concat($baseUriValidation, '/')" /></xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
         <xsl:choose>
-            <xsl:when test="ends-with($baseUriValidation, '/')"><xsl:value-of select="$baseUriValidation" /></xsl:when>
-            <xsl:otherwise><xsl:value-of select="concat($baseUriValidation, '/')" /></xsl:otherwise>
+            <xsl:when test="ends-with($intermediateURI, '/individual/')">
+                <xsl:value-of select="$intermediateURI" />
+            </xsl:when>
+            <xsl:otherwise><xsl:value-of select="fn:error(fn:QName('http://www.symplectic.co.uk/vivo/namespaces/config','Err01'), 'BaseURI is invalid (must end with /individual/)')" /></xsl:otherwise>
         </xsl:choose>
+    </xsl:variable>
+
+    <xsl:variable name="validatedBaseFQDN">
+        <xsl:value-of select="fn:substring($validatedBaseURI, 1, fn:string-length($validatedBaseURI) - 11)" />
     </xsl:variable>
 
     <!-- Harvested by statement for the URI (set to blank if not required) -->
