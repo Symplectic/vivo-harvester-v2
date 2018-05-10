@@ -25,17 +25,65 @@
                 xmlns:symp="http://www.symplectic.co.uk/vivo/"
                 xmlns:svfn="http://www.symplectic.co.uk/vivo/namespaces/functions"
                 xmlns:config="http://www.symplectic.co.uk/vivo/namespaces/config"
+                xmlns:csl="http://www.w3.org/1999/XSL/Transform"
                 exclude-result-prefixes="rdf rdfs bibo vivo foaf obo score ufVivo vitro api symp svfn config xs"
-        >
+>
 
     <!-- Import XSLT files that are used -->
     <xsl:import href="elements-to-vivo-utils.xsl" />
+
+    <xsl:variable name="default-vivo-researcher-role" select="'http://vivoweb.org/ontology/core#ResearcherRole'" />
+
+    <xsl:variable name="grant-relationship-types">
+        <rel-types>
+            <rel-type vivo-type="http://vivoweb.org/ontology/core#PrincipalInvestigatorRole">user-grant-primary-investigation</rel-type>
+            <rel-type vivo-type="http://vivoweb.org/ontology/core#PrincipalInvestigatorRole">user-grant-principal-investigation</rel-type>
+            <rel-type vivo-type="http://vivoweb.org/ontology/core#CoPrincipalInvestigatorRole">user-grant-co-primary-investigation</rel-type>
+            <rel-type vivo-type="http://vivoweb.org/ontology/core#CoPrincipalInvestigatorRole">user-grant-co-principal-investigation</rel-type>
+            <rel-type vivo-type="http://vivoweb.org/ontology/core#CoPrincipalInvestigatorRole">user-grant-multi-pi</rel-type>
+            <rel-type vivo-type="http://vivoweb.org/ontology/core#InvestigatorRole">user-grant-secondary-investigation</rel-type>
+            <rel-type vivo-type="http://vivoweb.org/ontology/core#InvestigatorRole">user-grant-co-investigation</rel-type>
+            <rel-type label="Funded by">grant-user-funding</rel-type>
+            <rel-type label="Funded by">user-grant-sponsorship</rel-type>
+            <rel-type label="Sub Project Principal Investigator">user-grant-primary-investigation-sub-project</rel-type>
+            <rel-type label="Sub Project Investigator">user-grant-secondary-investigation-sub-project</rel-type>
+            <rel-type label="Senior Personnel">user-grant-senior-key-personnel</rel-type>
+            <rel-type label="Personnel">user-grant-personnel</rel-type>
+            <rel-type label="Sub Project Co-Leader">user-grant-project-co-leadership</rel-type>
+            <rel-type label="Site Principal Investigator">user-grant-site-pi-investigation</rel-type>
+            <rel-type label="Site Investigator">user-grant-site-investigation</rel-type>
+            <rel-type label="Consultant">user-grant-consulting</rel-type>
+            <rel-type label="Collaborator">user-grant-collaboration</rel-type>
+            <rel-type label="Clinical Evaluator">user-grant-clinical-evaluation</rel-type>
+            <rel-type label="Mentor">user-grant-mentoring</rel-type>
+            <rel-type label="Project Co-ordinator">user-grant-program-coordination</rel-type>
+            <rel-type label="Project Leader/Director">user-grant-project-leadership</rel-type>
+            <rel-type label="Project Leader/Director">user-grant-program-direction</rel-type>
+            <rel-type label="Researcher">user-grant-research</rel-type>
+            <rel-type label="Statistician">user-grant-statistics</rel-type>
+            <rel-type>user-grant-other-contribution</rel-type>
+        </rel-types>
+    </xsl:variable>
 
     <!--
         Output as part of relationship - Supports publication
         <vivo:supportedInformationResource rdf:resource="http://vivo.mydomain.edu/individual/n4893"/>
     -->
-    <xsl:template match="api:relationship[@type='user-grant-primary-investigation' or @type='user-grant-secondary-investigation' or @type='grant-user-funding']">
+    <xsl:template match="api:relationship[$grant-relationship-types/rel-types/rel-type[text() = current()/@type]]">
+
+        <xsl:variable name="selectedVivoGrantType" select="$grant-relationship-types/rel-types/rel-type[text() = current()/@type][1]" />
+
+        <xsl:variable name="vivo-relationship-type">
+            <xsl:choose>
+                <xsl:when test="$selectedVivoGrantType/@vivo-type">
+                    <xsl:value-of select = "$selectedVivoGrantType/@vivo-type" />
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:value-of select="$default-vivo-researcher-role" />
+                </xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
+
         <xsl:variable name="investigatorURI" select="svfn:relationshipURI(.,'investigator')" />
 
         <!-- Get the user object reference from the relationship -->
@@ -48,79 +96,23 @@
         <xsl:call-template name="render_rdf_object">
             <xsl:with-param name="objectURI" select="$investigatorURI" />
             <xsl:with-param name="rdfNodes">
-                <xsl:choose>
-                    <xsl:when test="./@type='user-grant-primary-investigation' or ./@type='user-grant-principal-investigation'">
-                        <rdf:type rdf:resource="http://vivoweb.org/ontology/core#PrincipalInvestigatorRole" />
-                    </xsl:when>
-                    <xsl:when test="./@type='user-grant-co-primary-investigation' or ./@type='user-grant-co-principal-investigation' or ./@type='user-grant-multi-pi'">
-                        <rdf:type rdf:resource="http://vivoweb.org/ontology/core#CoPrincipalInvestigatorRole" />
-                    </xsl:when>
-                    <xsl:when test="./@type='user-grant-secondary-investigation' or ./@type='user-grant-co-investigation'">
-                        <rdf:type rdf:resource="http://vivoweb.org/ontology/core#InvestigatorRole"/>
-                    </xsl:when>
-                    <xsl:otherwise>
-                        <rdf:type rdf:resource="http://vivoweb.org/ontology/core#ResearcherRole"/>
-                        <rdfs:label>
-                            <xsl:choose>
-                                <xsl:when test="./@type='grant-user-funding' or ./@type='user-grant-sponsorship'">
-                                    <xsl:text>Funded by</xsl:text>
-                                </xsl:when>
-                                <xsl:when test="./@type='user-grant-primary-investigation-sub-project'">
-                                    <xsl:text>Sub Project Principal Investigator</xsl:text>
-                                </xsl:when>
-                                <xsl:when test="./@type='user-grant-secondary-investigation-sub-project'">
-                                    <xsl:text>Sub Project Investigator</xsl:text>
-                                </xsl:when>
-                                <xsl:when test="./@type='user-grant-senior-key-personnel'">
-                                    <xsl:text>Senior Personnel</xsl:text>
-                                </xsl:when>
-                                <xsl:when test="./@type='user-grant-personnel'">
-                                    <xsl:text>Personnel</xsl:text>
-                                </xsl:when>
-                                <xsl:when test="./@type='user-grant-project-co-leadership'">
-                                    <xsl:text>Sub Project Co-Leader</xsl:text>
-                                </xsl:when>
-                                <xsl:when test="./@type='user-grant-site-pi-investigation'">
-                                    <xsl:text>Site Principal Investigator</xsl:text>
-                                </xsl:when>
-                                <xsl:when test="./@type='user-grant-site-investigation'">
-                                    <xsl:text>Site Investigator</xsl:text>
-                                </xsl:when>
-                                <xsl:when test="./@type='user-grant-consulting'">
-                                    <xsl:text>Consultant</xsl:text>
-                                </xsl:when>
-                                <xsl:when test="./@type='user-grant-collaboration'">
-                                    <xsl:text>Collaborator</xsl:text>
-                                </xsl:when>
-                                <xsl:when test="./@type='user-grant-clinical-evaluation'">
-                                    <xsl:text>Clinical Evaluator</xsl:text>
-                                </xsl:when>
-                                <xsl:when test="./@type='user-grant-mentoring'">
-                                    <xsl:text>Mentor</xsl:text>
-                                </xsl:when>
-                                <xsl:when test="./@type='user-grant-program-coordination'">
-                                    <xsl:text>Project Co-ordinator</xsl:text>
-                                </xsl:when>
-                                <xsl:when test="./@type='user-grant-project-leadership' or ./@type='user-grant-program-direction'">
-                                    <xsl:text>Project Leader/Director</xsl:text>
-                                </xsl:when>
-                                <xsl:when test="./@type='user-grant-research'">
-                                    <xsl:text>Researcher</xsl:text>
-                                </xsl:when>
-                                <xsl:when test="./@type='user-grant-statistics'">
-                                    <xsl:text>Statistician</xsl:text>
-                                </xsl:when>
-                                <xsl:otherwise>
-                                    <xsl:text>Other Contribution</xsl:text>
-                                </xsl:otherwise>
-                            </xsl:choose>
-                        </rdfs:label>
-                    </xsl:otherwise>
-                </xsl:choose>
-                <vivo:relatedBy rdf:resource="{svfn:objectURI($grant)}"/><!-- link to grant -->
-                <xsl:if test="./@type='user-grant-primary-investigation' or @type='user-grant-secondary-investigation'">
-                    <obo:RO_0000052 rdf:resource="{svfn:userURI($user)}"/><!-- link to user -->
+
+                <rdf:type rdf:resource="{$vivo-relationship-type}" />
+                <!-- we only apply labels if we are doing a researcher role and one is available -->
+                <xsl:if test="$vivo-relationship-type = $default-vivo-researcher-role">
+                    <xsl:choose>
+                        <xsl:when test="$selectedVivoGrantType/@label">
+                            <rdfs:label><xsl:value-of select="$selectedVivoGrantType/@label" /></rdfs:label>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <rdfs:label><xsl:text>Other Contribution</xsl:text></rdfs:label>
+                        </xsl:otherwise>
+                    </xsl:choose>
                 </xsl:if>
+
+                <vivo:relatedBy rdf:resource="{svfn:objectURI($grant)}"/><!-- link to grant -->
+                <obo:RO_0000052 rdf:resource="{svfn:userURI($user)}"/><!-- link to user -->
+
                 <!-- vivo:dateTimeInterval rdf:resource="http://vivo.mydomain.edu/individual/n6127" / - link to date / time -->
                 <xsl:if test="api:is-visible='false'">
                     <vivo:hideFromDisplay>true</vivo:hideFromDisplay>
@@ -128,21 +120,27 @@
             </xsl:with-param>
         </xsl:call-template>
 
-        <!-- Add a reference to the role object to the grant object -->
+        <!-- Add a reference to the role object from the grant object -->
         <xsl:call-template name="render_rdf_object">
             <xsl:with-param name="objectURI" select="svfn:objectURI($grant)" />
             <xsl:with-param name="rdfNodes">
                 <vivo:relates rdf:resource="{$investigatorURI}"/><!-- link to role -->
-                <vivo:relates rdf:resource="{svfn:userURI($user)}" /><!-- link to user -->
+                <!-- if its an investigator role type we create an additional "relates" link directly to the user -->
+                <!-- no idea why - - it's just what Vivo itself does if you do manual entry...-->
+                <xsl:if test="$vivo-relationship-type != $default-vivo-researcher-role">
+                    <vivo:relates rdf:resource="{svfn:userURI($user)}" /><!-- link to user -->
+                </xsl:if>
             </xsl:with-param>
         </xsl:call-template>
 
-        <!-- Add a reference to the role object to the user object -->
+        <!-- Add a reference to the role object from the user object -->
         <xsl:call-template name="render_rdf_object">
             <xsl:with-param name="objectURI" select="svfn:userURI($user)" />
             <xsl:with-param name="rdfNodes">
                 <obo:RO_0000053 rdf:resource="{$investigatorURI}"/><!-- link to role -->
-                <xsl:if test="./@type='user-grant-primary-investigation' or @type='user-grant-secondary-investigation'">
+                <!-- if its an investigator role type we create an additional "related by" link to the grant -->
+                <!-- no idea why - it's just what Vivo itself does if you do manual entry...-->
+                <xsl:if test="$vivo-relationship-type != $default-vivo-researcher-role">
                     <vivo:relatedBy rdf:resource="{svfn:objectURI($grant)}" /><!-- link to grant -->
                 </xsl:if>
             </xsl:with-param>
