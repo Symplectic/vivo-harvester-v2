@@ -942,7 +942,8 @@
             <xsl:variable name="scheme-name" select="fn:normalize-space(./@name)" />
             <xsl:variable name="target-type" select="fn:normalize-space(./@target)" />
             <xsl:variable name="target-property" select="fn:normalize-space(./@target-property)" />
-            <xsl:variable name="target-ontology" select="fn:normalize-space(./@target-ontology)" />
+            <xsl:variable name="target-ontology" select="fn:normalize-space(svfn:expandSpecialNames(./@target-ontology))" />
+
             <xsl:for-each select="fn:distinct-values($allLabels/api:keywords/api:keyword[@scheme=$scheme-name and ($origin = '' or @origin = $origin)])">
                 <xsl:variable name="targetObjectUri" >
                     <xsl:choose>
@@ -1010,13 +1011,31 @@
         </xsl:for-each>
     </xsl:function>
 
+    <xsl:function name="svfn:expandSpecialNames">
+        <xsl:param name="input" />
+        <xsl:choose>
+            <xsl:when test="starts-with($input, '$$base-uri-prefix$$')">
+                <xsl:value-of select="concat($validatedBaseURIPrefix, fn:substring-after($input, '$$base-uri-prefix$$'))" />
+            </xsl:when>
+            <xsl:when test="starts-with($input, '$$base-uri$$')">
+                <xsl:value-of select="concat($validatedBaseURI, fn:substring-after($input, '$$base-uri$$'))" />
+            </xsl:when>
+            <xsl:when test="starts-with($input, '$$local$$')">
+                <xsl:value-of select="concat($validatedLocalOntologyURI, fn:substring-after($input, '$$local$$'))" />
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:value-of select="$input" />
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:function>
+
     <xsl:function name="svfn:renderControlledSubjectObjects">
         <xsl:param name="object" />
         <!-- grab the labels off the object in question -->
         <xsl:variable name="allLabels" select="$object/api:all-labels" />
         <!-- if there are no mapped schemes then the for each will not trigger -->
         <xsl:for-each select="$label-schemes[@for=$object/@category]/config:label-scheme">
-            <xsl:variable name="schemeDefinedBy" select="./@defined-by" />
+            <xsl:variable name="schemeDefinedBy" select="svfn:expandSpecialNames(./@defined-by)" />
             <xsl:if test="not($schemeDefinedBy='')">
                 <xsl:variable name="scheme-name" select="./@name" />
                 <xsl:variable name="target" select="./@target" />

@@ -63,7 +63,7 @@
             <xsl:with-param name="rdfNodes">
                 <!-- TODO Implement dictionary to determine department type -->
                 <rdf:type rdf:resource="{$groupType}"/>
-                <xsl:if test="$internalClass!=''"><rdf:type rdf:resource="{$internalClass}" /></xsl:if>
+                <xsl:if test="$validatedInternalClass!=''"><rdf:type rdf:resource="{$validatedInternalClass}" /></xsl:if>
                 <rdfs:label><xsl:value-of select="$groupName"/></rdfs:label>
                 <vivo:overview><xsl:value-of select="api:group-description"/></vivo:overview>
 

@@ -52,13 +52,11 @@
             <xsl:when test="ends-with($intermediateURI, '/individual/')">
                 <xsl:value-of select="$intermediateURI" />
             </xsl:when>
-            <xsl:otherwise><xsl:value-of select="fn:error(fn:QName('http://www.symplectic.co.uk/vivo/namespaces/config','Err01'), 'BaseURI is invalid (must end with /individual/)')" /></xsl:otherwise>
+            <xsl:otherwise><xsl:value-of select="fn:error(fn:QName('http://www.symplectic.co.uk/vivo/namespaces/config','Err01'), concat('BaseURI (', $intermediateURI,') is invalid (must end with /individual/)'))" /></xsl:otherwise>
         </xsl:choose>
     </xsl:variable>
 
-    <xsl:variable name="validatedBaseFQDN">
-        <xsl:value-of select="fn:substring($validatedBaseURI, 1, fn:string-length($validatedBaseURI) - 11)" />
-    </xsl:variable>
+    <xsl:variable name="validatedBaseURIPrefix" select="concat(substring($validatedBaseURI, 1, fn:string-length($validatedBaseURI) - fn:string-length('/individual/')), '/')" />
 
     <!-- Harvested by statement for the URI (set to blank if not required) -->
     <xsl:variable name="harvestedBy" select="fn:normalize-space($loaded-config/config:harvestedBy)" />
@@ -67,6 +65,31 @@
     <xsl:param name="internalClass">
         <xsl:value-of select="fn:normalize-space($loaded-config/config:internalClass)" />
     </xsl:param>
+
+
+    <xsl:param name="localOntologyURI">
+        <xsl:value-of select="concat(substring-before($internalClass, '#'), '#')" />
+    </xsl:param>
+
+
+    <xsl:variable name="validatedLocalOntologyURI">
+        <xsl:choose>
+            <!--and fn:ends-with($localOntologyBaseUri '#')-->
+            <xsl:when test="fn:starts-with($localOntologyURI, concat($validatedBaseURIPrefix, 'ontology/'))">
+                <xsl:value-of select="$localOntologyURI" />
+            </xsl:when>
+            <xsl:otherwise><xsl:value-of select="fn:error(fn:QName('http://www.symplectic.co.uk/vivo/namespaces/config','Err02'), concat('LocalOntologyURI (', $localOntologyURI,')is invalid (must be of form ', $validatedBaseURIPrefix, 'ontology/*****#)'))" /></xsl:otherwise>
+        </xsl:choose>
+    </xsl:variable>
+
+    <xsl:variable name="validatedInternalClass">
+        <xsl:choose>
+            <xsl:when test="fn:starts-with($internalClass, $validatedLocalOntologyURI)">
+                <xsl:value-of select="$internalClass" />
+            </xsl:when>
+            <xsl:otherwise><xsl:value-of select="fn:error(fn:QName('http://www.symplectic.co.uk/vivo/namespaces/config','Err03'), 'BaseURI is invalid (must end with /individual/)')" /></xsl:otherwise>
+        </xsl:choose>
+    </xsl:variable>
 
     <!-- whether to create an organisation object at the "department level" when creating objects to represent addresses -->
     <xsl:variable name="includeDept" select="fn:normalize-space($loaded-config/config:includeDept) = 'true'" />
