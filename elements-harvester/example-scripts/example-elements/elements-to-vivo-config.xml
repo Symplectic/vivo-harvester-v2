@@ -56,20 +56,20 @@
         <config:record-precedences for="publication" select-by="field" use-unlisted-sources="true">
             <config:record-precedence>verified-manual</config:record-precedence>
             <!--<config:record-precedence verification-status="verified">manual</config:record-precedence>-->
-            <config:record-precedence>crossref</config:record-precedence>
-            <config:record-precedence>scopus</config:record-precedence>
+            <config:record-precedence>pubmed</config:record-precedence>
+            <config:record-precedence>epmc</config:record-precedence>
             <config:record-precedence>wos</config:record-precedence>
             <config:record-precedence>wos-lite</config:record-precedence>
-            <config:record-precedence>epmc</config:record-precedence>
-            <config:record-precedence>pubmed</config:record-precedence>
-            <config:record-precedence>manual</config:record-precedence>
-            <config:record-precedence>c-inst-1</config:record-precedence>
-            <config:record-precedence>c-inst-2</config:record-precedence>
+            <config:record-precedence>scopus</config:record-precedence>
+            <config:record-precedence>crossref</config:record-precedence>
             <config:record-precedence>repec</config:record-precedence>
             <config:record-precedence>arxiv</config:record-precedence>
             <config:record-precedence>orcid</config:record-precedence>
             <config:record-precedence>dblp</config:record-precedence>
             <config:record-precedence>figshare</config:record-precedence>
+            <config:record-precedence>manual</config:record-precedence>
+            <config:record-precedence>c-inst-1</config:record-precedence>
+            <config:record-precedence>c-inst-2</config:record-precedence>
         </config:record-precedences>
         <config:record-precedences for="grant" select-by="field" use-unlisted-sources="true">
             <config:record-precedence>dimensions</config:record-precedence>
@@ -178,9 +178,6 @@
             <config:label-scheme name="mesh" defined-by="http://www.nlm.nih.gov/mesh" target="research-areas" />
             <config:label-scheme name="science-metrix" defined-by="http://www.science-metrix.com/" target="research-areas"/>
             <config:label-scheme name="for" defined-by="http://www.arc.gov.au/era/for" target="research-areas"/>
-            <config:label-scheme name="c-expertise" defined-by="$$base-uri-prefix$$label-schemes/c-expertise" target="research-areas"/>
-            <config:label-scheme name="c-research-focus-areas" defined-by="$$base-uri-prefix$$label-schemes/c-research-focus-areas" target="research-areas"/>
-            <config:label-scheme name="c-available-for" defined-by="$$base-uri-prefix$$label-schemes/c-available-for" target-property="available-for" target-ontology="$$local$$" />
             <!--<config:label-scheme name="c-availability" defined-by="{baseURI}c-availability"/>-->
             <!--<config:label-scheme name="c-seo-post-2008" defined-by="{baseURI}c-seo-post-2008"/>-->
             <!--<config:label-scheme name="c-geography" target="geographic-focus" />-->
@@ -260,16 +257,6 @@
         <config:publication-type type="z-default">
             <rdf:type rdf:resource="http://purl.org/ontology/bibo/Article"/>
         </config:publication-type>
-
-
-        <config:publication-type type="c-book">
-            <rdf:type rdf:resource="http://purl.org/ontology/bibo/EditedBook"/>
-        </config:publication-type>
-        <config:publication-type type="c-report-for-external-body">
-            <rdf:type rdf:resource="http://purl.org/ontology/bibo/Report"/>
-        </config:publication-type>
-
-
     </config:publication-types>
 
 
@@ -479,7 +466,7 @@
         <config:country-type name="Congo" uri="http://aims.fao.org/aos/geopolitical.owl#Congo_the" />
         <config:country-type name="Cook Islands" uri="http://aims.fao.org/aos/geopolitical.owl#Cook_Islands_the" />
         <config:country-type name="Costa Rica" uri="http://aims.fao.org/aos/geopolitical.owl#Costa_Rica" />
-        <config:country-type name="Côte d'Ivoire" uri="http://aims.fao.org/aos/geopolitical.owl#Cote_d_Ivoire" />
+        <config:country-type name="CÃ´te d'Ivoire" uri="http://aims.fao.org/aos/geopolitical.owl#Cote_d_Ivoire" />
         <config:country-type name="Croatia" uri="http://aims.fao.org/aos/geopolitical.owl#Croatia" />
         <config:country-type name="Cuba" uri="http://aims.fao.org/aos/geopolitical.owl#Cuba" />
         <config:country-type name="Cyprus" uri="http://aims.fao.org/aos/geopolitical.owl#Cyprus" />
