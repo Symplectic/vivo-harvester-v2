@@ -35,7 +35,7 @@
     <xsl:import href="elements-to-vivo-utils.xsl" />
 
     <!-- Match relationship of type user-user collaboration -->
-    <xsl:template match="api:relationship[@type='user-user-collaboration']">
+    <xsl:template match="api:relationship[@type='user-user-collaboration']" mode="visible-relationship">
         <!-- Get the first user object reference from the relationship -->
         <xsl:variable name="userFrom" select="api:related[@direction='from']/api:object[@category='user']" />
 

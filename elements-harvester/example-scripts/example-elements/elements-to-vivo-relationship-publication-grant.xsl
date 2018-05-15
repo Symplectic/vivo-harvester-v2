@@ -34,7 +34,7 @@
         Output as part of relationship - Supports publication
         <vivo:supportedInformationResource rdf:resource="http://vivo.mydomain.edu/individual/n4893"/>
     -->
-    <xsl:template match="api:relationship[@type='publication-grant-funded']">
+    <xsl:template match="api:relationship[@type='publication-grant-funded']" mode="visible-relationship">
         <!-- Get the publication object reference from the relationship -->
         <xsl:variable name="publication" select="api:related/api:object[@category='publication']" />
 

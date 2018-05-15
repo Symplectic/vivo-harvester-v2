@@ -69,7 +69,7 @@
         Output as part of relationship - Supports publication
         <vivo:supportedInformationResource rdf:resource="http://vivo.mydomain.edu/individual/n4893"/>
     -->
-    <xsl:template match="api:relationship[$grant-relationship-types/rel-types/rel-type[text() = current()/@type]]">
+    <xsl:template match="api:relationship[$grant-relationship-types/rel-types/rel-type[text() = current()/@type]]" mode="visible-relationship invisible-relationship">
 
         <xsl:variable name="selectedVivoGrantType" select="$grant-relationship-types/rel-types/rel-type[text() = current()/@type][1]" />
 

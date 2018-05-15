@@ -339,7 +339,7 @@ public class ElementsFetchAndTranslate {
                 //TODO: test performance against spinning rust...
 
                 boolean visibleLinksOnly = Configuration.getVisibleLinksOnly();
-                ElementsVivoIncludeMonitor monitor = new ElementsVivoIncludeMonitor(includedUsers.keySet(), includedGroups.getIncludedGroups().keySet(), Configuration.getCategoriesToHarvest(), visibleLinksOnly);
+                ElementsVivoIncludeMonitor monitor = new ElementsVivoIncludeMonitor(includedUsers.keySet(), includedGroups.getIncludedGroups().keySet(), Configuration.getCategoriesToHarvest(), rdfStore, visibleLinksOnly);
 
                 counter = 0;
                 for (StoredData.InFile relData : objectStore.getAllExistingFilesOfType(StorableResourceType.RAW_RELATIONSHIP)) {

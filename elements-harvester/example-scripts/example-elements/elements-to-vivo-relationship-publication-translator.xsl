@@ -35,7 +35,7 @@
     <xsl:import href="elements-to-vivo-utils.xsl" />
 
     <!-- Match relationship of type publication-user translation association -->
-    <xsl:template match="api:relationship[@type='publication-user-translation']">
+    <xsl:template match="api:relationship[@type='publication-user-translation']" mode="visible-relationship">
         <!-- Get the publication object reference from the relationship -->
         <xsl:variable name="publication" select="api:related/api:object[@category='publication']" />
 

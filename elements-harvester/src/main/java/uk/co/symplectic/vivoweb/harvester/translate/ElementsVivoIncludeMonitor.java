@@ -9,13 +9,11 @@
 package uk.co.symplectic.vivoweb.harvester.translate;
 
 import org.apache.commons.lang.NullArgumentException;
+import uk.co.symplectic.vivoweb.harvester.store.*;
 import uk.co.symplectic.vivoweb.harvester.utils.ElementsItemCollection;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsRelationshipInfo;
-import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItemInfo;
-import uk.co.symplectic.vivoweb.harvester.store.IElementsStoredItemObserver;
-import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
 
 import java.util.Collections;
 import java.util.List;
@@ -27,16 +25,19 @@ public class ElementsVivoIncludeMonitor extends IElementsStoredItemObserver.Elem
     final private boolean includeInvisibleLinks;
     final private Set<ElementsItemId> includedUsers;
     final private ElementsItemCollection includedItems = new ElementsItemCollection();
+    final private ElementsRdfStore rdfStore;
 
-
-    public ElementsVivoIncludeMonitor(Set<ElementsItemId> includedUsers, Set<ElementsItemId> includedGroups, List<ElementsObjectCategory> includedCategories, boolean visibleLinksOnly) {
+    public ElementsVivoIncludeMonitor(Set<ElementsItemId> includedUsers, Set<ElementsItemId> includedGroups, List<ElementsObjectCategory> includedCategories, ElementsRdfStore rdfStore, boolean visibleLinksOnly) {
         super(StorableResourceType.RAW_RELATIONSHIP);
         if(includedUsers == null) throw new NullArgumentException("includedUsers");
         if(includedCategories == null) throw new NullArgumentException("includedCategories");
+        if(rdfStore == null) throw new NullArgumentException("rdfStore");
 
         this.includedUsers = Collections.unmodifiableSet(includedUsers);
         //make unmodifiable
         this.includedCategories = Collections.unmodifiableList(includedCategories);
+
+        this.rdfStore = rdfStore;
 
         //note not!
         this.includeInvisibleLinks = !visibleLinksOnly;
@@ -58,6 +59,12 @@ public class ElementsVivoIncludeMonitor extends IElementsStoredItemObserver.Elem
 
         //if the relationship is not complete then we are not interested..
         includeRelationship = includeRelationship && info.getIsComplete();
+
+        if(!includeRelationship) return; //jump out if possible as next step is potentially costly
+
+        //is the main translation of relationship empty?
+        BasicElementsStoredItem translatedRel = rdfStore.retrieveItem(info.getItemId(), StorableResourceType.TRANSLATED_RELATIONSHIP);
+        includeRelationship = includeRelationship && translatedRel != null;
 
         //optimise for early jump out wherever possible.
         if(includeRelationship) {

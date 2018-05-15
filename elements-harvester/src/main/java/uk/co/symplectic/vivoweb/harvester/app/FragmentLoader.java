@@ -64,6 +64,22 @@ public class FragmentLoader {
             //String storeDirPath = args[0];
             //File storeDir = new File(storeDirPath);
 
+            maxRetries = FLConfiguration.getMaxRetries();
+            retryDelayMillis = FLConfiguration.getRetryDelay();
+
+            Thread.sleep(1000);
+
+            int soTimeout = FLConfiguration.getApiSocketTimeout();
+            int soMin = 5000;
+            int soMax = 30 * 60 * 1000;
+            if (soTimeout >= soMin && soTimeout < soMax) {
+                HttpClient.setSocketTimeout(soTimeout);
+            } else {
+                log.warn(MessageFormat.format("Socket Timeout must be between {0} and {1} milliseconds - the requested value of {2} has been ignored.",
+                        Integer.toString(soMin), Integer.toString(soMax), Integer.toString(soTimeout)));
+                log.warn(MessageFormat.format("The default Socket Timeout of {0} milliseconds will be used instead.", Integer.toString(5*60*1000)));
+            }
+
             File interimTdbDirectory = FLConfiguration.getTdbOutputDir();
             File storeDir = new File(interimTdbDirectory, "fragments");
 

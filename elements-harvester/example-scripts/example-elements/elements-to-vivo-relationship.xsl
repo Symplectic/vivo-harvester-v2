@@ -38,8 +38,21 @@
         this is also done from here, by reading the document of the activity and apply templates in a special mode.
     -->
 
-    <!-- Default template - do not output relationship, unless overridden -->
-    <xsl:template match="api:relationship" />
+    <!-- Default template - switch based on visibility mode -->
+    <xsl:template match="api:relationship">
+        <xsl:choose>
+            <xsl:when test="api:is-visible = 'false'">
+                <xsl:apply-templates select="." mode="invisible-relationship" />
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:apply-templates select="." mode="visible-relationship" />
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:template>
+
+    <!-- Default moded templates - do not output relationship, unless overridden -->
+    <xsl:template match="api:relationship" mode="visible-relationship" />
+    <xsl:template match="api:relationship" mode="invisible-relationship" />
 
     <!--
         Import XSLT to handle each type of relationship

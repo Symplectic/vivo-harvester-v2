@@ -36,7 +36,7 @@
     <!-- Import XSLT files that are used -->
     <xsl:import href="elements-to-vivo-utils.xsl" />
 
-    <xsl:template match="api:relationship[@type='user-teaching-association' and api:related/api:object[@category='teaching-activity' and @type='course-developed']]">
+    <xsl:template match="api:relationship[@type='user-teaching-association' and api:related/api:object[@category='teaching-activity' and @type='course-developed']]" mode="visible-relationship">
         <xsl:variable name="contextURI" select="svfn:relationshipURI(.,'relationship')" />
 
         <xsl:variable name="activityObj" select="svfn:fullObject(api:related/api:object[@category='teaching-activity'])" />

@@ -36,6 +36,11 @@ public class FLConfiguration {
 
         private ConfigKey ARG_TDB_OUTPUT_DIRECTORY = new ConfigKey("tdbOutput", "../previous-harvest/");
 
+        private ConfigKey ARG_RETRY_DELAY = new ConfigKey("retryDelay", "500");
+        private ConfigKey ARG_MAX_RETRIES = new ConfigKey("maxRetries", "5");
+
+        private ConfigKey ARG_API_SOCKET_TIMEOUT = new ConfigKey("apiSocketTimeout", "300000"); //TODO: review this default
+
         //storage
         private String sparqlApiEndpoint;
         private String sparqlApiGraphUri;
@@ -44,6 +49,9 @@ public class FLConfiguration {
         private File tdbOutputDir;
         private boolean processSubtractFilesFirst;
 
+        private int retryDelay = -1;
+        private int maxRetries = -1;
+        private int apiSocketTimeout = -1;
 
         //Constructor and methods
         Parser(Properties props, List<String> errors) {
@@ -57,6 +65,9 @@ public class FLConfiguration {
             values.sparqlApiPassword = getString(ARG_SPARQL_API_PASSWORD, false);
             values.tdbOutputDir = getFileDirFromConfig(ARG_TDB_OUTPUT_DIRECTORY);
             values.processSubtractFilesFirst = getBoolean(ARG_PROCESS_SUBTRACT_FILES_FIRST);
+            values.retryDelay = getInt(ARG_RETRY_DELAY);
+            values.maxRetries = getInt(ARG_MAX_RETRIES);
+            values.apiSocketTimeout = getInt(ARG_API_SOCKET_TIMEOUT);
         }
     }
 
@@ -85,6 +96,18 @@ public class FLConfiguration {
 
     public static boolean getProcessSubtractFilesFirst() {
         return values.processSubtractFilesFirst;
+    }
+
+    public static int getApiSocketTimeout() {
+        return values.apiSocketTimeout;
+    }
+
+    public static int getMaxRetries() {
+        return values.maxRetries;
+    }
+
+    public static int getRetryDelay() {
+        return values.retryDelay;
     }
 
     //Has the system being successfully configured to move forwards?
