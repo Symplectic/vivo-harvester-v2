@@ -49,6 +49,27 @@
         </xsl:if>
     </xsl:template>
 
+    <!-- renders the wrapping "element" for anything being rendered as a property - handling local ontology declarations appropriately -->
+    <xsl:function name="svfn:createPropertyElement">
+        <xsl:param name="propertyName" as="xs:string"/>
+        <xsl:param name="ele-content" />
+        <xsl:if test="$ele-content and normalize-space($ele-content) != ''">
+            <xsl:variable name="prefix" select="fn:substring-before($propertyName, ':')" />
+            <xsl:choose>
+                <xsl:when test="$prefix = 'local'">
+                    <xsl:element name="{substring-after($propertyName, concat($prefix, ':'))}" namespace="{$validatedLocalOntologyURI}">
+                        <xsl:value-of select="($ele-content)" />
+                    </xsl:element>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:element name="{$propertyName}">
+                        <xsl:value-of select="($ele-content)" />
+                    </xsl:element>
+                </xsl:otherwise>
+            </xsl:choose>
+        </xsl:if>
+    </xsl:function>
+
     <!--
         Render a keyword field to a named property. The name of the VIVO property (namespace:element) is passed in propertyName,
         the field name is Elements is passed in fieldName.
@@ -56,10 +77,10 @@
     <xsl:template match="api:keyword" mode="renderForProperty">
         <xsl:param name="propertyName" />
         <xsl:param name="fieldName" />
-
-        <xsl:element name="{$propertyName}">
+        <xsl:variable name="content">
             <xsl:value-of select="." />
-        </xsl:element>
+        </xsl:variable>
+        <xsl:copy-of select="svfn:createPropertyElement($propertyName, $content)" />
     </xsl:template>
 
     <!--
@@ -69,13 +90,13 @@
     <xsl:template match="api:money" mode="renderForProperty">
         <xsl:param name="propertyName" />
         <xsl:param name="fieldName" />
-
-        <xsl:element name="{$propertyName}">
+        <xsl:variable name="content">
             <xsl:if test="@iso-currency">
                 <xsl:value-of select="@iso-currency" /><xsl:text> </xsl:text>
             </xsl:if>
             <xsl:value-of select="." />
-        </xsl:element>
+        </xsl:variable>
+        <xsl:copy-of select="svfn:createPropertyElement($propertyName, $content)" />
     </xsl:template>
 
     <!--
@@ -85,14 +106,16 @@
     <xsl:template match="api:pagination" mode="renderForProperty">
         <xsl:param name="propertyName" />
         <xsl:param name="fieldName" />
-
-        <xsl:choose>
-            <xsl:when test="$propertyName='bibo:pageStart' and api:begin-page"><xsl:element name="{$propertyName}"><xsl:value-of select="api:begin-page" /></xsl:element></xsl:when>
-            <xsl:when test="$propertyName='bibo:pageEnd'   and api:end-page"><xsl:element name="{$propertyName}"><xsl:value-of select="api:end-page" /></xsl:element></xsl:when>
-            <xsl:when test="$propertyName='bibo:numPages'  and api:page-count"><xsl:element name="{$propertyName}"><xsl:value-of select="api:page-count" /></xsl:element></xsl:when>
-            <xsl:when test="$propertyName='bibo:numPages'  and api:begin-page and api:end-page"><xsl:element name="{$propertyName}"><xsl:value-of select="fn:number(api:end-page)-fn:number(api:begin-page)+1" /></xsl:element></xsl:when>
-            <xsl:otherwise />
-        </xsl:choose>
+        <xsl:variable name="content">
+            <xsl:choose>
+                <xsl:when test="$propertyName='bibo:pageStart' and api:begin-page"><xsl:value-of select="api:begin-page" /></xsl:when>
+                <xsl:when test="$propertyName='bibo:pageEnd'   and api:end-page"><xsl:value-of select="api:end-page" /></xsl:when>
+                <xsl:when test="$propertyName='bibo:numPages'  and api:page-count"><xsl:value-of select="api:page-count" /></xsl:when>
+                <xsl:when test="$propertyName='bibo:numPages'  and api:begin-page and api:end-page"><xsl:value-of select="fn:number(api:end-page)-fn:number(api:begin-page)+1" /></xsl:when>
+                <xsl:otherwise />
+            </xsl:choose>
+        </xsl:variable>
+        <xsl:copy-of select="svfn:createPropertyElement($propertyName, $content)" />
     </xsl:template>
 
     <!--
@@ -103,19 +126,19 @@
     <xsl:template match="api:people" mode="renderForProperty">
         <xsl:param name="propertyName" />
         <xsl:param name="fieldName" />
-
-        <xsl:element name="{$propertyName}">
-            <xsl:apply-templates select="api:person" mode="renderForProperty">
+        <xsl:variable name="content">
+            <xsl:apply-templates select="api:person" mode="renderElementContentForProperty">
                 <xsl:with-param name="propertyName" select="$propertyName" />
                 <xsl:with-param name="fieldName" select="$fieldName" />
             </xsl:apply-templates>
-        </xsl:element>
+        </xsl:variable>
+        <xsl:copy-of select="svfn:createPropertyElement($propertyName, $content)" />
     </xsl:template>
 
     <!--
         Render a person. This template is designed to create a comma-delimited list.
     -->
-    <xsl:template match="api:person" mode="renderForProperty">
+    <xsl:template match="api:person" mode="renderElementContentForProperty">
         <xsl:param name="propertyName" />
         <xsl:param name="fieldName" />
 
@@ -129,12 +152,14 @@
         Render a text field to a named property. The name of the VIVO property (namespace:element) is passed in propertyName,
         the field name is Elements is passed in fieldName.
     -->
+
     <xsl:template match="api:text" mode="renderForProperty">
         <xsl:param name="propertyName" />
         <xsl:param name="fieldName" />
 
         <xsl:variable name="useLinebreaks" select="svfn:shouldConvertToHTML($propertyName)" as="xs:boolean" />
-        <xsl:element name="{$propertyName}">
+
+        <xsl:variable name="content">
             <xsl:choose>
                 <xsl:when test="$useLinebreaks">
                     <!-- do anchors first as we are relying on text containing new lines, etc to establish boundaries between potential urls -->
@@ -144,7 +169,8 @@
                     <xsl:value-of select="." />
                 </xsl:otherwise>
             </xsl:choose>
-        </xsl:element>
+        </xsl:variable>
+        <xsl:copy-of select="svfn:createPropertyElement($propertyName, $content)" />
     </xsl:template>
 
     <!--
@@ -154,19 +180,19 @@
     <xsl:template match="api:integer" mode="renderForProperty">
         <xsl:param name="propertyName" />
         <xsl:param name="fieldName" />
-
-        <xsl:element name="{$propertyName}">
+        <xsl:variable name="content">
             <xsl:value-of select="." />
-        </xsl:element>
+        </xsl:variable>
+        <xsl:copy-of select="svfn:createPropertyElement($propertyName, $content)" />
     </xsl:template>
 
     <xsl:template match="api:decimal" mode="renderForProperty">
         <xsl:param name="propertyName" />
         <xsl:param name="fieldName" />
-
-        <xsl:element name="{$propertyName}">
+        <xsl:variable name="content">
             <xsl:value-of select="." />
-        </xsl:element>
+        </xsl:variable>
+        <xsl:copy-of select="svfn:createPropertyElement($propertyName, $content)" />
     </xsl:template>
 
 </xsl:stylesheet>

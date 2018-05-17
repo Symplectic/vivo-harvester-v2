@@ -150,7 +150,7 @@
                 </xsl:choose>
                 <!-- add label links -->
                 <xsl:copy-of select="svfn:renderControlledSubjectLinks(., $publicationUri, '')" />
-
+                <xsl:apply-templates select="." mode="customAdditions" />
             </xsl:with-param>
         </xsl:call-template>
 
