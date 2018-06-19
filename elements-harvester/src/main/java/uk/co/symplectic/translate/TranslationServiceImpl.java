@@ -121,7 +121,15 @@ final class TranslationServiceImpl {
 
                     Map<String, Object> parameters = new HashMap<String, Object>();
                     parameters.putAll(config.getXslParameters());
-                    if(extraParams != null) parameters.putAll(extraParams);
+                    if(extraParams != null){
+                        for(String key : extraParams.keySet()){
+                            Object value = extraParams.get(key);
+                            if(value instanceof TranslationDocumentProvider) {
+                                value = ((TranslationDocumentProvider) value).getDocument();
+                            }
+                            parameters.put(key, value);
+                        }
+                    }
 
                     for (String key : parameters.keySet()) {
                         try {
