@@ -126,12 +126,18 @@
     -->
     <config:journal-precedences>
         <config:journal-authority-precedences use-unlisted-sources='true'>
+            <config:journal-authority-precedence>era-2012</config:journal-authority-precedence>
+            <!-- era2012 does not exist -keep in the list in case was used in older versions of Elements -->
             <config:journal-authority-precedence>era2012</config:journal-authority-precedence>
-            <config:journal-authority-precedence>snip</config:journal-authority-precedence>s
+            <config:journal-authority-precedence>snip</config:journal-authority-precedence>
+            <config:journal-authority-precedence>era-2010</config:journal-authority-precedence>
+            <!-- era2010 does not exist -keep in the list in case was used in older versions of Elements -->
             <config:journal-authority-precedence>era2010</config:journal-authority-precedence>
             <config:journal-authority-precedence>science-metrix</config:journal-authority-precedence>
             <config:journal-authority-precedence>sjr</config:journal-authority-precedence>
             <config:journal-authority-precedence>jcr</config:journal-authority-precedence>
+            <config:journal-authority-precedence>manual</config:journal-authority-precedence>
+            <!-- institutional-source does not exist -keep in the list in case was used in older versions of Elements -->
             <config:journal-authority-precedence>institutional-source</config:journal-authority-precedence>
             <config:journal-authority-precedence>sherpa-romeo</config:journal-authority-precedence>
             <config:journal-authority-precedence>doaj</config:journal-authority-precedence>
