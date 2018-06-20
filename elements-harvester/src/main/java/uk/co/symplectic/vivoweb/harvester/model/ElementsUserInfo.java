@@ -34,6 +34,11 @@ public class ElementsUserInfo extends ElementsObjectInfo {
         this.additionalInfo = additionalInfo;
     }
 
+    public boolean getIsPublic() {
+        if(!isFullyPopulated()) throw new IllegalAccessError("Cannot access isPublic if ElementsUserInfo is not fully populated");
+        return additionalInfo.isPublic;
+    }
+
     public boolean getIsCurrentStaff() {
         if(!isFullyPopulated()) throw new IllegalAccessError("Cannot access current-staff if ElementsUserInfo is not fully populated");
         return additionalInfo.isCurrentStaff;
@@ -87,6 +92,7 @@ public class ElementsUserInfo extends ElementsObjectInfo {
     }
 
     public static class UserExtraData{
+        private boolean isPublic = true;
         private boolean isCurrentStaff = true;
         private boolean isAcademic = true;
         private String photoUrl = null;
@@ -94,6 +100,11 @@ public class ElementsUserInfo extends ElementsObjectInfo {
         private String proprietaryID = null;
         private Set<String> labelSchemeValues = new HashSet<String>();
         private String genericFieldValue = null;
+
+        public UserExtraData setIsPublic(boolean isPublic) {
+            this.isPublic = isPublic;
+            return this;
+        }
 
         public UserExtraData setIsCurrentStaff(boolean isCurrentStaff) {
             this.isCurrentStaff = isCurrentStaff;

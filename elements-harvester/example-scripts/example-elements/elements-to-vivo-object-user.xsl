@@ -70,6 +70,8 @@
                 <!-- rdf:type rdf:resource="http://vivoweb.org/harvester/excludeEntity" / -->
                 <rdfs:label><xsl:value-of select="svfn:mainUserLabel(current())" /></rdfs:label>
                 <xsl:copy-of select="svfn:renderPropertyFromFieldOrFirst(.,'vivo:overview','overview', '')" />
+                <xsl:copy-of select="svfn:renderPropertyFromFieldOrFirst(.,'vivo:researchOverview','research-interests', '')" />
+                <xsl:copy-of select="svfn:renderPropertyFromFieldOrFirst(.,'vivo:teachingOverview','teaching-summary', '')" />
 
                 <!-- render any user labels that are relevant -->
                 <xsl:copy-of select="svfn:renderControlledSubjectLinks(., $userURI, '')" />

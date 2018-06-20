@@ -88,6 +88,17 @@ public class ElementsFetchAndTranslate {
             Configuration.parse("elementsfetch.properties");
             log.info(Configuration.getConfiguredValues());
 
+            //Set up the Elements API and check that the configured eligibility settings make sense for that API version.
+            ElementsAPI elementsAPI = ElementsFetchAndTranslate.getElementsAPI();
+            EligibilityFilter eligibilityFilter = Configuration.getElligibilityFilter();
+            if(elementsAPI.getVersion().lessThan(ElementsAPIVersion.VERSION_5_5) && eligibilityFilter.filtersOutNonPublicStaff()){
+                log.error(
+                    MessageFormat.format("An Elements API running the (v{0}) Endpoint spec is incompatible with filtering out public staff (publicStaffOnly = true) as a v4.9 spec API does not provide this information.", elementsAPI.getVersion())
+                );
+                log.error("You should either upgrade to a v5.5 (or later) spec API endpoint or specifically set \"publicStaffOnly = false\" in the config file.");
+                throw new IllegalStateException("Invalid configuration for API Version - see previous error messages.");
+            }
+
             //only one of these will be true, both can be false
             boolean forceFullPull = args.length != 0 && args[0].equals("--full");
             boolean reprocessTranslations = args.length != 0 && args[0].equals("--reprocess");
@@ -177,17 +188,15 @@ public class ElementsFetchAndTranslate {
 
                 Set<String> relationshipTypesNeedingObjectsForTranslation = Configuration.getRelTypesToReprocess();
 
-                //Set up the Elements API and a fetcher that uses it.
-                ElementsAPI elementsAPI = ElementsFetchAndTranslate.getElementsAPI();
+                //Set up a fetcher that uses the Elements API.
                 ElementsFetch elementsFetcher = new ElementsFetch(elementsAPI);
 
                 //Configure extraction of extra data that can be used to establish if users should be included.
-                EligibilityFilter filter = Configuration.getElligibilityFilter();
-                if(filter instanceof EligibilityFilter.LabelSchemeFilter){
-                    ElementsObjectInfo.Extractor.InitialiseLabelSchemeExtraction(((EligibilityFilter.InclusionExclusionFilter) filter).getName());
+                if(eligibilityFilter instanceof EligibilityFilter.LabelSchemeFilter){
+                    ElementsObjectInfo.Extractor.InitialiseLabelSchemeExtraction(((EligibilityFilter.InclusionExclusionFilter) eligibilityFilter).getName());
                 }
-                else if(filter instanceof EligibilityFilter.GenericFieldFilter){
-                    ElementsObjectInfo.Extractor.InitialiseGenericFieldExtraction(((EligibilityFilter.InclusionExclusionFilter) filter).getName());
+                else if(eligibilityFilter instanceof EligibilityFilter.GenericFieldFilter){
+                    ElementsObjectInfo.Extractor.InitialiseGenericFieldExtraction(((EligibilityFilter.InclusionExclusionFilter) eligibilityFilter).getName());
                 }
 
                 ElementsRdfStore rdfStore = ElementsStoreFactory.getRdfStore();

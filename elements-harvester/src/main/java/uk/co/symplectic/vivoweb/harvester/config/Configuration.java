@@ -51,8 +51,10 @@ public class Configuration {
         private ConfigKey ARG_IGNORE_SSL_ERRORS = new ConfigKey("ignoreSSLErrors", "false"); //TODO: review this default
         private ConfigKey ARG_REWRITE_MISMATCHED_URLS = new ConfigKey("rewriteMismatchedPaginationUrls", "false"); //TODO: review this default
 
+        private ConfigKey ARG_PUBLIC_STAFF_ONLY = new ConfigKey("publicStaffOnly", "true"); //TODO: review this default
         private ConfigKey ARG_CURRENT_STAFF_ONLY = new ConfigKey("currentStaffOnly", "true"); //TODO: review this default
         private ConfigKey ARG_ACADEMICS_ONLY = new ConfigKey("academicsOnly", "true"); //TODO: review this default
+
         private ConfigKey ARG_VISIBLE_LINKS_ONLY = new ConfigKey("visibleLinksOnly", "false"); //TODO: review this default
         private ConfigKey ARG_REPULL_RELS_TO_CORRECT_VISIBILITY = new ConfigKey("repullRelsToCorrectVis", "true"); //TODO: review this default
         private ConfigKey ARG_RELATIONSHIP_TYPES_TO_REPROCESS = new ConfigKey("relTypesToReprocess", "activity-user-association, user-teaching-association, publication-user-authorship"); //TODO: review this default
@@ -208,7 +210,9 @@ public class Configuration {
             String key = configKey.getName();
             String value = configKey.getValue(props);
             try {
-                return ElementsAPIVersion.parse(value);
+                if(value != null) {
+                    return ElementsAPIVersion.parse(value);
+                }
             } catch (IllegalStateException e) {
                 configErrors.add(MessageFormat.format("Invalid value provided for argument {0} : {1} (must be a valid elements api version)", key, value));
             }
@@ -275,19 +279,21 @@ public class Configuration {
             String includeValue = getString(ARG_ELIGIBILITY_INCLUDE_VALUE, true);
             String excludeValue = getString(ARG_ELIGIBILITY_EXCLUDE_VALUE, true);
 
+            boolean publicStaffOnly = getBoolean(ARG_PUBLIC_STAFF_ONLY);
             boolean academicsOnly = getBoolean(ARG_ACADEMICS_ONLY);
             boolean currentStaffOnly = getBoolean(ARG_CURRENT_STAFF_ONLY);
 
+
             if(schemeType == null) {
-                return new EligibilityFilter(academicsOnly, currentStaffOnly);
+                return new EligibilityFilter(academicsOnly, currentStaffOnly, publicStaffOnly);
             }
             else{
                 try {
                     String lowerCaseSchemeType = schemeType.toLowerCase();
                     if (lowerCaseSchemeType.equals("label-scheme"))
-                        return new EligibilityFilter.LabelSchemeFilter(schemeName, includeValue, excludeValue, academicsOnly, currentStaffOnly);
+                        return new EligibilityFilter.LabelSchemeFilter(schemeName, includeValue, excludeValue, academicsOnly, currentStaffOnly, publicStaffOnly);
                     if (lowerCaseSchemeType.equals("generic-field"))
-                        return new EligibilityFilter.GenericFieldFilter(schemeName, includeValue, excludeValue, academicsOnly, currentStaffOnly);
+                        return new EligibilityFilter.GenericFieldFilter(schemeName, includeValue, excludeValue, academicsOnly, currentStaffOnly, publicStaffOnly);
 
                     configErrors.add(MessageFormat.format("\"{0}\" is not a valid elligibility type, valid values are label-scheme and generic-field", schemeType));
                 }

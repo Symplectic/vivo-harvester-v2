@@ -94,7 +94,10 @@ public class ElementsObjectInfo extends ElementsItemInfo{
             if (workspace.getItemId().getItemSubType() == ElementsObjectCategory.USER) {
                 if (event.isRelevantForExtraction()) {
                     QName name = event.getName();
-                    if (name.equals(new QName(apiNS, "is-current-staff"))) {
+                    if (name.equals(new QName(apiNS, "is-public"))) {
+                        //I really want there to be a value here..
+                        getAdditionalUserData().setIsPublic(Boolean.parseBoolean(event.getRequiredValue()));
+                    } else if (name.equals(new QName(apiNS, "is-current-staff"))) {
                         //I really want there to be a value here..
                         getAdditionalUserData().setIsCurrentStaff(Boolean.parseBoolean(event.getRequiredValue()));
                     } else if (name.equals(new QName(apiNS, "is-academic"))) {

@@ -28,6 +28,7 @@ import java.net.URISyntaxException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -206,11 +207,6 @@ public class ElementsAPI {
      *                 ref detail queries respectivelt will be used if @defaults is null.
      */
     public ElementsAPI(ElementsAPIVersion version, String url, String username, String password, boolean rewriteMismatchedURLs, ProcessingDefaults defaults) {
-        if(version == null){
-            log.error("provided version must not be null on construction");
-            throw new NullArgumentException("version");
-        }
-        this.version = version;
 
         ValidatedUrl validatedUrl = getValidatedUrl(url, new MessageFormat("Provided api base URL was invalid: {0}"));
         this.url = StringUtils.stripEnd(url, "/") + "/";
@@ -235,6 +231,34 @@ public class ElementsAPI {
 
         this.rewriteMismatchedURLs = rewriteMismatchedURLs;
         this.defaults = defaults == null ? ProcessingDefaults.DEFAULTS : defaults;
+
+        ElementsAPIVersion extractedVersion = TryToExtractVersion();
+
+        if(extractedVersion == null){
+            String errorMessage = "Could not extract a valid API version from the ElementsAPI's \"my-account\" resource on construction";
+            log.error(errorMessage);
+            throw new IllegalStateException(errorMessage);
+        }
+
+        if(version != null && !version.equals(extractedVersion)){
+            String errorMessage = MessageFormat.format("provided version ({0}) must match version reported by API ({1})", version, extractedVersion);
+            log.error(errorMessage);
+            throw new IllegalArgumentException(errorMessage);
+        }
+
+        this.version = extractedVersion;
+
+    }
+
+    public ElementsAPIVersion getVersion(){ return this.version; }
+
+    //Should call at end of construction to ensure client is as set up as can be without the version.
+    private ElementsAPIVersion TryToExtractVersion(){
+        ElementsAPIVersion.VersionExtractingFilter filter = new ElementsAPIVersion.VersionExtractingFilter();
+        List<XMLEventProcessor.EventFilter> filters = new ArrayList<XMLEventProcessor.EventFilter>();
+        filters.add(filter);
+        executeInternalQuery(getValidatedUrl(this.url + "my-account", new MessageFormat("Constructed my-account URL was invalid: {0}")), filters);
+        return filter.getExtractedItem();
     }
 
     private ValidatedUrl getValidatedUrl(String urlString, MessageFormat failureMessageTemplate){
@@ -440,12 +464,14 @@ public class ElementsAPI {
         XMLEventReader atomReader = xmlInputFactory.createXMLEventReader(response);
 
         XMLEventProcessor processor = new XMLEventProcessor(eventFilters.toArray(new XMLEventProcessor.EventFilter[eventFilters.size()]));
-        ElementsAPIVersion.PaginationExtractingFilter paginationFilter = version.getPaginationExtractor();
-        processor.addFilter(paginationFilter);
+        ElementsAPIVersion.PaginationExtractingFilter paginationFilter = null;
+        if(version != null) {
+            paginationFilter = version.getPaginationExtractor();
+            processor.addFilter(paginationFilter);
+        }
         processor.process(atomReader);
-
         final long endTime = System.currentTimeMillis();
         timeSpentInProcessing += (endTime - startTime);
-        return paginationFilter.getExtractedItem();
+        return paginationFilter == null ? null : paginationFilter.getExtractedItem();
     }
 }

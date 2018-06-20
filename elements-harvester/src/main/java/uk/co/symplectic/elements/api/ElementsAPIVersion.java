@@ -15,9 +15,12 @@ import uk.co.symplectic.elements.api.versions.GeneralAPIv4XOr55_URLBuilder;
 import uk.co.symplectic.elements.api.versions.GeneralPaginationExtractingFilterFactory;
 import uk.co.symplectic.utils.xml.XMLEventProcessor;
 
+import javax.xml.namespace.QName;
+import javax.xml.stream.XMLStreamException;
 import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -26,6 +29,31 @@ import java.util.Map;
  * To avoid concurrent requests to the API tripping over each other they need to return a "new" PaginationExtractingFilter for each request - so a factory is needed
  */
 public class ElementsAPIVersion {
+
+
+    public static class VersionExtractingFilter extends XMLEventProcessor.ItemExtractingFilter<ElementsAPIVersion> {
+
+        ElementsAPIVersion workspace = null;
+
+        public VersionExtractingFilter() {
+            super(new XMLEventProcessor.EventFilter.DocumentLocation(new QName(ElementsAPI.atomNS, "feed"), new QName(ElementsAPI.apiNS, "schema-version")));
+        }
+
+        @Override
+        protected void initialiseItemExtraction(XMLEventProcessor.WrappedXmlEvent initialEvent) throws XMLStreamException {
+            workspace = ElementsAPIVersion.parse(initialEvent.getRequiredValue());
+        }
+
+        @Override
+        protected void processEvent(XMLEventProcessor.WrappedXmlEvent event, List<QName> relativeLocation) throws XMLStreamException {
+
+        }
+
+        @Override
+        protected ElementsAPIVersion finaliseItemExtraction(XMLEventProcessor.WrappedXmlEvent finalEvent) {
+            return workspace;
+        }
+    }
 
     /**
      * general representation of a PaginationExtractingFilter
@@ -78,6 +106,11 @@ public class ElementsAPIVersion {
     private final String versionName;
 
     /**
+     * This particular Version's number (for less than and greater than comparisons)
+     */
+    private final float versionNumber;
+
+    /**
      * How this versions builds URL's based on a query
      */
     private final ElementsAPIURLBuilder urlBuilder;
@@ -91,25 +124,62 @@ public class ElementsAPIVersion {
     ElementsAPIURLBuilder getUrlBuilder() { return urlBuilder; }
     PaginationExtractingFilter getPaginationExtractor() { return paginationExtractorFactory.createPaginationExtractor(); }
 
-
     /**
      * Private constructor to create a version, and place it in the map of known versions keyed by name (for easy retrieval)
+     * the versionNumber will be parsed from the name, if this fails a NumberFormatException exception will be thrown.
      * All params are required and must not be null.
      * @param versionName : the name of the APIVersion (e.g. "4.6". "4.9", etc)
      * @param urlBuilder : a url builder suitable for formulating valid HTTP queries for this version of the API from ElementsFeedQuery objects.
      * @param paginationExtractorFactory : a paginationExtractor factory that will generate paginationExtractor objects suitable for pulling
      *                                   out pagination from this version of the API
      */
-    private ElementsAPIVersion(String versionName, ElementsAPIURLBuilder urlBuilder, PaginationExtractingFilterFactory paginationExtractorFactory){
+    private ElementsAPIVersion(String versionName, ElementsAPIURLBuilder urlBuilder, PaginationExtractingFilterFactory paginationExtractorFactory) throws NumberFormatException{
+        this(versionName, Float.parseFloat(versionName), urlBuilder, paginationExtractorFactory);
+    }
+
+    /**
+     * Private constructor to create a version, and place it in the map of known versions keyed by name (for easy retrieval)
+     * All params are required and must not be null.
+     * @param versionName : the name of the APIVersion (e.g. "4.6". "4.9", etc)
+     * @param versionNumber : the floating point "number" associated with the version (for less than and greater than comparisons..
+     * @param urlBuilder : a url builder suitable for formulating valid HTTP queries for this version of the API from ElementsFeedQuery objects.
+     * @param paginationExtractorFactory : a paginationExtractor factory that will generate paginationExtractor objects suitable for pulling
+     *                                   out pagination from this version of the API
+     */
+    private ElementsAPIVersion(String versionName, float versionNumber, ElementsAPIURLBuilder urlBuilder, PaginationExtractingFilterFactory paginationExtractorFactory){
         if(StringUtils.isBlank(versionName)) throw new IllegalArgumentException("versionName must not be null or empty");
         if(urlBuilder == null) throw new NullArgumentException("urlBuilder");
         if(paginationExtractorFactory == null) throw new NullArgumentException("paginationExtractor");
 
         this.versionName = versionName;
+        this.versionNumber = versionNumber;
         this.urlBuilder = urlBuilder;
         this.paginationExtractorFactory = paginationExtractorFactory;
 
         versionMap.put(this.versionName, this);
+    }
+
+    @Override
+    public String toString(){return getVersionName();}
+
+    public boolean greaterThan(ElementsAPIVersion versionToCompare){
+        if(versionToCompare == null) throw new NullArgumentException("versionToCompare");
+        return(this.versionNumber > versionToCompare.versionNumber);
+    }
+
+    public boolean greaterThanOrEqualTo(ElementsAPIVersion versionToCompare){
+        if(versionToCompare == null) throw new NullArgumentException("versionToCompare");
+        return(this.versionNumber >= versionToCompare.versionNumber);
+    }
+
+    public boolean lessThan(ElementsAPIVersion versionToCompare){
+        if(versionToCompare == null) throw new NullArgumentException("versionToCompare");
+        return(this.versionNumber < versionToCompare.versionNumber);
+    }
+
+    public boolean lessThanOrEqualTo(ElementsAPIVersion versionToCompare){
+        if(versionToCompare == null) throw new NullArgumentException("versionToCompare");
+        return(this.versionNumber <= versionToCompare.versionNumber);
     }
 
     /**

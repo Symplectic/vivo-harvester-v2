@@ -191,15 +191,17 @@
         <xsl:param name="vcardEmailURI" as="xs:string" />
         <xsl:param name="vcardEmail" as="xs:string" />
 
-        <xsl:call-template name="render_rdf_object">
-            <xsl:with-param name="objectURI" select="$vcardEmailURI" />
-            <xsl:with-param name="rdfNodes">
-                <!-- Making the Email both an "Email" and "Work" type will render the field in the "Primary" section -->
-                <rdf:type rdf:resource="http://www.w3.org/2006/vcard/ns#Email" />
-                <rdf:type rdf:resource="http://www.w3.org/2006/vcard/ns#Work" />
-                <vcard:email><xsl:value-of select="$vcardEmail" /></vcard:email>
-            </xsl:with-param>
-        </xsl:call-template>
+        <xsl:if test="not($object/api:institutional-email-is-public) or $object/api:institutional-email-is-public = 'true'" >
+            <xsl:call-template name="render_rdf_object">
+                <xsl:with-param name="objectURI" select="$vcardEmailURI" />
+                <xsl:with-param name="rdfNodes">
+                    <!-- Making the Email both an "Email" and "Work" type will render the field in the "Primary" section -->
+                    <rdf:type rdf:resource="http://www.w3.org/2006/vcard/ns#Email" />
+                    <rdf:type rdf:resource="http://www.w3.org/2006/vcard/ns#Work" />
+                    <vcard:email><xsl:value-of select="$vcardEmail" /></vcard:email>
+                </xsl:with-param>
+            </xsl:call-template>
+        </xsl:if>
     </xsl:function>
 
     <xsl:function name="svfn:renderVcardNameObject">

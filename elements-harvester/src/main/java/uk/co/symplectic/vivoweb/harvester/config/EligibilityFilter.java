@@ -25,15 +25,20 @@ import java.util.Set;
 public class EligibilityFilter {
     private final boolean academicsOnly;
     private final boolean currentStaffOnly;
+    private final boolean publicOnly;
 
-    protected EligibilityFilter(boolean academicsOnly, boolean currentStaffOnly){
+    public boolean filtersOutNonPublicStaff(){ return publicOnly; }
+
+    protected EligibilityFilter(boolean academicsOnly, boolean currentStaffOnly, boolean publicOnly){
         this.academicsOnly = academicsOnly;
         this.currentStaffOnly = currentStaffOnly;
+        this.publicOnly = publicOnly;
     }
 
     public final boolean isUserEligible(ElementsUserInfo userToTest){
         if(this.academicsOnly && !userToTest.getIsAcademic()) return false;
         if(this.currentStaffOnly && !userToTest.getIsCurrentStaff()) return false;
+        if(this.publicOnly && !userToTest.getIsPublic()) return false;
         return innerIsUserEligible(userToTest);
     }
 
@@ -49,8 +54,8 @@ public class EligibilityFilter {
 
         public String getName(){return schemeName; }
 
-        protected InclusionExclusionFilter(String schemeName, String inclusionValue, String exclusionValue, boolean academicsOnly, boolean currentStaffOnly){
-            super(academicsOnly, currentStaffOnly);
+        protected InclusionExclusionFilter(String schemeName, String inclusionValue, String exclusionValue, boolean academicsOnly, boolean currentStaffOnly, boolean publicOnly){
+            super(academicsOnly, currentStaffOnly, publicOnly);
             if(StringUtils.trimToNull(schemeName) == null) throw new NullArgumentException("name");
             this.schemeName = schemeName;
 
@@ -77,8 +82,8 @@ public class EligibilityFilter {
      */
     public static class LabelSchemeFilter extends InclusionExclusionFilter{
 
-        public LabelSchemeFilter(String schemeName, String inclusionValue, String exclusionValue, boolean academicsOnly, boolean currentStaffOnly){
-            super(schemeName, inclusionValue, exclusionValue, academicsOnly, currentStaffOnly);
+        public LabelSchemeFilter(String schemeName, String inclusionValue, String exclusionValue, boolean academicsOnly, boolean currentStaffOnly, boolean publicOnly){
+            super(schemeName, inclusionValue, exclusionValue, academicsOnly, currentStaffOnly, publicOnly);
         }
 
         @Override
@@ -90,8 +95,8 @@ public class EligibilityFilter {
      */
     public static class GenericFieldFilter extends InclusionExclusionFilter{
 
-        public GenericFieldFilter(String schemeName, String inclusionValue, String exclusionValue, boolean academicsOnly, boolean currentStaffOnly){
-            super(schemeName, inclusionValue, exclusionValue, academicsOnly, currentStaffOnly);
+        public GenericFieldFilter(String schemeName, String inclusionValue, String exclusionValue, boolean academicsOnly, boolean currentStaffOnly, boolean publicOnly){
+            super(schemeName, inclusionValue, exclusionValue, academicsOnly, currentStaffOnly, publicOnly);
         }
 
         @Override
