@@ -120,6 +120,17 @@
     <xsl:variable name="htmlProperties" select="$loaded-config/config:htmlProperties/config:htmlProperty" />
     <xsl:variable name="uriAliasses" select="$loaded-config/config:uriAliasses/config:uri" />
 
+
+    <!-- posibly migrate to xml? -->
+    <xsl:variable name="contextPropertyLookup">
+        <context-lookups>
+            <context-lookup type-uri="http://vivoweb.org/ontology/core#Authorship" uriFragment="authorship" contextToUser="vivo:relates" contextToObject="vivo:relates" objectToContext="vivo:relatedBy" userToContext="vivo:relatedBy" />
+            <context-lookup type-uri="http://vivoweb.org/ontology/core#Editorship" uriFragment="editorship" contextToUser="vivo:relates" contextToObject="vivo:relates" objectToContext="vivo:relatedBy" userToContext="vivo:relatedBy" />
+            <context-lookup type-uri="http://vivoweb.org/ontology/core#PresenterRole" uriFragment="presenter" contextToUser="obo:RO_0000052" contextToObject="obo:BFO_0000054" objectToContext="obo:BFO_0000055" userToContext="BFO_0000053"/>
+            <context-lookup type-uri="http://vivoweb.org/ontology/core#ResearcherRole" uriFragment="researcher" contextToUser="obo:RO_0000052" contextToObject="obo:BFO_0000054" objectToContext="obo:BFO_0000055" userToContext="BFO_0000053" />
+        </context-lookups>
+    </xsl:variable>
+
     <!-- testing tool for config -->
     <!--<xsl:template match="/">-->
         <!--<root>-->

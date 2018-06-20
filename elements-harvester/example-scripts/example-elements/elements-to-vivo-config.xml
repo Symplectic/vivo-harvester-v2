@@ -249,6 +249,7 @@
         </config:publication-type>
         <config:publication-type type="scholarly-edition">
             <rdf:type rdf:resource="http://purl.org/ontology/bibo/Article"/>
+            <!--<rdf:type rdf:resource="$$local$$otherPublication"/>-->
         </config:publication-type>
         <config:publication-type type="software">
 
@@ -262,7 +263,35 @@
         </config:publication-type>
         <config:publication-type type="z-default">
             <rdf:type rdf:resource="http://purl.org/ontology/bibo/Article"/>
+            <!-- <rdf:type rdf:resource="$$local$$otherPublication"/> -->
         </config:publication-type>
+		
+		<!-- Example of complex type mapping (for elements c-custom-type objects) using conditions -->
+		<!--
+		<config:publication-type type="c-custom-type">
+            <config:on-condition>
+                <config:condition>
+                    <config:field-matches field="types" value="Editorial" />
+                </config:condition>
+                <rdf:type rdf:resource="http://custom-mapped-type-uri-1"/>
+            </config:on-condition>
+            <config:on-condition>
+                <config:condition>
+                    <config:and>
+                        <config:field-matches field="types" value="Visual art work" />
+                        <config:or>
+                            <config:field-matches field="c-type-of-visual-art-work" value="Drawing" />
+                            <config:field-matches field="c-type-of-visual-art-work" value="Painting" />
+                            <config:field-matches field="c-type-of-visual-art-work" value="Photographic Image" />
+                        </config:or>
+                    </config:and>
+                </config:condition>
+                <rdf:type rdf:resource="http://custom-mapped-type-uri-2"/>
+            </config:on-condition>
+			<rdf:type rdf:resource="http://custom-mapped-type-uri-3"/>
+		</config:publication-type>
+		-->
+
     </config:publication-types>
 
 
@@ -472,7 +501,7 @@
         <config:country-type name="Congo" uri="http://aims.fao.org/aos/geopolitical.owl#Congo_the" />
         <config:country-type name="Cook Islands" uri="http://aims.fao.org/aos/geopolitical.owl#Cook_Islands_the" />
         <config:country-type name="Costa Rica" uri="http://aims.fao.org/aos/geopolitical.owl#Costa_Rica" />
-        <config:country-type name="CÃ´te d'Ivoire" uri="http://aims.fao.org/aos/geopolitical.owl#Cote_d_Ivoire" />
+        <config:country-type name="Côte d'Ivoire" uri="http://aims.fao.org/aos/geopolitical.owl#Cote_d_Ivoire" />
         <config:country-type name="Croatia" uri="http://aims.fao.org/aos/geopolitical.owl#Croatia" />
         <config:country-type name="Cuba" uri="http://aims.fao.org/aos/geopolitical.owl#Cuba" />
         <config:country-type name="Cyprus" uri="http://aims.fao.org/aos/geopolitical.owl#Cyprus" />

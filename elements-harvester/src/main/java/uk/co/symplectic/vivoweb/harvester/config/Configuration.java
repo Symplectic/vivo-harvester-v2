@@ -55,7 +55,7 @@ public class Configuration {
         private ConfigKey ARG_ACADEMICS_ONLY = new ConfigKey("academicsOnly", "true"); //TODO: review this default
         private ConfigKey ARG_VISIBLE_LINKS_ONLY = new ConfigKey("visibleLinksOnly", "false"); //TODO: review this default
         private ConfigKey ARG_REPULL_RELS_TO_CORRECT_VISIBILITY = new ConfigKey("repullRelsToCorrectVis", "true"); //TODO: review this default
-        private ConfigKey ARG_RELATIONSHIP_TYPES_TO_REPROCESS = new ConfigKey("relTypesToReprocess", "activity-user-association, user-teaching-association"); //TODO: review this default
+        private ConfigKey ARG_RELATIONSHIP_TYPES_TO_REPROCESS = new ConfigKey("relTypesToReprocess", "activity-user-association, user-teaching-association, publication-user-authorship"); //TODO: review this default
 
         private ConfigKey ARG_USE_FULL_UTF8 = new ConfigKey("useFullUTF8", "false"); //TODO: review this default
 

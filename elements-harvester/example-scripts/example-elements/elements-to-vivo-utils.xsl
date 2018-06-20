@@ -512,7 +512,7 @@
         <xsl:param name="object" />
         <xsl:param name="propertyName" as="xs:string" />
         <xsl:param name="fieldName" as="xs:string" />
-        <xsl:param name="default" />
+        <xsl:param name="default" as="item()"/>
 
 
         <xsl:variable name="recordField" select="svfn:getRecordFieldOrFirst($object, $fieldName)" />
@@ -826,27 +826,63 @@
         </xsl:choose>
     </xsl:function>
 
+
+    <!--<xsl:function name="svfn:renderLinksAndExternalPeople">-->
+        <!--<xsl:param name="people" />-->
+        <!--<xsl:param name="linkedId" as="xs:string" />-->
+        <!--<xsl:param name="linkedUri" as="xs:string" />-->
+
+        <!--<xsl:choose>-->
+            <!--<xsl:when test="$people/@name='authors'">-->
+                <!--<xsl:copy-of select="svfn:renderLinksAndExternalPeople($people, $linkedId, $linkedUri, 'http://vivoweb.org/ontology/core#Authorship')" />-->
+            <!--</xsl:when>-->
+            <!--<xsl:when test="$people/@name='editors'">-->
+                <!--<xsl:copy-of select="svfn:renderLinksAndExternalPeople($people, $linkedId, $linkedUri, 'http://vivoweb.org/ontology/core#Editorship')" />-->
+            <!--</xsl:when>-->
+        <!--</xsl:choose>-->
+    <!--</xsl:function>-->
+
+    <!--<xsl:function name="svfn:renderLinksAndExternalPeople">-->
+    <!--<xsl:param name="people" />-->
+    <!--<xsl:param name="linkedId" as="xs:string" />-->
+    <!--<xsl:param name="linkedUri" as="xs:string" />-->
+    <!--<xsl:param name="contextType" as="xs:string" />-->
+        <!--<xsl:copy-of select="svfn:renderLinksAndExternalPeople($people, $linkedId, $linkedUri, $contextType, '')" />-->
+    <!--</xsl:function>-->
+
+    <xsl:function name="svfn:renderLinksAndExternalPeople">
+        <xsl:param name="people" />
+        <xsl:param name="linkedId" as="xs:string" />
+        <xsl:param name="linkedUri" as="xs:string" />
+        <xsl:param name="contextType" as="xs:string" />
+        <xsl:param name="descriptor" as="xs:string" />
+
+        <xsl:variable name="context-lu" select="$contextPropertyLookup/context-lookups/context-lookup[@type-uri=$contextType]" />
+        <xsl:if test="$context-lu">
+            <xsl:copy-of select="svfn:renderLinksAndExternalPeople($people, $linkedId, $linkedUri, $context-lu/@uriFragment, $context-lu/@type-uri, $context-lu/@contextToUser, $context-lu/@contextToObject, $context-lu/@objectToContext, $descriptor)" />
+        </xsl:if>
+
+    </xsl:function>
+
     <!--
     -->
     <xsl:function name="svfn:renderLinksAndExternalPeople">
         <xsl:param name="people" />
         <xsl:param name="linkedId" as="xs:string" />
         <xsl:param name="linkedUri" as="xs:string" />
+        <xsl:param name="linkUriPrefix" as="xs:string" />
+        <xsl:param name="contextObjectTypeUri" as="xs:string" />
+        <xsl:param name="contextVCardLinkProperty" as="xs:string" />
+        <xsl:param name="contextToObjectLinkProperty" as="xs:string" />
+        <xsl:param name="objectToContextLinkProperty" as="xs:string" />
+        <xsl:param name="descriptor" as="xs:string" />
 
-        <xsl:variable name="linkType">
-            <xsl:choose>
-                <xsl:when test="$people/@name='authors'">authorship</xsl:when>
-                <xsl:when test="$people/@name='associated-authors'"></xsl:when>
-                <xsl:when test="$people/@name='editors'">editorship</xsl:when>
-            </xsl:choose>
-        </xsl:variable>
-
-        <xsl:if test="not($linkType='')">
+        <xsl:if test="not($linkUriPrefix='')">
             <xsl:for-each select="$people/api:people/api:person">
                 <xsl:variable name="contextUri">
                     <xsl:choose>
                         <xsl:when test="api:links/api:link/@type='elements/user'">
-                            <xsl:value-of select="svfn:objectToObjectURI($linkType,$linkedId,api:links/api:link[@type='elements/user']/@id)" />
+                            <xsl:value-of select="svfn:objectToObjectURI($linkUriPrefix,$linkedId,api:links/api:link[@type='elements/user']/@id)" />
                         </xsl:when>
                         <xsl:otherwise>
                             <xsl:variable name="personId">
@@ -863,7 +899,7 @@
                                 </xsl:choose>
                             </xsl:variable>
                             <xsl:variable name="authorshipId" select="concat($personId, '-', position())" />
-                            <xsl:value-of select="svfn:objectToObjectURI($linkType, $linkedId, $authorshipId)" />
+                            <xsl:value-of select="svfn:objectToObjectURI($linkUriPrefix, $linkedId, $authorshipId)" />
                         </xsl:otherwise>
                     </xsl:choose>
                 </xsl:variable>
@@ -875,13 +911,16 @@
                 <xsl:call-template name="render_rdf_object">
                     <xsl:with-param name="objectURI" select="$contextUri" />
                     <xsl:with-param name="rdfNodes">
-                        <xsl:choose>
-                            <xsl:when test="$linkType='authorship'"><rdf:type rdf:resource="http://vivoweb.org/ontology/core#Authorship"/></xsl:when>
-                            <xsl:when test="$linkType='editorship'"><rdf:type rdf:resource="http://vivoweb.org/ontology/core#Editorship"/></xsl:when>
-                            <xsl:otherwise><rdf:type rdf:resource="http://vivoweb.org/ontology/core#Authorship"/></xsl:otherwise>
-                        </xsl:choose>
-                        <vivo:relates rdf:resource="{$vCardUri}"/>
-                        <vivo:relates rdf:resource="{$linkedUri}"/>
+                        <rdf:type rdf:resource="{$contextObjectTypeUri}"/>
+                        <xsl:element name="{$contextVCardLinkProperty}">
+                            <xsl:attribute name="rdf:resource" select="$vCardUri" />
+                        </xsl:element>
+                        <xsl:element name="{$contextToObjectLinkProperty}">
+                            <xsl:attribute name="rdf:resource" select="$linkedUri" />
+                        </xsl:element>
+                        <xsl:if test="normalize-space($descriptor) != ''">
+                            <rdfs:label><xsl:value-of select="$descriptor" /></rdfs:label>
+                        </xsl:if>
                         <vivo:rank rdf:datatype="http://www.w3.org/2001/XMLSchema#int"><xsl:value-of select="position()" /></vivo:rank>
                     </xsl:with-param>
                 </xsl:call-template>
@@ -889,7 +928,9 @@
                 <xsl:call-template name="render_rdf_object">
                     <xsl:with-param name="objectURI" select="$linkedUri" />
                     <xsl:with-param name="rdfNodes">
-                        <vivo:relatedBy rdf:resource="{$contextUri}" />
+                        <xsl:element name="{$objectToContextLinkProperty}">
+                            <xsl:attribute name="rdf:resource" select="$contextUri" />
+                        </xsl:element>
                     </xsl:with-param>
                 </xsl:call-template>
             </xsl:for-each>
@@ -903,14 +944,23 @@
         <xsl:if test="$person/* and $personUri">
             <xsl:variable name="vcardUri" select="concat($personUri, '-vcard')" />
             <xsl:variable name="vcardNameUri" select="concat($personUri,'-vcardname')" />
+            <xsl:variable name="vcardFormattedNameUri" select="concat($personUri,'-vcardfname')" />
+            <xsl:variable name="vcardFormattedNameObject" select="svfn:renderVcardFormattedNameObject($person/api:first-names[1], $person/api:last-name, $person/api:initials, $vcardFormattedNameUri)" />
+
             <!-- Create person vcard object -->
             <xsl:call-template name="render_rdf_object">
                 <xsl:with-param name="objectURI" select="$vcardUri" />
                 <xsl:with-param name="rdfNodes">
                     <rdf:type rdf:resource="http://www.w3.org/2006/vcard/ns#Individual"/>
                     <vcard:hasName rdf:resource="{$vcardNameUri}"/>
+                    <xsl:if test="$vcardFormattedNameObject">
+                        <vcard:hasFormattedName rdf:resource="{$vcardFormattedNameUri}" />
+                    </xsl:if>
                 </xsl:with-param>
             </xsl:call-template>
+
+            <!-- write out the formatted name if present -->
+            <xsl:copy-of select="$vcardFormattedNameObject" />
 
             <!-- Create person vcard name object -->
             <xsl:call-template name="render_rdf_object">
@@ -929,6 +979,27 @@
                 </xsl:with-param>
             </xsl:call-template>
         </xsl:if>
+    </xsl:function>
+
+    <xsl:function name="svfn:renderVcardFormattedNameObject">
+        <xsl:param name="firstName" as="xs:string?"  />
+        <xsl:param name="lastName" as="xs:string" />
+        <xsl:param name="initials" as="xs:string?" />
+        <xsl:param name="vcardFormattedNameURI" as="xs:string" />
+
+        <xsl:call-template name="render_rdf_object">
+            <xsl:with-param name="objectURI" select="$vcardFormattedNameURI" />
+            <xsl:with-param name="rdfNodes">
+                <xsl:call-template name="_concat_nodes_if">
+                    <xsl:with-param name="nodesRequired" select="/..">
+                        <!--<vcard:formattedName><xsl:value-of select="normalize-space(concat($lastName, ' ', $initials))" /></vcard:formattedName>-->
+                    </xsl:with-param>
+                    <xsl:with-param name="nodesToAdd">
+                        <rdf:type rdf:resource="http://www.w3.org/2006/vcard/ns#FormattedName" />
+                    </xsl:with-param>
+                </xsl:call-template>
+            </xsl:with-param>
+        </xsl:call-template>
     </xsl:function>
 
     <xsl:function name="svfn:renderControlledSubjectLinks">

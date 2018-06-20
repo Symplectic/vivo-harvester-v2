@@ -32,6 +32,7 @@
     -->
     <xsl:import href="elements-to-vivo-config.xsl" />
     <xsl:import href="elements-to-vivo-datatypes.xsl" />
+    <xsl:import href="elements-to-vivo-datatypes-matching.xsl" />
     <xsl:import href="elements-to-vivo-utils.xsl" />
     <!--
         Import XSLT for object and relationship transformations

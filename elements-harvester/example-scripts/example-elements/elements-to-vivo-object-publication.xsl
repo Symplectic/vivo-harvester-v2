@@ -73,8 +73,12 @@
         <!-- Generate a conference object URI from the conference name -->
         <xsl:variable name="conferenceURI" select="svfn:makeURI('conference-',$conferenceName)" />
 
+        <xsl:variable name="rdfTypes" select="svfn:getTypesForPublication(.)" />
+
+        <xsl:variable name="translationContext" select="svfn:translationContext($rdfTypes)" />
+
         <!-- Generate the conference object -->
-        <xsl:variable name="conferenceObject" select="svfn:renderConferenceObject(.,$conferenceURI,$conferenceName,svfn:objectURI(.))" />
+        <xsl:variable name="conferenceObject" select="svfn:renderConferenceObject(.,$conferenceURI,$conferenceName,svfn:objectURI(.), $translationContext)" />
 
         <!-- Get the authors -->
         <xsl:variable name="authors" select="svfn:getRecordField(.,'authors')" />
@@ -109,7 +113,7 @@
                 Also, the properties to reference the publication date and venue are output, if the objects have been created (test for child nodes)
             -->
             <xsl:with-param name="rdfNodes">
-                <xsl:copy-of select="svfn:getTypesForPublication(@type)" />
+                <xsl:copy-of select="$rdfTypes" />
                 <xsl:copy-of select="svfn:renderPropertyFromFieldOrFirst(.,'rdfs:label','title', '')" />
                 <xsl:copy-of select="svfn:renderPropertyFromField(.,'bibo:abstract','abstract')" />
                 <xsl:copy-of select="svfn:renderPropertyFromField(.,'bibo:doi','doi')" />
@@ -137,7 +141,16 @@
                 <xsl:if test="$filedDateObject/*"><vivo:dateFiled rdf:resource="{$filedDateURI}" /></xsl:if>
                 <xsl:if test="$publicationDateObject/*"><vivo:dateTimeValue rdf:resource="{$publicationDateURI}" /></xsl:if>
                 <xsl:if test="$publicationVenueObject/*"><vivo:hasPublicationVenue rdf:resource="{$publicationVenueURI}" /></xsl:if>
-                <xsl:if test="$conferenceObject/*"><bibo:presentedAt rdf:resource="{$conferenceURI}" /></xsl:if>
+                <xsl:if test="$conferenceObject/*">
+                    <xsl:choose>
+                        <xsl:when test="$translationContext = 'event' or $translationContext = 'presentation'">
+                            <obo:BFO_0000050 rdf:resource="{$conferenceURI}" />
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <bibo:presentedAt rdf:resource="{$conferenceURI}" />
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:if>
                 <xsl:if test="$arxivPdfUrl/* or $authorUrl/* or $publisherUrl/* or $wosUrl/* or $repositoryUrl">
                     <obo:ARG_2000028 rdf:resource="{concat(svfn:objectURI(.),'-webpages')}" />
                 </xsl:if>
@@ -233,8 +246,20 @@
 
         </xsl:if>
 
-        <xsl:copy-of select="svfn:renderLinksAndExternalPeople($authors, $publicationId, $publicationUri)" />
-        <xsl:copy-of select="svfn:renderLinksAndExternalPeople($editors, $publicationId, $publicationUri)" />
+        <xsl:choose>
+            <xsl:when test="$translationContext = 'presentation'">
+                <xsl:copy-of select="svfn:renderLinksAndExternalPeople($authors, $publicationId, $publicationUri, 'http://vivoweb.org/ontology/core#PresenterRole', 'Presenter')" />
+            </xsl:when>
+            <xsl:when test="$translationContext = 'event'">
+                <xsl:copy-of select="svfn:renderLinksAndExternalPeople($authors, $publicationId, $publicationUri, 'http://vivoweb.org/ontology/core#ResearcherRole', 'Creator')" />
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:copy-of select="svfn:renderLinksAndExternalPeople($authors, $publicationId, $publicationUri, 'http://vivoweb.org/ontology/core#Authorship', '')" />
+            </xsl:otherwise>
+        </xsl:choose>
+        <xsl:if test="$translationContext='publication'">
+            <xsl:copy-of select="svfn:renderLinksAndExternalPeople($editors, $publicationId, $publicationUri, 'http://vivoweb.org/ontology/core#Editorship', '')" />
+        </xsl:if>
 
         <!-- add label objects -->
         <xsl:copy-of select="svfn:renderControlledSubjectObjects(.)" />
@@ -246,32 +271,65 @@
 
     <!-- Get publication type statements from the XML configuration (for the type supplied as a parameter) -->
     <xsl:function name="svfn:getTypesForPublication">
-        <xsl:param name="type" as="xs:string" />
+        <xsl:param name="object"  />
 
-        <!-- Copy the publication type statements from the XML into a variable -->
+        <xsl:variable name="type" select="$object/@type" />
+
         <xsl:variable name="publication-type">
             <xsl:choose>
-                <xsl:when test="$publication-types/config:publication-type[@type=$type]"><xsl:copy-of select="$publication-types/config:publication-type[@type=$type]/*" /></xsl:when>
-                <xsl:when test="$publication-types/config:publication-type[@type='z-default']"><xsl:copy-of select="$publication-types/config:publication-type[@type='z-default']/*" /></xsl:when>
+                <xsl:when test="$publication-types/config:publication-type[@type=$type]/config:on-condition[svfn:evaluateCondition($object, config:condition[1]/*[1])]">
+                    <xsl:copy-of select="$publication-types/config:publication-type[@type=$type]/config:on-condition[svfn:evaluateCondition($object, config:condition[1]/*[1])][1]/*[not(self::config:condition)]" />
+                </xsl:when>
+                <xsl:when test="$publication-types/config:publication-type[@type=$type and not(condition)]"><xsl:copy-of select="$publication-types/config:publication-type[@type=$type and not(condition)]/*[not(self::config:on-condition)]" /></xsl:when>
+                <xsl:when test="$publication-types/config:publication-type[@type='z-default']"><xsl:copy-of select="$publication-types/config:publication-type[@type='z-default']/*[not(self::config:on-condition)]" /></xsl:when>
                 <xsl:otherwise><xsl:copy-of select="$publication-types/config:publication-type[1]/*" /></xsl:otherwise>
             </xsl:choose>
         </xsl:variable>
 
-        <!-- Determine most specific type -->
         <xsl:choose>
             <!-- if the configuration specifies a most specific type, copy that -->
             <xsl:when test="$publication-type/vitro:mostSpecificType">
-                <vitro:mostSpecificType rdf:resource="{$publication-type/vitro:mostSpecificType/@rdf:resource}" />
+                <vitro:mostSpecificType rdf:resource="{svfn:expandSpecialNames($publication-type/vitro:mostSpecificType/@rdf:resource)}" />
             </xsl:when>
             <!-- no most specific type designated, so use the first type listed -->
-            <xsl:when test="count($publication-type/*) &gt; 1">
-                <vitro:mostSpecificType rdf:resource="{$publication-type/rdf:type[1]/@rdf:resource}" />
+            <xsl:when test="count($publication-type/rdf:type) &gt; 1">
+                <vitro:mostSpecificType rdf:resource="{svfn:expandSpecialNames($publication-type/rdf:type[1]/@rdf:resource)}" />
             </xsl:when>
         </xsl:choose>
         <!-- Copy all of the rdf:type statements from the selected configuration to the output -->
         <xsl:for-each select="$publication-type/rdf:type">
-            <rdf:type rdf:resource="{@rdf:resource}" />
+            <rdf:type rdf:resource="{svfn:expandSpecialNames(@rdf:resource)}" />
         </xsl:for-each>
+    </xsl:function>
+
+
+    <xsl:function name="svfn:translationContext">
+        <xsl:param name="rdfTypes"  />
+
+        <xsl:variable name="contextLookups">
+            <types>
+                <typeset treat-as="presentation">
+                    <type uri="http://vivoweb.org/ontology/core#Presentation" />
+                    <type uri="http://vivoweb.org/ontology/core#InvitedTalk" />
+                </typeset>
+                <typeset treat-as="event">
+                    <type uri="http://vivoweb.org/ontology/core#Exhibit" />
+                    <type uri="http://purl.org/ontology/bibo/Performance" />
+                    <type uri="http://purl.org/NET/c4dm/event.owl#Event" />
+                </typeset>
+                <default treat-as="publication" />
+            </types>
+        </xsl:variable>
+
+        <xsl:choose>
+            <xsl:when test="$contextLookups/types/typeset[type/@uri = $rdfTypes/@rdf:resource]">
+                <xsl:value-of select="$contextLookups/types/typeset[type/@uri = $rdfTypes/@rdf:resource][1]/@treat-as" />
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:value-of select="$contextLookups/types/default[1]/@treat-as" />
+            </xsl:otherwise>
+        </xsl:choose>
+
     </xsl:function>
 
     <xsl:function name="svfn:selectConferenceName">
@@ -388,6 +446,7 @@
         <xsl:param name="conferenceObjectURI" as="xs:string" />
         <xsl:param name="confName" as="xs:string" />
         <xsl:param name="publicationURI" as="xs:string" />
+        <xsl:param name="translationContext" as="xs:string" />
 
         <xsl:if test="$confName">
             <xsl:call-template name="render_rdf_object">
@@ -395,7 +454,14 @@
                 <xsl:with-param name="rdfNodes">
                     <rdfs:label><xsl:value-of select="$confName" /></rdfs:label>
                     <rdf:type rdf:resource="http://purl.org/ontology/bibo/Conference"/>
-                    <bibo:presents rdf:resource="{$publicationURI}" />
+                    <xsl:choose>
+                        <xsl:when test="$translationContext = 'event' or $translationContext = 'presentation'">
+                            <obo:BFO_0000051 rdf:resource="{$publicationURI}" />
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <bibo:presents rdf:resource="{$publicationURI}" />
+                        </xsl:otherwise>
+                    </xsl:choose>
                     <!-- obo:RO_0001025 rdf:resource="" / --><!-- location -->
                 </xsl:with-param>
             </xsl:call-template>

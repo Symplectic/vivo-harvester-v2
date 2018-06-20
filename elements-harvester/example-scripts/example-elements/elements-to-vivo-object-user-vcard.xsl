@@ -49,6 +49,9 @@
         <xsl:variable name="vcardNicknameURI" select="svfn:makeURI('vcardNickname-',$userId)" />
         <xsl:variable name="vcardNicknameObject" select="svfn:renderVcardNicknameObject(.,$vcardNicknameURI)" />
 
+        <xsl:variable name="vcardFormattedNameURI" select="svfn:makeURI('vcardFormattedName-',$userId)" />
+        <xsl:variable name="vcardFormattedNameObject" select="svfn:renderVcardFNameObject(.,$vcardFormattedNameURI)" />
+
         <xsl:variable name="vcardTitleURI" select="svfn:makeURI('vcardTitle-',$userId)" />
         <xsl:variable name="vcardTitleObject" select="svfn:renderVcardTitleObject(.,$vcardTitleURI)" />
 
@@ -81,6 +84,9 @@
                 <xsl:if test="$vcardNicknameObject">
                     <vcard:hasNickname rdf:resource="{$vcardNicknameURI}" />
                 </xsl:if>
+                <xsl:if test="$vcardFormattedNameObject">
+                    <vcard:hasFormattedName rdf:resource="{$vcardFormattedNameURI}" />
+                </xsl:if>
                 <xsl:if test="$vcardTitleObject">
                     <vcard:hasTitle rdf:resource="{$vcardTitleURI}" />
                 </xsl:if>
@@ -110,6 +116,7 @@
         <xsl:copy-of select="$vcardEmailObject" />
         <xsl:copy-of select="$vcardNameObject" />
         <xsl:copy-of select="$vcardNicknameObject" />
+        <xsl:copy-of select="$vcardFormattedNameObject" />
         <xsl:copy-of select="$vcardTitleObject" />
         <xsl:if test="$vcardAddresses">
             <xsl:for-each select="$vcardAddresses/api:addresses/api:address[@privacy='public']">
@@ -229,6 +236,13 @@
                 </xsl:call-template>
             </xsl:with-param>
         </xsl:call-template>
+    </xsl:function>
+
+    <xsl:function name="svfn:renderVcardFNameObject">
+        <xsl:param name="object" />
+        <xsl:param name="vcardFormattedNameURI" as="xs:string" />
+
+        <xsl:copy-of select="svfn:renderVcardFormattedNameObject($object/api:first-name, $object/api:last-name, $object/api:initials, $vcardFormattedNameURI)" />
     </xsl:function>
 
     <xsl:function name="svfn:renderVcardTitleObject">
