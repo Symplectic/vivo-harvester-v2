@@ -88,17 +88,6 @@ public class ElementsFetchAndTranslate {
             Configuration.parse("elementsfetch.properties");
             log.info(Configuration.getConfiguredValues());
 
-            //Set up the Elements API and check that the configured eligibility settings make sense for that API version.
-            ElementsAPI elementsAPI = ElementsFetchAndTranslate.getElementsAPI();
-            EligibilityFilter eligibilityFilter = Configuration.getElligibilityFilter();
-            if(elementsAPI.getVersion().lessThan(ElementsAPIVersion.VERSION_5_5) && eligibilityFilter.filtersOutNonPublicStaff()){
-                log.error(
-                    MessageFormat.format("An Elements API running the (v{0}) Endpoint spec is incompatible with filtering out public staff (publicStaffOnly = true) as a v4.9 spec API does not provide this information.", elementsAPI.getVersion())
-                );
-                log.error("You should either upgrade to a v5.5 (or later) spec API endpoint or specifically set \"publicStaffOnly = false\" in the config file.");
-                throw new IllegalStateException("Invalid configuration for API Version - see previous error messages.");
-            }
-
             //only one of these will be true, both can be false
             boolean forceFullPull = args.length != 0 && args[0].equals("--full");
             boolean reprocessTranslations = args.length != 0 && args[0].equals("--reprocess");
@@ -169,6 +158,20 @@ public class ElementsFetchAndTranslate {
             //runType = StateType.ODD;
             //end of hacks for testing.
 
+            EligibilityFilter eligibilityFilter = Configuration.getElligibilityFilter();
+            //Set up the Elements API and check that the configured eligibility settings make sense for that API version.
+            ElementsAPI elementsAPI = null;
+            if(currentRunClassification != StateManagement.RunClassification.REPROCESSING) {
+                elementsAPI = ElementsFetchAndTranslate.getElementsAPI();
+                if (elementsAPI.getVersion().lessThan(ElementsAPIVersion.VERSION_5_5) && eligibilityFilter.filtersOutNonPublicStaff()) {
+                    log.error(
+                            MessageFormat.format("An Elements API running the (v{0}) Endpoint spec is incompatible with filtering out public staff (publicStaffOnly = true) as a v4.9 spec API does not provide this information.", elementsAPI.getVersion())
+                    );
+                    log.error("You should either upgrade to a v5.5 (or later) spec API endpoint or specifically set \"publicStaffOnly = false\" in the config file.");
+                    throw new IllegalStateException("Invalid configuration for API Version - see previous error messages.");
+                }
+            }
+
             //TODO: should we ensure that other configured directories are valid (either already exist or can be created at this point?
             File interimTdbDirectory = Configuration.getTdbOutputDir();
             interimTdbDirectory.mkdirs();
@@ -189,7 +192,7 @@ public class ElementsFetchAndTranslate {
                 Set<String> relationshipTypesNeedingObjectsForTranslation = Configuration.getRelTypesToReprocess();
 
                 //Set up a fetcher that uses the Elements API.
-                ElementsFetch elementsFetcher = new ElementsFetch(elementsAPI);
+                ElementsFetch elementsFetcher = currentRunClassification != StateManagement.RunClassification.REPROCESSING ? new ElementsFetch(elementsAPI) : null;
 
                 //Configure extraction of extra data that can be used to establish if users should be included.
                 if(eligibilityFilter instanceof EligibilityFilter.LabelSchemeFilter){
@@ -217,10 +220,10 @@ public class ElementsFetchAndTranslate {
                 //Hook a photo retrieval observer onto the rdf store so that photos will be fetched and dropped in the object store for any translated users.
                 ElementsUserPhotoRetrievalObserver photoRetrievalObserver = null;
                 if(currentRunClassification != StateManagement.RunClassification.REPROCESSING) {
-                    photoRetrievalObserver = new ElementsUserPhotoRetrievalObserver(elementsAPI, Configuration.getImageType(), objectStore);
+                    photoRetrievalObserver = new ElementsUserPhotoRetrievalObserver.FetchingObserver(elementsAPI, Configuration.getImageType(), objectStore);
                 }
                 else{
-                    photoRetrievalObserver = new ElementsUserPhotoRetrievalObserver.ReprocessingObserver(elementsAPI, Configuration.getImageType(), objectStore);
+                    photoRetrievalObserver = new ElementsUserPhotoRetrievalObserver.ReprocessingObserver(Configuration.getImageType(), objectStore);
                 }
                 objectStore.addItemObserver(photoRetrievalObserver);
                 //Hook a photo RDF generating observer onto the object store so that any fetched photos have corresponding "rdf" created in the translated output.

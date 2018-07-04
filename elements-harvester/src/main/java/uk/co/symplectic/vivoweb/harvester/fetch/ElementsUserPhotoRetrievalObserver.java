@@ -23,35 +23,14 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.text.MessageFormat;
 
-public class ElementsUserPhotoRetrievalObserver extends ElementsStoreOutputItemObserver {
+public abstract class ElementsUserPhotoRetrievalObserver extends ElementsStoreOutputItemObserver {
 
-    //TODO: Sort out static as object behaviour here
-    private final ResourceFetchService fetchService = new ResourceFetchService();
-    private final ElementsAPI elementsApi;
     private final ImageUtils.PhotoType photoType;
-
     protected ImageUtils.PhotoType getPhotoType(){return photoType;}
 
-    public ElementsUserPhotoRetrievalObserver(ElementsAPI elementsApi, ImageUtils.PhotoType photoType, ElementsItemFileStore objectStore) {
+    public ElementsUserPhotoRetrievalObserver(ImageUtils.PhotoType photoType, ElementsItemFileStore objectStore) {
         super(objectStore, StorableResourceType.RAW_OBJECT, StorableResourceType.RAW_USER_PHOTO, false);
-        if(elementsApi == null) throw new NullArgumentException("elementsApi");
-        this.elementsApi  = elementsApi;
         this.photoType = photoType; //can be set to null harmlessly - will act as if set to ImageUtils.PhotoType.Profile.
-    }
-
-    @Override
-    protected void observeStoredObject(ElementsObjectInfo info, ElementsStoredItemInfo item) {
-        if (info instanceof ElementsUserInfo) {
-            ElementsUserInfo userInfo = (ElementsUserInfo) info;
-            //will do nothing for a photoType of NONE..
-            if (!StringUtils.isEmpty(userInfo.getPhotoUrl(getPhotoType()))) {
-                try {
-                    fetchService.fetchUserPhoto(elementsApi, getPhotoType(), userInfo, getStore());
-                } catch (MalformedURLException mue) {
-                    // TODO: Log error
-                }
-            }
-        }
     }
 
     @Override
@@ -62,10 +41,38 @@ public class ElementsUserPhotoRetrievalObserver extends ElementsStoreOutputItemO
     }
 
 
+    public static class FetchingObserver extends ElementsUserPhotoRetrievalObserver{
+        //TODO: Sort out static as object behaviour here
+        private final ResourceFetchService fetchService = new ResourceFetchService();
+        private final ElementsAPI elementsApi;
+
+        public FetchingObserver(ElementsAPI elementsApi, ImageUtils.PhotoType photoType, ElementsItemFileStore objectStore) {
+            super(photoType, objectStore);
+            if(elementsApi == null) throw new NullArgumentException("elementsApi");
+            this.elementsApi  = elementsApi;
+        }
+
+        @Override
+        protected void observeStoredObject(ElementsObjectInfo info, ElementsStoredItemInfo item) {
+            if (info instanceof ElementsUserInfo) {
+                ElementsUserInfo userInfo = (ElementsUserInfo) info;
+                //will do nothing for a photoType of NONE..
+                if (!StringUtils.isEmpty(userInfo.getPhotoUrl(getPhotoType()))) {
+                    try {
+                        fetchService.fetchUserPhoto(elementsApi, getPhotoType(), userInfo, getStore());
+                    } catch (MalformedURLException mue) {
+                        // TODO: Log error
+                    }
+                }
+            }
+        }
+
+    }
+
     public static class ReprocessingObserver extends ElementsUserPhotoRetrievalObserver{
 
-        public ReprocessingObserver(ElementsAPI elementsApi, ImageUtils.PhotoType photoType, ElementsItemFileStore objectStore){
-            super(elementsApi, photoType, objectStore);
+        public ReprocessingObserver(ImageUtils.PhotoType photoType, ElementsItemFileStore objectStore){
+            super(photoType, objectStore);
         }
 
         protected void observeStoredObject(ElementsObjectInfo info, ElementsStoredItemInfo item) {
