@@ -143,6 +143,8 @@ public abstract class FileSplitter {
                 }
             } finally {
                 if (in != null) in.close();
+                //log the fragments we created...
+                log.info(MessageFormat.format("{0} \"{1}\" fragments created.", filesCreated.size(),  type.getName() ));
             }
         }
         catch (IOException e) {
