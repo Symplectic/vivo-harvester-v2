@@ -60,55 +60,58 @@
                 </xsl:choose>
             </xsl:variable>
 
-            <xsl:variable name="context-lu" select="$contextPropertyLookup/context-lookups/context-lookup[@type-uri=$contextType]" />
+            <!-- we can only process "invisible links" sensible for "authorships" as vivo cannot hide other types of relationship by default. -->
+            <xsl:if test="api:is-visible='true' or $contextType = 'http://vivoweb.org/ontology/core#Authorship' or $contextType = 'http://vivoweb.org/ontology/core#ResearcherRole' ">
+                <xsl:variable name="context-lu" select="$contextPropertyLookup/context-lookups/context-lookup[@type-uri=$contextType]" />
 
-            <!-- Get the user object reference from the relationship -->
-            <xsl:variable name="user" select="api:related/api:object[@category='user']" />
+                <!-- Get the user object reference from the relationship -->
+                <xsl:variable name="user" select="api:related/api:object[@category='user']" />
 
-            <!-- Create a URI for the object relating author to publication -->
-            <xsl:variable name="authorshipURI" select="svfn:objectToObjectURI($context-lu/@uriFragment,$publication/@id, $user/@id)" />
+                <!-- Create a URI for the object relating author to publication -->
+                <xsl:variable name="authorshipURI" select="svfn:objectToObjectURI($context-lu/@uriFragment,$publication/@id, $user/@id)" />
 
-            <!-- Add a reference to the authorship object to the user object -->
-            <xsl:call-template name="render_rdf_object">
-                <xsl:with-param name="objectURI" select="svfn:userURI($user)" />
-                <xsl:with-param name="rdfNodes">
-                    <xsl:element name="{$context-lu/@userToContext}">
-                        <xsl:attribute name="rdf:resource" select="$authorshipURI" />
-                    </xsl:element>
-                    <!--<vivo:relatedBy rdf:resource="{$authorshipURI}"/>-->
-                </xsl:with-param>
-            </xsl:call-template>
+                <!-- Add a reference to the authorship object to the user object -->
+                <xsl:call-template name="render_rdf_object">
+                    <xsl:with-param name="objectURI" select="svfn:userURI($user)" />
+                    <xsl:with-param name="rdfNodes">
+                        <xsl:element name="{$context-lu/@userToContext}">
+                            <xsl:attribute name="rdf:resource" select="$authorshipURI" />
+                        </xsl:element>
+                        <!--<vivo:relatedBy rdf:resource="{$authorshipURI}"/>-->
+                    </xsl:with-param>
+                </xsl:call-template>
 
-            <!-- Add a reference to the authorship object to the publication object -->
-            <xsl:call-template name="render_rdf_object">
-                <xsl:with-param name="objectURI" select="svfn:objectURI($publication)" />
-                <xsl:with-param name="rdfNodes">
-                    <xsl:element name="{$context-lu/@objectToContext}">
-                        <xsl:attribute name="rdf:resource" select="$authorshipURI" />
-                    </xsl:element>
-                    <!--<vivo:relatedBy rdf:resource="{$authorshipURI}"/>-->
-                </xsl:with-param>
-            </xsl:call-template>
+                <!-- Add a reference to the authorship object to the publication object -->
+                <xsl:call-template name="render_rdf_object">
+                    <xsl:with-param name="objectURI" select="svfn:objectURI($publication)" />
+                    <xsl:with-param name="rdfNodes">
+                        <xsl:element name="{$context-lu/@objectToContext}">
+                            <xsl:attribute name="rdf:resource" select="$authorshipURI" />
+                        </xsl:element>
+                        <!--<vivo:relatedBy rdf:resource="{$authorshipURI}"/>-->
+                    </xsl:with-param>
+                </xsl:call-template>
 
-            <!-- Output the authorship object -->
-            <xsl:call-template name="render_rdf_object">
-                <xsl:with-param name="objectURI" select="$authorshipURI" />
-                <xsl:with-param name="rdfNodes">
-                    <!--<rdf:type rdf:resource="http://vivoweb.org/ontology/core#Authorship"/>-->
-                    <rdf:type rdf:resource="{$contextType}"/>
-                    <xsl:element name="{$context-lu/@contextToUser}">
-                        <xsl:attribute name="rdf:resource" select="svfn:userURI($user)" />
-                    </xsl:element>
-                    <xsl:element name="{$context-lu/@contextToObject}">
-                        <xsl:attribute name="rdf:resource" select="svfn:objectURI($publication)" />
-                    </xsl:element>
-                    <!--<vivo:relates rdf:resource="{svfn:userURI($user)}"/>-->
-                    <!--<vivo:relates rdf:resource="{svfn:objectURI($publication)}"/>-->
-                    <xsl:if test="api:is-visible='false'">
-                        <vivo:hideFromDisplay>true</vivo:hideFromDisplay>
-                    </xsl:if>
-                </xsl:with-param>
-            </xsl:call-template>
+                <!-- Output the authorship object -->
+                <xsl:call-template name="render_rdf_object">
+                    <xsl:with-param name="objectURI" select="$authorshipURI" />
+                    <xsl:with-param name="rdfNodes">
+                        <!--<rdf:type rdf:resource="http://vivoweb.org/ontology/core#Authorship"/>-->
+                        <rdf:type rdf:resource="{$contextType}"/>
+                        <xsl:element name="{$context-lu/@contextToUser}">
+                            <xsl:attribute name="rdf:resource" select="svfn:userURI($user)" />
+                        </xsl:element>
+                        <xsl:element name="{$context-lu/@contextToObject}">
+                            <xsl:attribute name="rdf:resource" select="svfn:objectURI($publication)" />
+                        </xsl:element>
+                        <!--<vivo:relates rdf:resource="{svfn:userURI($user)}"/>-->
+                        <!--<vivo:relates rdf:resource="{svfn:objectURI($publication)}"/>-->
+                        <xsl:if test="api:is-visible='false'">
+                            <vivo:hideFromDisplay>true</vivo:hideFromDisplay>
+                        </xsl:if>
+                    </xsl:with-param>
+                </xsl:call-template>
+            </xsl:if>
         </xsl:if>
     </xsl:template>
 </xsl:stylesheet>

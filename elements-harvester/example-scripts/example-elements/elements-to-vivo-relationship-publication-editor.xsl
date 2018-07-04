@@ -35,7 +35,7 @@
     <xsl:import href="elements-to-vivo-utils.xsl" />
 
     <!-- Match relationship of type publication-user editorship association -->
-    <xsl:template match="api:relationship[@type='publication-user-editorship']" mode="visible-relationship invisible-relationship">
+    <xsl:template match="api:relationship[@type='publication-user-editorship']" mode="visible-relationship">
         <!-- Get the publication object reference from the relationship -->
         <xsl:variable name="publication" select="api:related/api:object[@category='publication']" />
 
@@ -68,9 +68,9 @@
                 <rdf:type rdf:resource="http://vivoweb.org/ontology/core#Editorship"/>
                 <vivo:relates rdf:resource="{svfn:userURI($user)}"/>
                 <vivo:relates rdf:resource="{svfn:objectURI($publication)}"/>
-                <xsl:if test="api:is-visible='false'">
-                    <vivo:hideFromDisplay>true</vivo:hideFromDisplay>
-                </xsl:if>
+                <!--<xsl:if test="api:is-visible='false'">-->
+                    <!--<vivo:hideFromDisplay>true</vivo:hideFromDisplay>-->
+                <!--</xsl:if>-->
             </xsl:with-param>
         </xsl:call-template>
     </xsl:template>
