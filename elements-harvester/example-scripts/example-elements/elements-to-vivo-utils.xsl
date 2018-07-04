@@ -62,6 +62,68 @@
         </xsl:choose>
     </xsl:function>
 
+    <!-- Get publication type statements from the XML configuration (for the type supplied as a parameter) -->
+    <xsl:function name="svfn:getTypesForPublication">
+        <xsl:param name="object"  />
+
+        <xsl:variable name="type" select="$object/@type" />
+
+        <xsl:variable name="publication-type">
+            <xsl:choose>
+                <xsl:when test="$publication-types/config:publication-type[@type=$type]/config:on-condition[svfn:evaluateCondition($object, config:condition[1]/*[1])]">
+                    <xsl:copy-of select="$publication-types/config:publication-type[@type=$type]/config:on-condition[svfn:evaluateCondition($object, config:condition[1]/*[1])][1]/*[not(self::config:condition)]" />
+                </xsl:when>
+                <xsl:when test="$publication-types/config:publication-type[@type=$type and not(condition)]"><xsl:copy-of select="$publication-types/config:publication-type[@type=$type and not(condition)]/*[not(self::config:on-condition)]" /></xsl:when>
+                <xsl:when test="$publication-types/config:publication-type[@type='z-default']"><xsl:copy-of select="$publication-types/config:publication-type[@type='z-default']/*[not(self::config:on-condition)]" /></xsl:when>
+                <xsl:otherwise><xsl:copy-of select="$publication-types/config:publication-type[1]/*" /></xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
+
+        <xsl:choose>
+            <!-- if the configuration specifies a most specific type, copy that -->
+            <xsl:when test="$publication-type/vitro:mostSpecificType">
+                <vitro:mostSpecificType rdf:resource="{svfn:expandSpecialNames($publication-type/vitro:mostSpecificType/@rdf:resource)}" />
+            </xsl:when>
+            <!-- no most specific type designated, so use the first type listed -->
+            <xsl:when test="count($publication-type/rdf:type) &gt; 1">
+                <vitro:mostSpecificType rdf:resource="{svfn:expandSpecialNames($publication-type/rdf:type[1]/@rdf:resource)}" />
+            </xsl:when>
+        </xsl:choose>
+        <!-- Copy all of the rdf:type statements from the selected configuration to the output -->
+        <xsl:for-each select="$publication-type/rdf:type">
+            <rdf:type rdf:resource="{svfn:expandSpecialNames(@rdf:resource)}" />
+        </xsl:for-each>
+    </xsl:function>
+
+    <xsl:function name="svfn:translationContext">
+        <xsl:param name="rdfTypes"  />
+
+        <xsl:variable name="contextLookups">
+            <types>
+                <typeset treat-as="presentation">
+                    <type uri="http://vivoweb.org/ontology/core#Presentation" />
+                    <type uri="http://vivoweb.org/ontology/core#InvitedTalk" />
+                </typeset>
+                <typeset treat-as="event">
+                    <type uri="http://vivoweb.org/ontology/core#Exhibit" />
+                    <type uri="http://purl.org/ontology/bibo/Performance" />
+                    <type uri="http://purl.org/NET/c4dm/event.owl#Event" />
+                </typeset>
+                <default treat-as="publication" />
+            </types>
+        </xsl:variable>
+
+        <xsl:choose>
+            <xsl:when test="$contextLookups/types/typeset[type/@uri = $rdfTypes/@rdf:resource]">
+                <xsl:value-of select="$contextLookups/types/typeset[type/@uri = $rdfTypes/@rdf:resource][1]/@treat-as" />
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:value-of select="$contextLookups/types/default[1]/@treat-as" />
+            </xsl:otherwise>
+        </xsl:choose>
+
+    </xsl:function>
+
     <xsl:function name="svfn:shouldConvertToHTML">
         <xsl:param name="propertyName" as="xs:string" />
 

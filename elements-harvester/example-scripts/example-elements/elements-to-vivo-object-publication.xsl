@@ -49,8 +49,25 @@
         <!-- Attempt to generate a URI for the publication date object -->
         <xsl:variable name="publicationDateURI" select="concat(svfn:objectURI(.),'-publicationDate')" />
 
+        <xsl:variable name="pubDateField" select="svfn:getRecordField(.,'publication-date')" />
+        <xsl:variable name="selectedDate">
+            <xsl:choose>
+                <xsl:when test="$pubDateField">
+                    <xsl:copy-of select="$pubDateField" />
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:copy-of select="svfn:getRecordField(.,'start-date')" />
+                </xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
+        <xsl:variable name="initialDateToUse" select="$selectedDate/api:field[1]" />
+
         <!-- Generate the publication date object. Custom XSLT 2 function that takes the URI for the date, the field that holds the publication date, and what precision you would like to output the date in -->
-        <xsl:variable name="publicationDateObject" select="svfn:renderDateObject($publicationDateURI,svfn:getRecordField(.,'publication-date'), '')" />
+        <xsl:variable name="publicationDateObject" select="svfn:renderDateObject($publicationDateURI, $initialDateToUse, '')" />
+
+        <!-- Generate a publication date interval object. -->
+        <xsl:variable name="publicationDateIntervalObject" select="svfn:renderDateInterval($publicationUri, $initialDateToUse, svfn:getRecordField(.,'end-date'), '', false())" />
+        <xsl:variable name="publicationDateIntervalURI" select="svfn:retrieveDateIntervalUri($publicationDateIntervalObject)" />
 
         <!-- Attempt to generate a URI for the filed date object -->
         <xsl:variable name="filedDateURI" select="concat(svfn:objectURI(.),'-filedDate')" />
@@ -139,7 +156,18 @@
                     <xsl:copy-of select="svfn:renderPropertyFromField(.,'symp:pii','pii')" />
                 </xsl:if>
                 <xsl:if test="$filedDateObject/*"><vivo:dateFiled rdf:resource="{$filedDateURI}" /></xsl:if>
-                <xsl:if test="$publicationDateObject/*"><vivo:dateTimeValue rdf:resource="{$publicationDateURI}" /></xsl:if>
+                <xsl:choose>
+                    <xsl:when test="$translationContext = 'event' or $translationContext = 'presentation'">
+                        <xsl:if test="$publicationDateIntervalURI">
+                            <vivo:dateTimeInterval rdf:resource="{$publicationDateIntervalURI}" />
+                        </xsl:if>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:if test="$publicationDateObject/*">
+                            <vivo:dateTimeValue rdf:resource="{$publicationDateURI}" />
+                        </xsl:if>
+                    </xsl:otherwise>
+                </xsl:choose>
                 <xsl:if test="$publicationVenueObject/*"><vivo:hasPublicationVenue rdf:resource="{$publicationVenueURI}" /></xsl:if>
                 <xsl:if test="$conferenceObject/*">
                     <xsl:choose>
@@ -169,7 +197,13 @@
 
         <!-- Output the publication date and venue objects. If they are empty, nothing will be output -->
         <xsl:copy-of select="$filedDateObject" />
-        <xsl:copy-of select="$publicationDateObject" />
+        <xsl:choose>
+            <xsl:when test="$translationContext = 'event' or $translationContext = 'presentation'">
+                <xsl:copy-of select="$publicationDateIntervalObject" />
+            </xsl:when>
+            <xsl:otherwise><xsl:copy-of select="$publicationDateObject" /></xsl:otherwise>
+        </xsl:choose>
+
         <xsl:copy-of select="$publicationVenueObject" />
         <xsl:copy-of select="$conferenceObject" />
 
@@ -268,69 +302,6 @@
     <!-- ====================================================
          XSLT Function Library
          ==================================================== -->
-
-    <!-- Get publication type statements from the XML configuration (for the type supplied as a parameter) -->
-    <xsl:function name="svfn:getTypesForPublication">
-        <xsl:param name="object"  />
-
-        <xsl:variable name="type" select="$object/@type" />
-
-        <xsl:variable name="publication-type">
-            <xsl:choose>
-                <xsl:when test="$publication-types/config:publication-type[@type=$type]/config:on-condition[svfn:evaluateCondition($object, config:condition[1]/*[1])]">
-                    <xsl:copy-of select="$publication-types/config:publication-type[@type=$type]/config:on-condition[svfn:evaluateCondition($object, config:condition[1]/*[1])][1]/*[not(self::config:condition)]" />
-                </xsl:when>
-                <xsl:when test="$publication-types/config:publication-type[@type=$type and not(condition)]"><xsl:copy-of select="$publication-types/config:publication-type[@type=$type and not(condition)]/*[not(self::config:on-condition)]" /></xsl:when>
-                <xsl:when test="$publication-types/config:publication-type[@type='z-default']"><xsl:copy-of select="$publication-types/config:publication-type[@type='z-default']/*[not(self::config:on-condition)]" /></xsl:when>
-                <xsl:otherwise><xsl:copy-of select="$publication-types/config:publication-type[1]/*" /></xsl:otherwise>
-            </xsl:choose>
-        </xsl:variable>
-
-        <xsl:choose>
-            <!-- if the configuration specifies a most specific type, copy that -->
-            <xsl:when test="$publication-type/vitro:mostSpecificType">
-                <vitro:mostSpecificType rdf:resource="{svfn:expandSpecialNames($publication-type/vitro:mostSpecificType/@rdf:resource)}" />
-            </xsl:when>
-            <!-- no most specific type designated, so use the first type listed -->
-            <xsl:when test="count($publication-type/rdf:type) &gt; 1">
-                <vitro:mostSpecificType rdf:resource="{svfn:expandSpecialNames($publication-type/rdf:type[1]/@rdf:resource)}" />
-            </xsl:when>
-        </xsl:choose>
-        <!-- Copy all of the rdf:type statements from the selected configuration to the output -->
-        <xsl:for-each select="$publication-type/rdf:type">
-            <rdf:type rdf:resource="{svfn:expandSpecialNames(@rdf:resource)}" />
-        </xsl:for-each>
-    </xsl:function>
-
-
-    <xsl:function name="svfn:translationContext">
-        <xsl:param name="rdfTypes"  />
-
-        <xsl:variable name="contextLookups">
-            <types>
-                <typeset treat-as="presentation">
-                    <type uri="http://vivoweb.org/ontology/core#Presentation" />
-                    <type uri="http://vivoweb.org/ontology/core#InvitedTalk" />
-                </typeset>
-                <typeset treat-as="event">
-                    <type uri="http://vivoweb.org/ontology/core#Exhibit" />
-                    <type uri="http://purl.org/ontology/bibo/Performance" />
-                    <type uri="http://purl.org/NET/c4dm/event.owl#Event" />
-                </typeset>
-                <default treat-as="publication" />
-            </types>
-        </xsl:variable>
-
-        <xsl:choose>
-            <xsl:when test="$contextLookups/types/typeset[type/@uri = $rdfTypes/@rdf:resource]">
-                <xsl:value-of select="$contextLookups/types/typeset[type/@uri = $rdfTypes/@rdf:resource][1]/@treat-as" />
-            </xsl:when>
-            <xsl:otherwise>
-                <xsl:value-of select="$contextLookups/types/default[1]/@treat-as" />
-            </xsl:otherwise>
-        </xsl:choose>
-
-    </xsl:function>
 
     <xsl:function name="svfn:selectConferenceName">
         <xsl:param name="object" />
