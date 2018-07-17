@@ -124,7 +124,7 @@
                 <!-- XXX: Ideally these will be unique identifiers in the future that can map to unique individuals in VIVO -->
                 <xsl:variable name="orgObjects" select="svfn:organisationObjects(api:institution, $create-dept-orgs-for-edu-processes)" />
                 <xsl:variable name="deptOrSchool">
-                    <xsl:if test="$create-dept-orgs-for-edu-processes">
+                    <xsl:if test="not($create-dept-orgs-for-edu-processes)">
                         <xsl:value-of select="api:institution/api:line[@type='suborganisation']" />
                     </xsl:if>
                 </xsl:variable>
@@ -217,7 +217,7 @@
                 <!-- XXX: Ideally these will be unique identifiers in the future that can map to unique individuals in VIVO -->
                 <xsl:variable name="orgObjects" select="svfn:organisationObjects(api:institution, $create-dept-orgs-for-edu-processes)" />
                 <xsl:variable name="deptOrSchool">
-                    <xsl:if test="$create-dept-orgs-for-edu-processes">
+                    <xsl:if test="not($create-dept-orgs-for-edu-processes)">
                         <xsl:value-of select="api:institution/api:line[@type='suborganisation']" />
                     </xsl:if>
                 </xsl:variable>
