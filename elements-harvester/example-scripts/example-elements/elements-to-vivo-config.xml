@@ -53,6 +53,9 @@
     -->
 
     <config:record-precedences>
+        <config:record-precedences for="publication-type-mapping" select-by="field" use-unlisted-sources="true">
+            <config:record-precedence>manual</config:record-precedence>
+        </config:record-precedences>
         <config:record-precedences for="publication" select-by="field" use-unlisted-sources="true">
             <config:record-precedence>verified-manual</config:record-precedence>
             <!--<config:record-precedence verification-status="verified">manual</config:record-precedence>-->

@@ -68,16 +68,30 @@
 
         <xsl:variable name="type" select="$object/@type" />
 
-        <xsl:variable name="publication-type">
+        <!--<xsl:variable name="publication-type">-->
+            <!--<xsl:choose>-->
+                <!--<xsl:when test="$publication-types/config:publication-type[@type=$type]/config:on-condition[svfn:evaluateCondition($object, config:condition[1]/*[1])]">-->
+                    <!--<xsl:copy-of select="$publication-types/config:publication-type[@type=$type]/config:on-condition[svfn:evaluateCondition($object, config:condition[1]/*[1])][1]/*[not(self::config:condition)]" />-->
+                <!--</xsl:when>-->
+                <!--<xsl:when test="$publication-types/config:publication-type[@type=$type and not(condition)]"><xsl:copy-of select="$publication-types/config:publication-type[@type=$type and not(condition)]/*[not(self::config:on-condition)]" /></xsl:when>-->
+                <!--<xsl:when test="$publication-types/config:publication-type[@type='z-default']"><xsl:copy-of select="$publication-types/config:publication-type[@type='z-default']/*[not(self::config:on-condition)]" /></xsl:when>-->
+                <!--<xsl:otherwise><xsl:copy-of select="$publication-types/config:publication-type[1]/*" /></xsl:otherwise>-->
+            <!--</xsl:choose>-->
+        <!--</xsl:variable>-->
+
+        <xsl:variable name="precedence-to-use">
             <xsl:choose>
-                <xsl:when test="$publication-types/config:publication-type[@type=$type]/config:on-condition[svfn:evaluateCondition($object, config:condition[1]/*[1])]">
-                    <xsl:copy-of select="$publication-types/config:publication-type[@type=$type]/config:on-condition[svfn:evaluateCondition($object, config:condition[1]/*[1])][1]/*[not(self::config:condition)]" />
-                </xsl:when>
-                <xsl:when test="$publication-types/config:publication-type[@type=$type and not(condition)]"><xsl:copy-of select="$publication-types/config:publication-type[@type=$type and not(condition)]/*[not(self::config:on-condition)]" /></xsl:when>
-                <xsl:when test="$publication-types/config:publication-type[@type='z-default']"><xsl:copy-of select="$publication-types/config:publication-type[@type='z-default']/*[not(self::config:on-condition)]" /></xsl:when>
-                <xsl:otherwise><xsl:copy-of select="$publication-types/config:publication-type[1]/*" /></xsl:otherwise>
+                <xsl:when test="$record-precedences[@for=concat($object/@category, '-type-mapping')]"><xsl:value-of select="concat($object/@category, '-type-mapping')" /></xsl:when>
+                <xsl:when test="$record-precedences[@for=$object/@category]"><xsl:value-of select="$object/@category" /></xsl:when>
+                <xsl:otherwise><xsl:value-of select="'default'" /></xsl:otherwise>
             </xsl:choose>
         </xsl:variable>
+        <xsl:variable name="record-precedence" select="$record-precedences[@for=$precedence-to-use]/config:record-precedence" />
+        <xsl:variable name="record-precedence-use-unlisted" select="$record-precedences[@for=$precedence-to-use]/@use-unlisted-sources != 'false'" />
+
+        <xsl:variable name="publication-type">
+            <xsl:sequence select="svfn:_getMatchingConditionalTypes($object, $record-precedence, 1, $record-precedence-use-unlisted)" />
+         </xsl:variable>
 
         <xsl:choose>
             <!-- if the configuration specifies a most specific type, copy that -->
@@ -93,7 +107,100 @@
         <xsl:for-each select="$publication-type/rdf:type">
             <rdf:type rdf:resource="{svfn:expandSpecialNames(@rdf:resource)}" />
         </xsl:for-each>
+
     </xsl:function>
+
+    <xsl:function name="svfn:_getMatchingConditionalTypes">
+        <xsl:param name="object" />
+        <xsl:param name="records" />
+        <xsl:param name="position" as="xs:integer" />
+        <xsl:param name="useUnlistedSources" as="xs:boolean" />
+
+        <xsl:variable name="type" select="$object/@type" />
+
+        <xsl:variable name="exclusions-to-use">
+            <xsl:choose>
+                <xsl:when test="$data-exclusions[@for=$object/@category]"><xsl:value-of select="$object/@category" /></xsl:when>
+                <xsl:otherwise><xsl:value-of select="'default'" /></xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
+
+        <xsl:variable name="exclusions" select="$data-exclusions[@for=$exclusions-to-use]" />
+
+        <xsl:choose>
+            <!-- Whilst looping through the list of record precedences, try to grab a value from the current source being processed -->
+            <xsl:when test="$records[$position]">
+
+                <xsl:variable name="currentSourceName">
+                    <xsl:choose>
+                        <xsl:when test="$records[$position] = 'verified-manual'">
+                            <xsl:text>manual</xsl:text>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:value-of select="$records[$position]" />
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
+                <xsl:variable name="requiredVerificatonStatus">
+                    <xsl:choose>
+                        <xsl:when test="$records[$position] = 'verified-manual'">
+                            <xsl:text>verified</xsl:text>
+                        </xsl:when>
+                        <xsl:when test="$records[$position] = 'manual' and $records[$position]/@verification-status">
+                            <xsl:value-of select="$records[$position]/@verification-status" />
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:text>any</xsl:text>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
+
+                <xsl:choose>
+                    <!-- Don't use records that are restricted -->
+                    <xsl:when test="$exclusions/config:record-exclusion[text()=$currentSourceName and (text() != 'manual' or (not(@verification-status) or @verification-status = 'any' or @verification-status = $requiredVerificatonStatus))]">
+                        <xsl:copy-of select="svfn:_getMatchingConditionalTypes($object,$records,$position+1,$useUnlistedSources)" />
+                    </xsl:when>
+                    <!-- don't use fields that are restricted -->
+                    <!-- <xsl:when test="$exclusions/config:field-exclusions[@for-source=$currentSourceName and (text() != 'manual' or (not(@verification-status) or @verification-status = 'any' or @verification-status = $requiredVerificatonStatus))]/config:excluded-field[text()=$fieldName]"> -->
+                    <!-- <xsl:copy-of select="svfn:_getMatchingCondition($object,$records,$position+1,$useUnlistedSources,$useExcludedData)" /> -->
+                    <!-- </xsl:when> -->
+                    <xsl:when test="$object/api:records/api:record[@source-name=$currentSourceName and ($requiredVerificatonStatus = 'any' or api:verification-status = $requiredVerificatonStatus)]" >
+                        <xsl:variable name="restricted-object">
+                            <api:object>
+                                <api:records>
+                                    <xsl:copy-of select= "$object/api:records/api:record[@source-name=$currentSourceName and ($requiredVerificatonStatus = 'any' or api:verification-status = $requiredVerificatonStatus)][1]" />
+                                </api:records>
+                            </api:object>
+                        </xsl:variable>
+                        <xsl:choose>
+                            <xsl:when test="$publication-types/config:publication-type[@type=$type]/config:on-condition[svfn:evaluateCondition($restricted-object/api:object, config:condition[1]/*[1])]">
+                                <xsl:copy-of select="$publication-types/config:publication-type[@type=$type]/config:on-condition[svfn:evaluateCondition($restricted-object/api:object, config:condition[1]/*[1])][1]/*[not(self::config:condition)]" />
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <xsl:copy-of select="svfn:_getMatchingConditionalTypes($object,$records,$position+1,$useUnlistedSources)" />
+                            </xsl:otherwise>
+                        </xsl:choose>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:copy-of select="svfn:_getMatchingConditionalTypes($object,$records,$position+1,$useUnlistedSources)" />
+                    </xsl:otherwise>
+                </xsl:choose>
+            </xsl:when>
+            <xsl:otherwise>
+                <!-- if we are past the end of our list of precedences, just grab something unless we would be selecting forbidden data..-->
+                <xsl:choose>
+                    <!-- this first when is inefficient as we have already tested all the "listed" records in the precedence ordering - but it is simple and it works -->
+                    <xsl:when test="$useUnlistedSources and $publication-types/config:publication-type[@type=$type]/config:on-condition[svfn:evaluateCondition($object, config:condition[1]/*[1])]">
+                        <xsl:copy-of select="$publication-types/config:publication-type[@type=$type]/config:on-condition[svfn:evaluateCondition($object, config:condition[1]/*[1])][1]/*[not(self::config:condition)]" />
+                    </xsl:when>
+                    <xsl:when test="$publication-types/config:publication-type[@type=$type and not(condition)]"><xsl:copy-of select="$publication-types/config:publication-type[@type=$type and not(condition)]/*[not(self::config:on-condition)]" /></xsl:when>
+                    <xsl:when test="$publication-types/config:publication-type[@type='z-default']"><xsl:copy-of select="$publication-types/config:publication-type[@type='z-default']/*[not(self::config:on-condition)]" /></xsl:when>
+                    <xsl:otherwise><xsl:copy-of select="$publication-types/config:publication-type[1]/*" /></xsl:otherwise>
+                </xsl:choose>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:function>
+
 
     <xsl:function name="svfn:translationContext">
         <xsl:param name="rdfTypes"  />
