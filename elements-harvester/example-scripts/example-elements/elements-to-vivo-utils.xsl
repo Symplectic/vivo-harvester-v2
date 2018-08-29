@@ -253,9 +253,61 @@
     </xsl:function>
 
 
-    <xsl:function name="svfn:organisationObjects">
-        <xsl:param name="address" />
-        <xsl:copy-of select="svfn:organisationObjects($address, $includeDept)" />
+    <!--
+    svfn:usersPreferredNickName
+    ======================
+    The user's preferred first name
+    -->
+    <xsl:function name="svfn:usersPreferredNickName">
+        <xsl:param name="user" />
+        <xsl:choose>
+            <xsl:when test="$user/api:user-preferred-first-name and normalize-space($user/api:user-preferred-first-name) != ''">
+                <xsl:value-of select="$user/api:user-preferred-first-name" />
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:value-of select="$user/api:known-as" />
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:function>
+
+    <!--
+    svfn:usersPreferredFirstName
+    ======================
+    The user's preferred first name
+    -->
+    <xsl:function name="svfn:usersPreferredFirstName">
+        <xsl:param name="user" />
+
+        <xsl:variable name="usersPreferredNickName" select="svfn:usersPreferredNickName($user)" />
+        <xsl:choose>
+            <xsl:when test="$usersPreferredNickName and normalize-space($usersPreferredNickName) != ''">
+                <xsl:value-of select="$usersPreferredNickName" />
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:value-of select="$user/api:first-name" />
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:function>
+
+    <!--
+    svfn:usersPreferredLastName
+    ======================
+    default of how a user should be described in a "label"
+    -->
+    <xsl:function name="svfn:usersPreferredLastName">
+        <xsl:param name="user" />
+        <!--<xsl:variable name="generic-pref-surname-field-number" select="4" />-->
+        <xsl:choose>
+            <xsl:when test="$user/api:user-preferred-last-name and normalize-space($user/api:user-preferred-last-name) != ''">
+                <xsl:value-of select="$user/api:user-preferred-last-name" />
+            </xsl:when>
+            <!--<xsl:when test="$user/api:organisation-defined-data[@field-number = $generic-pref-surname-field-number] and normalize-space($user/api:organisation-defined-data[@field-number = $generic-pref-surname-field-number]) != ''">-->
+                <!--<xsl:value-of select="$user/api:organisation-defined-data[@field-number = $generic-pref-surname-field-number]" />-->
+            <!--</xsl:when>-->
+            <xsl:otherwise>
+                <xsl:value-of select="$user/api:last-name" />
+            </xsl:otherwise>
+        </xsl:choose>
     </xsl:function>
 
     <!--
@@ -265,20 +317,20 @@
     -->
     <xsl:function name="svfn:userLabel">
         <xsl:param name="user" />
-        <xsl:variable name="firstName">
-            <xsl:choose>
-                <xsl:when test="$user/api:known-as and normalize-space($user/api:known-as) != ''">
-                    <xsl:value-of select="$user/api:known-as" />
-                </xsl:when>
-                <xsl:otherwise>
-                    <xsl:value-of select="$user/api:first-name" />
-                </xsl:otherwise>
-            </xsl:choose>
-        </xsl:variable>
-        <xsl:variable name="lastName"><xsl:value-of select="$user/api:last-name" /></xsl:variable>
-        <xsl:value-of select="$lastName, $firstName" separator=", " />
+        <xsl:value-of select="concat(svfn:usersPreferredLastName($user), ', ', svfn:usersPreferredFirstName($user))" />
     </xsl:function>
 
+
+    <!--
+    svfn:organisationObjects
+    ====================
+    Create objects representing an an institution and any sub organisation if present from an api:address or api:institution object
+    following the default defined in $includeDept about whether to create intermediate "department" level Vivo organization objects based on address sub-organisations.
+    -->
+    <xsl:function name="svfn:organisationObjects">
+        <xsl:param name="address" />
+        <xsl:copy-of select="svfn:organisationObjects($address, $includeDept)" />
+    </xsl:function>
 
     <!--
         svfn:organisationObjects
