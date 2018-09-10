@@ -53,9 +53,11 @@
     -->
 
     <config:record-precedences>
-        <config:record-precedences for="publication-type-mapping" select-by="field" use-unlisted-sources="true">
-            <config:record-precedence>manual</config:record-precedence>
-        </config:record-precedences>
+        <!-- you can optionally specify a "named" precedence to use with publication type matching (see corresponding recordPrecedenceToUse attribute there).
+             in the absence of a specifically named one for this purpose, it will fall back to using the default publication one (if present) -->
+        <!--<config:record-precedences for="publication-type-matching" use-unlisted-sources="true" matchAcrossRecordsAsBackstop="true">-->
+            <!--<config:record-precedence>manual</config:record-precedence>-->
+        <!--</config:record-precedences>-->
         <config:record-precedences for="publication" select-by="field" use-unlisted-sources="true">
             <config:record-precedence>verified-manual</config:record-precedence>
             <!--<config:record-precedence verification-status="verified">manual</config:record-precedence>-->
@@ -214,6 +216,13 @@
             <rdf:type rdf:resource="http://purl.obolibrary.org/obo/IAO_0000030"/>
     -->
     <config:publication-types>
+        <!-- if making use of conditions, you can specify the name of the recordPrecedence to follow as an attribute here
+             the name can be anything as long as it matches an extant record precedence above,
+             it will fall back to using the "publication" precedence if not specified-->
+        <!-- additionally you can specify the matchAcrossRecordsAsBackstop attribute to decide if that should be allowed
+             if no conditions match for a single record. This defaults to false. -->
+        <!--<config:publication-types recordPrecedenceToUse="publication-type-matching" matchAcrossRecordsAsBackstop="true">-->
+
         <config:publication-type type="book">
             <rdf:type rdf:resource="http://purl.org/ontology/bibo/Book" />
         </config:publication-type>

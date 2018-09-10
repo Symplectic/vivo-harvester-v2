@@ -44,6 +44,9 @@
             <xsl:when test="$field/@type = 'text' and $field/api:text[text() = $valueToCompare]">
                 <xsl:value-of select="true()" />
             </xsl:when>
+            <xsl:when test="$field/@type = 'boolean' and $field/api:boolean[text() = $valueToCompare]">
+                <xsl:value-of select="true()" />
+            </xsl:when>
             <xsl:when test="$field/@type = 'keyword-list' and $field/api:keywords/api:keyword[text() = $valueToCompare]">
                 <xsl:value-of select="true()" />
             </xsl:when>
