@@ -101,7 +101,6 @@
                     <rdfs:label>
                         <xsl:apply-templates select="$awardName" />
                         <xsl:text> (</xsl:text>
-                        <!--<xsl:value-of select="$userObj/api:last-name, svfn:userGivenName($userObj)" separator=", " />-->
                         <xsl:value-of select="svfn:distinctionReceiptUserLabel($userObj)" />
                         <xsl:if test="$awardDate/*">
                             <xsl:text> - </xsl:text>
