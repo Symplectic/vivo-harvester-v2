@@ -80,8 +80,6 @@
             </xsl:choose>
         </xsl:variable>
 
-        <testcp><xsl:value-of select="$chosenRecordPrecedenceName" /></testcp>
-
         <xsl:variable name="precedence-to-use">
             <xsl:choose>
                 <xsl:when test="$record-precedences[@for=$chosenRecordPrecedenceName]"><xsl:value-of select="$chosenRecordPrecedenceName" /></xsl:when>
@@ -89,8 +87,6 @@
                 <xsl:otherwise><xsl:value-of select="'default'" /></xsl:otherwise>
             </xsl:choose>
         </xsl:variable>
-
-        <ptu><xsl:value-of select="$precedence-to-use" /></ptu>
 
         <xsl:variable name="record-precedence" select="$record-precedences[@for=$precedence-to-use]/config:record-precedence" />
         <xsl:variable name="record-precedence-use-unlisted" select="$record-precedences[@for=$precedence-to-use]/@use-unlisted-sources != 'false'" />
