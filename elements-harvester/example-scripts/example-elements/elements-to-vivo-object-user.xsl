@@ -69,13 +69,13 @@
                 <xsl:if test="$validatedInternalClass!=''"><rdf:type rdf:resource="{$validatedInternalClass}" /></xsl:if>
                 <!-- rdf:type rdf:resource="http://vivoweb.org/harvester/excludeEntity" / -->
                 <rdfs:label><xsl:value-of select="svfn:mainUserLabel(current())" /></rdfs:label>
-                <xsl:copy-of select="svfn:renderPropertyFromFieldOrFirst(.,'vivo:overview','overview', '')" />
-                <xsl:copy-of select="svfn:renderPropertyFromFieldOrFirst(.,'vivo:researchOverview','research-interests', '')" />
-                <xsl:copy-of select="svfn:renderPropertyFromFieldOrFirst(.,'vivo:teachingOverview','teaching-summary', '')" />
+
+                <xsl:copy-of select="svfn:renderHideableTextFieldToProperty(svfn:getRecordFieldOrFirst(.,'overview'), 'vivo:overview')" />
+                <xsl:copy-of select="svfn:renderHideableTextFieldToProperty(svfn:getRecordFieldOrFirst(.,'research-interests'), 'vivo:researchOverview' )" />
+                <xsl:copy-of select="svfn:renderHideableTextFieldToProperty(svfn:getRecordFieldOrFirst(.,'teaching-summary'), 'vivo:teachingOverview')" />
 
                 <!-- render any user labels that are relevant -->
                 <xsl:copy-of select="svfn:renderControlledSubjectLinks(., $userURI, '')" />
-
 
                 <!-- output any claimed user identifiers -->
                 <!-- Note: these will not do anything unless you are connected to v5.5 schema Elements api endpoint running on an Elements server upgraded to v5.9 or greater -->
@@ -473,6 +473,15 @@
             </xsl:for-each>
         </xsl:if>
     </xsl:template>
+
+    <xsl:function name="svfn:renderHideableTextFieldToProperty">
+        <xsl:param name="fieldNode" as="node()?" />
+        <xsl:param name="propertyName" as="xs:string" />
+
+        <xsl:if test="$fieldNode/api:text[not(@privacy) or @privacy = 'public']">
+            <xsl:copy-of select="svfn:renderPropertyFromFieldNode($propertyName, $fieldNode)" />
+        </xsl:if>
+    </xsl:function>
 
     <xsl:function name="svfn:mainUserLabel">
         <xsl:param name="user" />

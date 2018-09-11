@@ -730,10 +730,10 @@
         <xsl:variable name="recordField" select="svfn:getRecordFieldOrFirst($object, $fieldName)" />
         <xsl:choose>
             <xsl:when test="$recordField">
-                <xsl:copy-of select="svfn:_renderPropertyFromField($object, $propertyName, $fieldName, $recordField)" />
+                <xsl:copy-of select="svfn:renderPropertyFromFieldNode($propertyName, $recordField)" />
             </xsl:when>
             <xsl:when test="$default instance of element()">
-                <xsl:copy-of select="svfn:_renderPropertyFromField($object, $propertyName, $fieldName, $default)" />
+                <xsl:copy-of select="svfn:renderPropertyFromFieldNode($propertyName, $default)" />
             </xsl:when>
             <xsl:when test="$default">
                 <xsl:variable name="dummy-field">
@@ -741,7 +741,7 @@
                         <xsl:value-of select="$default" />
                     </api:text>
                 </xsl:variable>
-                <xsl:copy-of select="svfn:_renderPropertyFromField($object, $propertyName, $fieldName, $dummy-field)" />
+                <xsl:copy-of select="svfn:renderPropertyFromFieldNode($propertyName, $dummy-field)" />
             </xsl:when>
         </xsl:choose>
     </xsl:function>
@@ -757,7 +757,7 @@
         <xsl:param name="propertyName" as="xs:string" />
         <xsl:param name="fieldName" as="xs:string" />
 
-        <xsl:copy-of select="svfn:_renderPropertyFromField($object, $propertyName, $fieldName, svfn:getRecordField($object, $fieldName))" />
+        <xsl:copy-of select="svfn:renderPropertyFromFieldNode($propertyName, svfn:getRecordField($object, $fieldName))" />
     </xsl:function>
 
     <!--
@@ -773,7 +773,7 @@
         <xsl:param name="fieldName" as="xs:string" />
         <xsl:param name="records" as="xs:string" />
 
-        <xsl:copy-of select="svfn:_renderPropertyFromField($object, $propertyName, $fieldName, svfn:getRecordField($object, $fieldName, $records))" />
+        <xsl:copy-of select="svfn:renderPropertyFromFieldNode($propertyName, svfn:getRecordField($object, $fieldName, $records))" />
     </xsl:function>
 
 
@@ -795,7 +795,7 @@
         <xsl:param name="select-by" as="xs:string" />
         <xsl:param name="useUnlistedSources" as="xs:boolean" />
 
-        <xsl:copy-of select="svfn:_renderPropertyFromField($object, $propertyName, $fieldName, svfn:getRecordField($object, $fieldName, $records, $select-by, $useUnlistedSources))" />
+        <xsl:copy-of select="svfn:renderPropertyFromFieldNode($propertyName, svfn:getRecordField($object, $fieldName, $records, $select-by, $useUnlistedSources))" />
     </xsl:function>
 
     <!--
@@ -890,15 +890,12 @@
         Internal XSLT Functions (should not be called from outside this file)
     -->
 
-    <xsl:function name="svfn:_renderPropertyFromField">
-        <xsl:param name="object" />
+    <xsl:function name="svfn:renderPropertyFromFieldNode">
         <xsl:param name="propertyName" as="xs:string" />
-        <xsl:param name="fieldName" as="xs:string" />
-        <xsl:param name="fieldNode" />
+        <xsl:param name="fieldNode" as="node()?" />
 
         <xsl:apply-templates select="$fieldNode" mode="renderForProperty">
             <xsl:with-param name="propertyName" select="$propertyName" />
-            <xsl:with-param name="fieldName" select="$fieldName" />
         </xsl:apply-templates>
     </xsl:function>
 

@@ -71,12 +71,11 @@
     </xsl:function>
 
     <!--
-        Render a keyword field to a named property. The name of the VIVO property (namespace:element) is passed in propertyName,
-        the field name is Elements is passed in fieldName.
+        Render a keyword field to a named property. The name of the VIVO property (namespace:element) is passed in propertyName.
     -->
     <xsl:template match="api:keyword" mode="renderForProperty">
         <xsl:param name="propertyName" />
-        <xsl:param name="fieldName" />
+        
         <xsl:variable name="content">
             <xsl:value-of select="." />
         </xsl:variable>
@@ -84,12 +83,11 @@
     </xsl:template>
 
     <!--
-        Render a money field to a named property. The name of the VIVO property (namespace:element) is passed in propertyName,
-        the field name is Elements is passed in fieldName.
+        Render a money field to a named property. The name of the VIVO property (namespace:element) is passed in propertyName.
     -->
     <xsl:template match="api:money" mode="renderForProperty">
         <xsl:param name="propertyName" />
-        <xsl:param name="fieldName" />
+        
         <xsl:variable name="content">
             <xsl:if test="@iso-currency">
                 <xsl:value-of select="@iso-currency" /><xsl:text> </xsl:text>
@@ -100,12 +98,11 @@
     </xsl:template>
 
     <!--
-        Render a pagination field to a named property. The name of the VIVO property (namespace:element) is passed in propertyName,
-        the field name is Elements is passed in fieldName.
+        Render a pagination field to a named property. The name of the VIVO property (namespace:element) is passed in propertyName.
     -->
     <xsl:template match="api:pagination" mode="renderForProperty">
         <xsl:param name="propertyName" />
-        <xsl:param name="fieldName" />
+        
         <xsl:variable name="content">
             <xsl:choose>
                 <xsl:when test="$propertyName='bibo:pageStart' and api:begin-page"><xsl:value-of select="api:begin-page" /></xsl:when>
@@ -119,17 +116,15 @@
     </xsl:template>
 
     <!--
-        Render a people list field to a named property. The name of the VIVO property (namespace:element) is passed in propertyName,
-        the field name is Elements is passed in fieldName.
+        Render a people list field to a named property. The name of the VIVO property (namespace:element) is passed in propertyName.
         This template is wrapping the output of the api:person template into a property, in order to create a comma-delimited list
     -->
     <xsl:template match="api:people" mode="renderForProperty">
         <xsl:param name="propertyName" />
-        <xsl:param name="fieldName" />
+        
         <xsl:variable name="content">
             <xsl:apply-templates select="api:person" mode="renderElementContentForProperty">
                 <xsl:with-param name="propertyName" select="$propertyName" />
-                <xsl:with-param name="fieldName" select="$fieldName" />
             </xsl:apply-templates>
         </xsl:variable>
         <xsl:copy-of select="svfn:createPropertyElement($propertyName, $content)" />
@@ -140,7 +135,7 @@
     -->
     <xsl:template match="api:person" mode="renderElementContentForProperty">
         <xsl:param name="propertyName" />
-        <xsl:param name="fieldName" />
+        
 
         <xsl:if test="preceding-sibling::*">
             <xsl:text>, </xsl:text>
@@ -149,13 +144,12 @@
     </xsl:template>
 
     <!--
-        Render a text field to a named property. The name of the VIVO property (namespace:element) is passed in propertyName,
-        the field name is Elements is passed in fieldName.
+        Render a text field to a named property. The name of the VIVO property (namespace:element) is passed in propertyName.
     -->
 
     <xsl:template match="api:text" mode="renderForProperty">
         <xsl:param name="propertyName" />
-        <xsl:param name="fieldName" />
+        
 
         <xsl:variable name="useLinebreaks" select="svfn:shouldConvertToHTML($propertyName)" as="xs:boolean" />
 
@@ -174,12 +168,11 @@
     </xsl:template>
 
     <!--
-        Render an integer field to a named property. The name of the VIVO property (namespace:element) is passed in propertyName,
-        the field name is Elements is passed in fieldName.
+        Render an integer field to a named property. The name of the VIVO property (namespace:element) is passed in propertyName.
     -->
     <xsl:template match="api:integer" mode="renderForProperty">
         <xsl:param name="propertyName" />
-        <xsl:param name="fieldName" />
+        
         <xsl:variable name="content">
             <xsl:value-of select="." />
         </xsl:variable>
@@ -188,7 +181,7 @@
 
     <xsl:template match="api:decimal" mode="renderForProperty">
         <xsl:param name="propertyName" />
-        <xsl:param name="fieldName" />
+        
         <xsl:variable name="content">
             <xsl:value-of select="." />
         </xsl:variable>
