@@ -68,7 +68,9 @@
                              vivo:LibrarianPosition, vivo:NonFacultyAcademicPosition, vivo:PostdocPosition,
                              or vivo:PrimaryPosition -->
                     <rdf:type rdf:resource="http://vivoweb.org/ontology/core#Position" />
-                    <xsl:variable name="positionLabelContent" select="svfn:positionLabelContent($user, svfn:compare-strings(@name, $user/api:department) &gt;= $requiredDiff )" />
+                    <xsl:variable name="stringForComp1" select="svfn:normaliseStringForMatching(@name)" />
+                    <xsl:variable name="stringForComp2" select="svfn:normaliseStringForMatching($user/api:department)" />
+                    <xsl:variable name="positionLabelContent" select="svfn:positionLabelContent($user, svfn:compare-strings($stringForComp1, $stringForComp2) &gt;= $requiredDiff )" />
                     <xsl:if test="$positionLabelContent and normalize-space($positionLabelContent) != ''">
                         <rdfs:label><xsl:value-of select="$positionLabelContent"/></rdfs:label>
                     </xsl:if>
@@ -96,6 +98,11 @@
         <!--todo: should we pick up some "position" information and try to match against user groups (e.g. institutional-appointments?)...-->
     </xsl:template>
 
+    <xsl:function name="svfn:normaliseStringForMatching">
+        <xsl:param name="string" as="xs:string" />
+        <xsl:value-of select="replace($string, '&amp;', 'and')" />
+    </xsl:function>
+
     <xsl:function name="svfn:positionLabelContent">
         <xsl:param name="user" as="node()" />
         <xsl:param name="isDepartment" as="xs:boolean" />
@@ -104,16 +111,29 @@
             <xsl:text>Member</xsl:text>
         </xsl:variable>
 
-        <xsl:variable name="mainPositionName" select="$user/api:position" />
+        <xsl:value-of select="normalize-space($defaultPositionTitle)" />
 
-        <xsl:choose>
-            <xsl:when test="$isDepartment">
-                <xsl:value-of select="normalize-space($mainPositionName)" />
-            </xsl:when>
-            <xsl:otherwise>
-                <xsl:value-of select="normalize-space($defaultPositionTitle)" />
-            </xsl:otherwise>
-        </xsl:choose>
     </xsl:function>
+
+    <!-- example of function override to support setting group membership title from position based on matching.. -->
+    <!--<xsl:function name="svfn:positionLabelContent">-->
+        <!--<xsl:param name="user" as="node()" />-->
+        <!--<xsl:param name="isDepartment" as="xs:boolean" />-->
+
+        <!--<xsl:variable name="defaultPositionTitle">-->
+            <!--<xsl:text>Member</xsl:text>-->
+        <!--</xsl:variable>-->
+
+        <!--<xsl:variable name="mainPositionName" select="$user/api:position" />-->
+
+        <!--<xsl:choose>-->
+            <!--<xsl:when test="$isDepartment">-->
+                <!--<xsl:value-of select="normalize-space($mainPositionName)" />-->
+            <!--</xsl:when>-->
+            <!--<xsl:otherwise>-->
+                <!--<xsl:value-of select="normalize-space($defaultPositionTitle)" />-->
+            <!--</xsl:otherwise>-->
+        <!--</xsl:choose>-->
+    <!--</xsl:function>-->
 
 </xsl:stylesheet>
