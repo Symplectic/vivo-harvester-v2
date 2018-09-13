@@ -33,7 +33,7 @@
 
 
     <!-- Import XSLT files that are used -->
-    <!--<xsl:import href="elements-to-vivo-fuzzy-matching.xsl" />-->
+    <xsl:import href="elements-to-vivo-fuzzy-matching.xsl" />
 
     <!-- declare parameter containing the list of groups for a user being processed passed in from framework-->
     <xsl:param name="userGroups" select="/.."/>
@@ -44,8 +44,11 @@
     <!-- template to process group membership for users -->
     <xsl:template match="api:object[@category='user']" mode="userGroupMembershipProcessing" >
 
+        <xsl:variable name="user" select="." />
         <xsl:variable name="userURI" select="svfn:userURI(.)" />
         <xsl:variable name="userID" select="@id" />
+
+        <xsl:variable name="requiredDiff" select="0.95" />
 
         <xsl:for-each select="$userGroups/usersGroups/group">
 
@@ -65,7 +68,10 @@
                              vivo:LibrarianPosition, vivo:NonFacultyAcademicPosition, vivo:PostdocPosition,
                              or vivo:PrimaryPosition -->
                     <rdf:type rdf:resource="http://vivoweb.org/ontology/core#Position" />
-                    <rdfs:label><xsl:value-of select="$positionTitle" /></rdfs:label>
+                    <xsl:variable name="positionLabelContent" select="svfn:positionLabelContent($user, svfn:compare-strings(@name, $user/api:department) &gt;= $requiredDiff )" />
+                    <xsl:if test="$positionLabelContent and normalize-space($positionLabelContent) != ''">
+                        <rdfs:label><xsl:value-of select="$positionLabelContent"/></rdfs:label>
+                    </xsl:if>
                     <vivo:relates rdf:resource="{$groupURI}" />
                     <vivo:relates rdf:resource="{$userURI}" />
                 </xsl:with-param>
@@ -89,5 +95,25 @@
 
         <!--todo: should we pick up some "position" information and try to match against user groups (e.g. institutional-appointments?)...-->
     </xsl:template>
+
+    <xsl:function name="svfn:positionLabelContent">
+        <xsl:param name="user" as="node()" />
+        <xsl:param name="isDepartment" as="xs:boolean" />
+
+        <xsl:variable name="defaultPositionTitle">
+            <xsl:text>Member</xsl:text>
+        </xsl:variable>
+
+        <xsl:variable name="mainPositionName" select="$user/api:position" />
+
+        <xsl:choose>
+            <xsl:when test="$isDepartment">
+                <xsl:value-of select="normalize-space($mainPositionName)" />
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:value-of select="normalize-space($defaultPositionTitle)" />
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:function>
 
 </xsl:stylesheet>
