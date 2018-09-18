@@ -99,7 +99,7 @@
     </xsl:template>
 
     <xsl:function name="svfn:normaliseStringForMatching">
-        <xsl:param name="string" as="xs:string" />
+        <xsl:param name="string" as="xs:string?" />
         <xsl:value-of select="replace($string, '&amp;', 'and')" />
     </xsl:function>
 
