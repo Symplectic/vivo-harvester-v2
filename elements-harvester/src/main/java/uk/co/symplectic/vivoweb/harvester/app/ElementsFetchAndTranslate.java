@@ -354,14 +354,36 @@ public class ElementsFetchAndTranslate {
                 ElementsVivoIncludeMonitor monitor = new ElementsVivoIncludeMonitor(includedUsers.keySet(), includedGroups.getIncludedGroups().keySet(), Configuration.getCategoriesToHarvest(), rdfStore, visibleLinksOnly);
 
                 counter = 0;
-                for (StoredData.InFile relData : objectStore.getAllExistingFilesOfType(StorableResourceType.RAW_RELATIONSHIP)) {
-                    ElementsStoredItemInfo relItem = ElementsStoredItemInfo.loadStoredResource(relData, StorableResourceType.RAW_RELATIONSHIP);
-                    monitor.observe(relItem);
-                    counter++;
-                    if (counter % 10000 == 0)
-                        log.info(MessageFormat.format("ElementsFetchAndTranslate: {0} relationships processed from cache", counter));
+                BufferedWriter relWriter = null;
+                BufferedWriter incRelWriter = null;
+                try {
+                    File relationshipListFile = new File(interimTdbDirectory, "relationships.txt");
+                    relWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(relationshipListFile), "utf-8"));
+
+                    File incRelationshipListFile = new File(interimTdbDirectory, "includedRelationships.txt");
+                    incRelWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(incRelationshipListFile), "utf-8"));
+
+                    for (StoredData.InFile relData : objectStore.getAllExistingFilesOfType(StorableResourceType.RAW_RELATIONSHIP)) {
+                        ElementsStoredItemInfo relItem = ElementsStoredItemInfo.loadStoredResource(relData, StorableResourceType.RAW_RELATIONSHIP);
+                        monitor.observe(relItem);
+
+                        relWriter.write(relItem.getItemInfo().toString());
+                        relWriter.newLine();
+                        if(monitor.getIncludedItems().get(ElementsItemType.RELATIONSHIP).contains(relItem.getItemInfo().getItemId())){
+                            incRelWriter.write(relItem.getItemInfo().toString());
+                            incRelWriter.newLine();
+                        }
+
+                        counter++;
+                        if (counter % 10000 == 0)
+                            log.info(MessageFormat.format("ElementsFetchAndTranslate: {0} relationships processed from cache", counter));
+                    }
+                    log.info(MessageFormat.format("ElementsFetchAndTranslate: finished processing relationships from cache, {0} items processed in total", counter));
                 }
-                log.info(MessageFormat.format("ElementsFetchAndTranslate: finished processing relationships from cache, {0} items processed in total", counter));
+                finally{
+                    if (relWriter != null) relWriter.close();
+                    if (incRelWriter != null) incRelWriter.close();
+                }
 
                 //update object counts
                 includedUserCount = includedUsers.values().size();

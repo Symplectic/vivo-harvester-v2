@@ -129,4 +129,17 @@ public class ElementsRelationshipInfo extends ElementsItemInfo{
     private void addObjectId(ElementsItemId.ObjectId id) { objectIds.add(id); }
 
     public List<ElementsItemId.ObjectId> getObjectIds() { return Collections.unmodifiableList(objectIds); }
+
+    @Override
+    public String toString(){
+        StringBuilder builder = new StringBuilder(this.getItemId().toString());
+        builder.append(" || ");
+        boolean first = true;
+        for(ElementsItemId.ObjectId id : getObjectIds()) {
+            if(!first) builder.append(" | ");
+            builder.append(id.toString());
+            first = false;
+        }
+        return builder.toString();
+    }
 }
