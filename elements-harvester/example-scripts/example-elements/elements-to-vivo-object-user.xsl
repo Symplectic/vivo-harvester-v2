@@ -163,7 +163,7 @@
                         <xsl:if test="$dateInterval/*">
                             <vivo:dateTimeInterval rdf:resource="{$dateIntervalURI}" />
                         </xsl:if>
-                        <xsl:if test="$deptOrSchool">
+                        <xsl:if test="normalize-space($deptOrSchool) != ''">
                             <vivo:departmentOrSchool><xsl:value-of select="$deptOrSchool" /></vivo:departmentOrSchool>
                         </xsl:if>
                         <xsl:if test="$hasLinkedOrg"><obo:RO_0000057 rdf:resource="{$orgURI}" /></xsl:if>
@@ -256,7 +256,7 @@
                             </xsl:otherwise>
                         </xsl:choose>
                         <vivo:supplementalInformation><xsl:value-of select="string-join(($trainingTitle, $trainingSpecialisation), ' - ')" /></vivo:supplementalInformation>
-                        <xsl:if test="$deptOrSchool">
+                        <xsl:if test="normalize-space($deptOrSchool) != ''">
                             <vivo:departmentOrSchool><xsl:value-of select="$deptOrSchool" /></vivo:departmentOrSchool>
                         </xsl:if>
                         <xsl:if test="$dateInterval/*">
