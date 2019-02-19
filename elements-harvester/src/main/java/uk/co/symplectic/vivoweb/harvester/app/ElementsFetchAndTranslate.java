@@ -640,6 +640,21 @@ public class ElementsFetchAndTranslate {
                                     shouldRepull = true;
                                     break;
                                 }
+
+                                //hack that exists to handle case where a user has been "modified" in a way that affets their URI (e.g. username)
+                                //In this case we need to ensure that we repull the relationships for v5.5 API endpoints.
+                                //With v4.9 API endpoints this was not needed as modifying the user stamped all neighbouring objects as affected.
+                                //As v4.9 API only operates on affected-when (even though it calls it "modified-since") the result of this is that every item in a relationship
+                                //with the modified user is going to have been updated this run (and therefore in modified objects) because we repull all rels containing an object we updated this run
+                                //in order to ensure we pick up visibility changes, all rels to the modified user were being repulled anyway.
+                                //This is NOT be picked up against a v5.5 API as that specifically pulls based on the real "modification date", not "affected".
+                                //The neighbouring objects have therefore not been updated this run, and we need a specific check to force the repull of the rel, to ensure the
+                                //"stub" version of the object in the raw-relationship data will create the correct URI (e.g. with the new username).
+                                if(Configuration.getApiVersion().greaterThanOrEqualTo(ElementsAPIVersion.VERSION_5_5) && objectId.getItemSubType() == ElementsObjectCategory.USER){
+                                    shouldRepull = true;
+                                    break;
+                                }
+
                                 //if the unmodified relationship contains any modified objects
                                 // and is of a type that we need to reprocess (i.e. one where the translation of the objects occurs within the relationship)
                                 //then we will need to re-translate the item. we may not need to re-pull it (e.g if that is turned off or if only the user has been changed)
