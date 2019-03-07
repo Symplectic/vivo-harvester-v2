@@ -23,6 +23,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.text.MessageFormat;
+import java.text.Normalizer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -145,6 +146,7 @@ final class TranslationServiceImpl {
                     if (!config.getUseFullUTF8()) {
                         xml = xml.replaceAll("[^\\u0000-\\uFFFF]", "\uFFFD");
                     }
+                    xml = Normalizer.normalize(xml, Normalizer.Form.NFC);
 
                     //work around saxon oddness
                     if(xml.equals("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")) {
