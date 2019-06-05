@@ -36,6 +36,25 @@
     <!-- ======================================
          Function Library
          ======================================- -->
+    
+	<!--
+        svfn:boolValue
+        ==============
+        Attempt to extract a suitable boolean from the incoming param, whether it is a string or something else..
+        Treats the string "true" ignoring casing as true and all other strings as false..
+     -->
+    <xsl:function name="svfn:boolValue">
+        <xsl:param name="input" as="item()" />
+        <xsl:choose>
+            <xsl:when test="$input instance of xs:string">
+                <xsl:copy-of select="fn:lower-case(fn:normalize-space($input)) = 'true'" />
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:copy-of select="boolean($input)" />
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:function>
+
 
     <!--
         svfn:getOrganizationType
@@ -72,7 +91,7 @@
         <xsl:variable name="matchAcrossRecordsAsBackstop">
             <xsl:choose>
                 <xsl:when test="$publication-types/@matchAcrossRecordsAsBackstop">
-                    <xsl:value-of select="xs:boolean($publication-types/@matchAcrossRecordsAsBackstop)" />
+                    <xsl:value-of select="svfn:boolValue($publication-types/@matchAcrossRecordsAsBackstop)" />
                 </xsl:when>
                 <xsl:otherwise>
                     <xsl:value-of select="false()" />
@@ -688,16 +707,38 @@
     </xsl:function>
 
     <!--
+        svfn:getNodeOrLoad
+        ==================
+        returns the input if it is a node(), id it is a string looks for an XML doc of the same name, loads it and returns that
+    -->
+
+    <xsl:function name="svfn:getNodeOrLoad" as="node()?">
+        <xsl:param name="input" as="item()" />
+        <xsl:choose>
+            <xsl:when test="$input and $input instance of node()">
+                <xsl:sequence select="$input" />
+            </xsl:when>
+            <xsl:when test="$input and $input instance of xs:string and fn:doc-available($input)">
+                <xsl:sequence select="fn:doc($input)" />
+            </xsl:when>
+        </xsl:choose>
+    </xsl:function>
+
+    <!--
         svfn:fullObject
         ===============
         Load the XML for the full object, given an Elements object reference
     -->
     <xsl:function name="svfn:fullObject">
         <xsl:param name="object" />
+        <xsl:variable name="extraObjectsNode" select="svfn:getNodeOrLoad($extraObjects)" />
         <xsl:choose>
-            <xsl:when test="$extraObjects and $extraObjects/descendant::api:object[(@category=$object/@category) and (@id=$object/@id)]">
-                <xsl:copy-of select="$extraObjects/descendant::api:object[(@category=$object/@category) and (@id=$object/@id)]" />
+            <xsl:when test="$extraObjectsNode and $extraObjectsNode/descendant::api:object[(@category=$object/@category) and (@id=$object/@id)]">
+                <xsl:copy-of select="$extraObjectsNode/descendant::api:object[(@category=$object/@category) and (@id=$object/@id)]" />
             </xsl:when>
+            <!--<xsl:when test="$extraObjects instance of xs:string and fn:doc-available($extraObjects) and fn:doc($extraObjects)/descendant::api:object[(@category=$object/@category) and (@id=$object/@id)]">-->
+                <!--<xsl:copy-of select="fn:doc($extraObjects)/descendant::api:object[(@category=$object/@category) and (@id=$object/@id)]" />-->
+            <!--</xsl:when>-->
             <xsl:when test="$useRawDataFiles = 'true'">
                 <!-- this exists to enable easier testing only = requires that recordDir is set to point at a directory containing an unzipped set of raw records -->
                 <xsl:variable name="filename" select="concat($recordDir,$object/@category,'/',$object/@id)" />

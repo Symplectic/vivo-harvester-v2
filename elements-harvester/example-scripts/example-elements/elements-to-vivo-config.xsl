@@ -104,8 +104,8 @@
     <!-- whether to use raw files from disk to build the "extraObjects" or not -->
     <xsl:param name="useRawDataFiles">false</xsl:param>
 
-    <!-- where the raw data should be retrieved from if useRawDataFiles is true-->
-    <xsl:param name="recordDir">data/raw-records/</xsl:param>
+    <!-- where the raw data should be retrieved from if useRawDataFiles is true assume typical directory structure unless specified-->
+    <xsl:param name="recordDir"><xsl:value-of select="fn:replace(fn:base-uri(), '/[^/]+/[^/]+$', '/')"/></xsl:param>
 
     <!-- DO NOT TOUCH: Read the organization types, record and journal precedence configurations and label scheme config into variables for processing -->
     <!-- Read the publication types XML configuration file -->

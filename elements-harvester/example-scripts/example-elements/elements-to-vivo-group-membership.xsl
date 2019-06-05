@@ -39,7 +39,7 @@
     <xsl:param name="userGroups" select="/.."/>
 
     <!-- template to supress all output except users -->
-    <xsl:template match="api:object" mode="userGroupMembershipProcessing" />
+    <xsl:template match="api:object | api:relationship" mode="userGroupMembershipProcessing" />
 
     <!-- template to process group membership for users -->
     <xsl:template match="api:object[@category='user']" mode="userGroupMembershipProcessing" >
@@ -50,7 +50,8 @@
 
         <xsl:variable name="requiredDiff" select="0.95" />
 
-        <xsl:for-each select="$userGroups/usersGroups/group">
+		<xsl:for-each select="svfn:getNodeOrLoad($userGroups)/usersGroups/group">
+        <!--<xsl:for-each select="$userGroups/usersGroups/group">-->
 
             <xsl:variable name="positionTitle">
                 <xsl:text>Member</xsl:text>

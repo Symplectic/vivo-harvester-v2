@@ -25,7 +25,6 @@
                 xmlns:symp="http://www.symplectic.co.uk/vivo/"
                 xmlns:svfn="http://www.symplectic.co.uk/vivo/namespaces/functions"
                 xmlns:config="http://www.symplectic.co.uk/vivo/namespaces/config"
-                xmlns:csl="http://www.w3.org/1999/XSL/Transform"
                 exclude-result-prefixes="rdf rdfs bibo vivo foaf obo score ufVivo vitro api symp svfn config xs"
 >
 

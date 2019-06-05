@@ -67,10 +67,11 @@
                 <rdfs:label><xsl:value-of select="$groupName"/></rdfs:label>
                 <vivo:overview><xsl:value-of select="api:group-description"/></vivo:overview>
 
-                <xsl:if test="$includedParentGroup and $includedParentGroup/group ">
+                <xsl:variable name="parentGroupNode" select="svfn:getNodeOrLoad($includedParentGroup)" />
+                <xsl:if test="$parentGroupNode and $parentGroupNode/group ">
                     <!-- will currently create crud in the vivo db for any groups that are NOT included....sigh -->
                     <!--<obo:BFO_0000050 rdf:resource="{svfn:makeURI('institutional-user-group-', $includedParentGroupId)}" />-->
-                    <obo:BFO_0000050 rdf:resource="{svfn:groupURI($includedParentGroup/group/@id, $includedParentGroup/group/@name)}" />
+                    <obo:BFO_0000050 rdf:resource="{svfn:groupURI($parentGroupNode/group/@id, $parentGroupNode/group/@name)}" />
                 </xsl:if>
             </xsl:with-param>
         </xsl:call-template>

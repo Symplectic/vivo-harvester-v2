@@ -23,6 +23,7 @@
                 xmlns:vitro="http://vitro.mannlib.cornell.edu/ns/vitro/0.7#"
                 xmlns:api="http://www.symplectic.co.uk/publications/api"
                 xmlns:symp="http://www.symplectic.co.uk/ontology/elements/"
+                xmlns:svfn="http://www.symplectic.co.uk/vivo/namespaces/functions"
                 xmlns:config="http://www.symplectic.co.uk/vivo/namespaces/config"
                 exclude-result-prefixes="rdf rdfs bibo vivo foaf score ufVivo vitro api symp xs"
         >
@@ -52,14 +53,19 @@
     <xsl:include href="elements-to-vivo-template-overrides.xsl" />
 
 
+    <xsl:template match="/">
+        <xsl:apply-templates select="." mode="process"/>
+    </xsl:template>
+
     <!--
         Default template - matches the root, to output an RDF document tag around any RDF objects that are output
     -->
-    <xsl:template match="/">
+    <xsl:template match="*" mode="process">
+        <xsl:param name="forceGroupMembership" as="xs:boolean" select="false()" />
         <xsl:call-template name="render_rdf_document">
             <xsl:with-param name="rdfNodes">
                 <xsl:choose>
-                    <xsl:when test="boolean($userGroupMembershipProcessing) = true()">
+                    <xsl:when test="svfn:boolValue($userGroupMembershipProcessing) or $forceGroupMembership">
                         <xsl:apply-templates select="*" mode="userGroupMembershipProcessing" />
                     </xsl:when>
                     <xsl:otherwise>
@@ -73,5 +79,7 @@
     <!-- template to "write nothing" for custom additions calls unless explicitly overridden anywhere -->
     <!-- currently only called into from elements-to-vivo-user.xsl but could be used more widely -->
     <xsl:template match="*" mode="customAdditions" />
+
+
 
 </xsl:stylesheet>
