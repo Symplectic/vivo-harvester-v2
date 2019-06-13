@@ -31,10 +31,13 @@
     <!-- Import XSLT files that are used -->
     <xsl:import href="elements-to-vivo-utils.xsl" />
 
-    <xsl:variable name="default-vivo-researcher-role" select="'http://vivoweb.org/ontology/core#ResearcherRole'" />
+    <!-- The "Vivo" type that represents a researcher role - defined here as a constant for comparisons elsewhere in this file
+         comparisons to this are used to alter the translations, e.g. to decide whether a label should be provided, etc -->
+    <xsl:variable name="vivo-researcher-role" select="'http://vivoweb.org/ontology/core#ResearcherRole'" />
 
+    <!-- configuration of how different Elements grant-user relationship types should be treated -->
     <xsl:variable name="grant-relationship-types">
-        <rel-types>
+        <rel-types default-vivo-type="http://vivoweb.org/ontology/core#ResearcherRole">
             <rel-type vivo-type="http://vivoweb.org/ontology/core#PrincipalInvestigatorRole">user-grant-primary-investigation</rel-type>
             <rel-type vivo-type="http://vivoweb.org/ontology/core#PrincipalInvestigatorRole">user-grant-principal-investigation</rel-type>
             <rel-type vivo-type="http://vivoweb.org/ontology/core#CoPrincipalInvestigatorRole">user-grant-co-primary-investigation</rel-type>
@@ -78,7 +81,7 @@
                     <xsl:value-of select = "$selectedVivoGrantType/@vivo-type" />
                 </xsl:when>
                 <xsl:otherwise>
-                    <xsl:value-of select="$default-vivo-researcher-role" />
+                    <xsl:value-of select="$grant-relationship-types/rel-types/@default-vivo-type" />
                 </xsl:otherwise>
             </xsl:choose>
         </xsl:variable>
@@ -98,7 +101,7 @@
 
                 <rdf:type rdf:resource="{$vivo-relationship-type}" />
                 <!-- we only apply labels if we are doing a researcher role and one is available -->
-                <xsl:if test="$vivo-relationship-type = $default-vivo-researcher-role">
+                <xsl:if test="$vivo-relationship-type = $vivo-researcher-role">
                     <xsl:choose>
                         <xsl:when test="$selectedVivoGrantType/@label">
                             <rdfs:label><xsl:value-of select="$selectedVivoGrantType/@label" /></rdfs:label>
@@ -126,7 +129,7 @@
                 <vivo:relates rdf:resource="{$investigatorURI}"/><!-- link to role -->
                 <!-- if its an investigator role type we create an additional "relates" link directly to the user -->
                 <!-- no idea why - - it's just what Vivo itself does if you do manual entry...-->
-                <xsl:if test="$vivo-relationship-type != $default-vivo-researcher-role">
+                <xsl:if test="$vivo-relationship-type != $vivo-researcher-role">
                     <vivo:relates rdf:resource="{svfn:userURI($user)}" /><!-- link to user -->
                 </xsl:if>
             </xsl:with-param>
@@ -139,7 +142,7 @@
                 <obo:RO_0000053 rdf:resource="{$investigatorURI}"/><!-- link to role -->
                 <!-- if its an investigator role type we create an additional "related by" link to the grant -->
                 <!-- no idea why - it's just what Vivo itself does if you do manual entry...-->
-                <xsl:if test="$vivo-relationship-type != $default-vivo-researcher-role">
+                <xsl:if test="$vivo-relationship-type != $vivo-researcher-role">
                     <vivo:relatedBy rdf:resource="{svfn:objectURI($grant)}" /><!-- link to grant -->
                 </xsl:if>
             </xsl:with-param>

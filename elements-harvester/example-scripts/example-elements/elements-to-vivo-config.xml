@@ -256,7 +256,7 @@
         <config:publication-type type="poster">
             <rdf:type rdf:resource="http://vivoweb.org/ontology/core#ConferencePoster"/>
         </config:publication-type>
-		<config:publication-type type="presentation">
+        <config:publication-type type="presentation">
             <rdf:type rdf:resource="http://vivoweb.org/ontology/core#Presentation"/>
         </config:publication-type>
         <config:publication-type type="report">

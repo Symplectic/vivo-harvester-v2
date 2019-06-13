@@ -36,8 +36,8 @@
     <!-- ======================================
          Function Library
          ======================================- -->
-    
-	<!--
+
+    <!--
         svfn:boolValue
         ==============
         Attempt to extract a suitable boolean from the incoming param, whether it is a string or something else..

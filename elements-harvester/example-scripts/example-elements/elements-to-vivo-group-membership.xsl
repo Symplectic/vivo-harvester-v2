@@ -50,7 +50,7 @@
 
         <xsl:variable name="requiredDiff" select="0.95" />
 
-		<xsl:for-each select="svfn:getNodeOrLoad($userGroups)/usersGroups/group">
+        <xsl:for-each select="svfn:getNodeOrLoad($userGroups)/usersGroups/group">
         <!--<xsl:for-each select="$userGroups/usersGroups/group">-->
 
             <xsl:variable name="positionTitle">
