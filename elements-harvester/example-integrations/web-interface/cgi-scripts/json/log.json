@@ -1,0 +1,71 @@
+#!/usr/bin/perl
+use CGI;
+use File::Basename;
+
+use lib "../";
+require 'lib/json.pl';
+require 'lib/config.pl';
+
+#grab settings from lib/config.pl
+our ( $harvestsLogDirectory ); 
+
+$q = CGI->new;
+
+my $file = $q->url_param('file') ;
+#my $fromLine = $q->url_param('line') ;
+my $fromPosition = $q->url_param('from') ;
+
+my($filename) = fileparse($file);
+my $filePath = "$harvestsLogDirectory/$filename" ;
+
+print $q->header('application/json') ;
+
+print "{",
+       jProp("file", $filePath),
+#       jProp("fromLine", $fromLine),
+       jProp("fromPosition", $fromPosition);
+
+print '"lines" : [';
+
+open(my $bw, '<:encoding(UTF-8)', $filePath);
+my $counter = 0;
+my $halted = 0;
+my $firstLineOutputted = 0;
+while( defined( $log_line = <$bw> )) {
+    my $position = $bw->tell;   
+#    $counter++ ;
+#    if($counter > $fromLine){
+    if($position > $fromPosition){
+        if($firstLineOutputted){
+            print ", ";
+        }
+        print "{";
+
+        print jProp("position", $position);
+
+        if($log_line =~ s/^(\d\d\d\d-\d\d-\d\d \d\d\:\d\d\:\d\d.\d\d\d)//){
+             print jProp("timestamp", $1);
+        }
+
+        if($log_line =~ s/^\s*(INFO|WARN|ERROR)\s*//){
+            print jProp("level", lc $1);
+        } else {
+            print jProp("level", "undef");
+        }
+
+        print jProp("message", $log_line, true);
+        print "}";
+
+        $counter++;
+        $firstLineOutputted = 1;
+    }
+    
+    if($counter > 500){
+        $halted = 1;
+        last;
+    }
+}
+print "],",
+      jProp("halted", $halted, true),
+      "}";
+

@@ -1,0 +1,24 @@
+#Set harvest origin environment variable
+HARVEST_ORIGIN=CRON
+
+#Un-comment lines below as desired - or use the below as examples to create your own:
+
+# ---------------------------------------------------------------------------------------------
+# delta at 4 am every Mon-Sat, Run a full at 3 am on a Sunday
+# ---------------------------------------------------------------------------------------------
+# 00 04 * * 1-6 /usr/local/vivo/harvester/elementsfetch.sh
+# 00 03 * * 0 /usr/local/vivo/harvester/elementsfetch.sh --full
+
+# ---------------------------------------------------------------------------------------------
+# group skipping delta every 3 hours at 5 past the hour between 7am and 11pm
+# ---------------------------------------------------------------------------------------------
+# non group skipping every day at 4am
+# full once every month on the 1st Sunday of each month
+#05 7-23/3 * * * /usr/local/vivo/harvester/elementsfetch.sh --skipgroups
+#00 04 * * * /usr/local/vivo/harvester/elementsfetch.sh
+#00 03 * * 0 [[ $(date +\%d) -lt 7 ]] && /usr/local/vivo/harvester/elementsfetch.sh --full
+
+# ---------------------------------------------------------------------------------------------
+# run a differential harvest once a fortnight at 2am
+# ---------------------------------------------------------------------------------------------
+#00 02 * * 0   [[ $(($(date +\%U) \% 2)) == 0 ]] && /usr/local/vivo/harvester/elementsfetch.sh

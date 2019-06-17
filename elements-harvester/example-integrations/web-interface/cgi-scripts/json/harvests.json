@@ -1,0 +1,93 @@
+#!/usr/bin/perl
+use CGI;
+use File::ReadBackwards;
+
+use lib "../";
+require 'lib/json.pl';
+require 'lib/config.pl';
+
+#grab settings from lib/config.pl
+our ( $harvestsRunLog );
+my $filePath= $harvestsRunLog;
+
+my $harvesterRunning = `ps -eaf | grep elementsfetch.sh | grep -v grep`;
+if($harvesterRunning =~ /elementsfetch\.sh/){
+    $harvesterRunning = 1;
+} else {
+    $harvesterRunning = 0;
+}
+
+$q = CGI->new;
+
+my $fromPosition = $q->url_param('from') ;
+my $max = $q->url_param('max') ;
+
+print $q->header('application/json') ;
+print "{",
+       jProp("status", $harvesterRunning),
+       jProp("file", $filePath),
+       jProp("fromPosition", $fromPosition);
+
+#$bw = File::ReadBackwards->new( "$filePath" ) or  die "can't read 'log_file' $!";
+$bw = File::ReadBackwards->new( "$filePath" );
+print '"lines" : [';
+
+my $counter = 0;
+my $firstLineOutputted = 0;
+my $mostRecentHarvestInitiationFound = 0;
+while( defined( $log_line = $bw->readline )) {
+    my $position = $bw->tell;   
+    if($position > $fromPosition && ($max eq "" || $max > $counter )){
+        print $firstLineOutputted ? ", " : "";
+        print "{";
+
+        print jProp("position", $position);
+
+        # the log file timestamp is the "last" one in the message
+        my $logFileTimestamp = "";
+        if($log_line =~ /.*(\d\d\d\d\/\d\d\/\d\d \d\d:\d\d:\d\d)+/){
+            $logFileTimestamp = $1;
+            $logFileTimestamp =~ s/ /T/ ;
+            $logFileTimestamp =~ s/:/-/g ;
+            $logFileTimestamp =~ s/\//-/g ;
+            if(!$mostRecentHarvestInitiationFound && $log_line =~ /harvest initiated$/ && $harvesterRunning){
+                print jProp("monitorLogTimestamp", $logFileTimestamp);
+                $mostRecentHarvestInitiationFound = 1;
+            }
+            elsif($log_line =~ /\Winitiated at\W/){    
+                print jProp("logTimestamp", $logFileTimestamp);
+            }
+        }
+
+        #the main timestamp associated with this specific log line
+        if($log_line =~ s/^(\d\d\d\d\/\d\d\/\d\d \d\d\:\d\d\:\d\d)//){
+             print jProp("timestamp", $1);
+        }
+
+        if($log_line =~ s/^\s*:\s*(\w+)\s*:\s*//){
+            print jProp("source", $1);
+        }
+
+        if($log_line =~ /^(WARNING)\W/i){
+            print jProp("level", "warn");
+        }
+        elsif($log_line =~ /\Wrequest ignored\W/i){
+            print jProp("level", "comment");
+        }
+        else{
+            print jProp("level", "info");
+        }
+       
+        print jProp("message", $log_line, true);
+        print "}";
+        
+        $firstLineOutputted = 1;
+        $counter++;
+    }
+    else{
+        # if we are not going to output anything else - no point looping..
+        last;
+    }
+}
+print ']}';
+

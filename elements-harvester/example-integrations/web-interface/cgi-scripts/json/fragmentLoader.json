@@ -1,0 +1,74 @@
+#!/usr/bin/perl
+use CGI;
+use File::ReadBackwards;
+#use Module::Load;
+
+#require 'lib/json.pl';
+#use FindBin;
+
+use lib "../";
+require 'lib/json.pl';
+require 'lib/config.pl';
+
+#grab settings from lib/config.pl
+our ( $fragmentLoaderLog );
+our ( $fragmentsDirectory );
+my $filePath= $fragmentLoaderLog;
+
+#is the loader active
+`systemctl is-active --quiet fragmentloader`;
+my $flActive = $? == 0 ? 1 : 0;
+
+opendir(DIR, $fragmentsDirectory);
+@FILES = grep { $_ =~ /add|subtract/i } readdir(DIR);
+#conversion from array to atomic -> count of array
+my $fragmentCount = @FILES;
+
+$q = CGI->new;
+
+my $fromPosition = $q->url_param('from') ;
+my $max = $q->url_param('max') ;
+
+print $q->header('application/json') ;
+print "{",
+       jProp("status", $flActive),
+       jProp("fragmentCount", $fragmentCount),
+       jProp("file", $filePath),
+       jProp("fromPosition", $fromPosition);
+
+#$bw = File::ReadBackwards->new( "$filePath" ) or  die "can't read 'log_file' $!";
+$bw = File::ReadBackwards->new( "$filePath" );
+print '"lines" : [';
+
+my $counter = 0;
+my $firstLineOutputted = 0;
+while( defined( $log_line = $bw->readline )) {
+    my $position = $bw->tell;        
+    if($position > $fromPosition && ($max eq "" || $max > $counter )){
+        print $firstLineOutputted ? ", " : "";
+        print "{";
+
+        print jProp("position", $position);
+
+        if($log_line =~ s/^(\d\d\d\d-\d\d-\d\d \d\d\:\d\d\:\d\d.\d\d\d)//){
+             print jProp("timestamp", $1);
+        }
+
+        if($log_line =~ s/^\s*(INFO|WARN|ERROR)\s*//){
+            print jProp("level", lc $1);
+        } else {
+            print jProp("level", "undef");
+        }
+       
+        print jProp("message", $log_line, true);
+        print "}";
+        
+        $firstLineOutputted = 1;
+    }
+    else{
+        last;
+    }
+    $counter++;
+}
+print ']}';
+

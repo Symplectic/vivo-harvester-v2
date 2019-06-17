@@ -1,0 +1,79 @@
+#!/usr/bin/perl
+use CGI;
+
+$newStyle=<<END;
+body {
+	margin: 0;
+	margin-bottom: 50px;
+}
+
+div.header {
+	position: relative;
+	overflow: auto;
+	min-height: 100px;
+	background-color: lightsteelblue;
+	border-bottom: 1px solid grey;
+
+}
+
+div.header h1{
+	margin-top: 30px;
+	margin-left: 50px;
+	margin-right: 50px;
+}
+
+div.main-section {
+	width: 80%;
+	min-width:350px;
+	max-width:1024px;
+	margin-left: auto;
+	margin-right: auto;
+	margin-top: 30px;
+	padding: 20px 30px;
+	border: 1px solid lightsteelblue;
+}
+
+div.main-section h1, div.main-section h2 {
+	margin-top: 0;
+	margin-bottom: 10px;
+	padding-bottom: 8px;
+	border-bottom: 1px solid lightsteelblue;
+}
+
+div.main-section h1.disabled, div.main-section h2.disabled{
+	color: lightgrey;
+}
+
+
+.rhs-item{
+        display: block;
+        margin-left: auto;
+        width: 120px;
+}
+
+.button{
+        background-color: lightsteelblue;
+        border: 1px solid grey;
+        border-radius: 20px;
+        cursor: pointer;
+        text-decoration: none;
+        color: black;
+        padding: 10px;
+        text-align: center;
+}
+
+.button:hover{
+        color: white;
+}
+
+.button:disabled {
+	cursor: initial;
+	color: lightgrey;
+	border-color: grey;
+}
+
+END
+
+$q = CGI->new;
+print $q->header("text/css"),
+      $newStyle;

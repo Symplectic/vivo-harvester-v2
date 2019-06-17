@@ -1,0 +1,1 @@
+/usr/local/vivo/harvester/control/work-requests IN_CREATE /usr/local/vivo/harvester/control/harvesterControl.sh $@ $#

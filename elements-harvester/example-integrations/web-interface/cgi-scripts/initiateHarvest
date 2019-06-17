@@ -1,0 +1,45 @@
+#!/usr/bin/perl
+use CGI;
+use File::Touch;
+
+use lib ".";
+require "lib/config.pl";
+
+#grab settings from lib/config.pl
+our ( $workQueuePath );
+
+$q = CGI->new;
+$touchObj = File::Touch-> new;
+
+
+$ht = $q->param('harvest_type');
+
+$op =0;
+if($ht eq 'differential'){
+    $touchObj=>touch("$workQueuePath/run-diff");
+    $op = 1;
+    sleep(2);
+}
+elsif($ht eq 'skip-groups'){
+    $touchObj=>touch("$workQueuePath/run-sg-diff");
+    $op = 2;
+    sleep(2);
+}
+elsif($ht eq 'full'){
+    $touchObj=>touch("$workQueuePath/run-full");
+    $op = 3;
+    sleep(2);
+}
+elsif($ht eq 'reprocess'){
+    $touchObj=>touch("$workQueuePath/run-reprocess");
+    $op = 4;
+    sleep(2);
+}
+
+
+#placeholder..
+#if($op != 0){
+#}
+
+print $q->redirect('default');
+

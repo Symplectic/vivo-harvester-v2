@@ -4,18 +4,19 @@
 ::   License, v. 2.0. If a copy of the MPL was not distributed with this
 ::   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 :: *******************************************************************************
-::   Version :  ${git.branch}:${git.commit.id}
+::   Version :  develop:3dfb81e03accd928583303830519b4a1bfdeddeb
 :: *******************************************************************************
 
 ECHO OFF
 
 SET HOME_PATH=%~dp0
+ECHO %HOME_PATH%
 
-IF NOT EXIST %HOME_PATH%\..\scripts (
-    copy /-Y %HOME_PATH%\..\example-config\* %HOME_PATH%\..\
-    copy /-Y %HOME_PATH%\..\example-bin\*.bat %HOME_PATH%\..\
-    mkdir %HOME_PATH%\..\scripts
-    echo d | xcopy /E %HOME_PATH%\..\example-scripts\example-elements %HOME_PATH%\..\scripts\example-elements
+IF NOT EXIST "%HOME_PATH%\..\scripts" (
+    mkdir "%HOME_PATH%\..\scripts"
+    copy /-Y "%HOME_PATH%\..\examples\example-config\*" "%HOME_PATH%\..\"
+    copy /-Y "%HOME_PATH%\..\examples\example-bin\*.bat" "%HOME_PATH%\..\"
+    echo d | xcopy /E "%HOME_PATH%\..\examples\example-scripts\example-elements" "%HOME_PATH%\..\scripts\example-elements"
 ) ELSE (
     echo This Harvester already seems to be initialised.
 )

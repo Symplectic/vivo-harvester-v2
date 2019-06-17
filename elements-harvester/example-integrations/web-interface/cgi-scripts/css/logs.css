@@ -1,0 +1,67 @@
+#!/usr/bin/perl
+use CGI;
+
+$newStyle=<<END;
+div.log-file {
+    font-family: monospace;
+}
+
+span.log-line{
+    display: flex;    
+}
+
+span.log-line.log-level-error {
+	color: red;
+}
+
+span.log-line.log-level-warn {
+	color: orangered;
+}
+
+span.log-line.log-level-comment {
+	color: grey;
+}
+
+span.log-line.log-level-undef {
+	color: purple;
+}
+
+span.log-line.new-line{
+	background-color: lightgrey;
+}
+
+span.log-timestamp {
+	color:grey;
+	min-width: 195px;
+}
+
+span.log-source{
+	min-width: 70px;
+	text-align: center;
+}
+
+span.log-message a{
+    display:inline-block;
+    margin-left:10px;
+}
+
+pre{
+	white-space: pre-wrap;       /* Since CSS 2.1 */
+	white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+	white-space: -pre-wrap;      /* Opera 4-6 */
+	white-space: -o-pre-wrap;    /* Opera 7 */
+	word-wrap: break-word;       /* Internet Explorer 5.5+ */
+        word-break: break-word
+}
+
+div.main-section.tail pre{
+	height: 650px;
+	overflow-y: scroll;
+	border-bottom: 1px solid lightgray;
+}
+
+END
+
+$q = CGI->new;
+print $q->header("text/css"),
+      $newStyle;

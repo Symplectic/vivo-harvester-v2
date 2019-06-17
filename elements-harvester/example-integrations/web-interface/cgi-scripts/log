@@ -1,0 +1,159 @@
+#!/usr/bin/perl
+use CGI (start_div);
+use File::ReadBackwards;
+use Time::Local;
+use POSIX;
+
+use lib ".";
+require "lib/config.pl";
+
+#grab settings from lib/config.pl
+our ( $harvestsLogDirectory );
+
+$q = CGI->new;
+
+my $timestamp = $q->url_param('t') ;
+my $tail = $q->url_param('tail');
+
+$newStyle=<<END;
+<!--
+    #log-file {
+        width:1024px;
+    }
+
+    .hide {
+        display:none;
+    }
+
+     #loading-marker {
+        font-size: 1.4em;
+        font-style: italic;
+        font-weight: bold;
+        color: grey;
+    }
+-->
+END
+
+my $TAILSCRIPT = "";
+if($tail eq "true"){
+    $TAILSCRIPT = "window.setInterval(reloadData, 500, true);";
+}
+
+my $JSCRIPT=<<"END_SCRIPT";
+\$( document ).ready(function() {
+
+    var disabledClass = "disabled";
+
+    bindSelectAll(\$('#log-file pre'));
+ 
+    \$('#log-file h2').click(function(){
+        reloadData();
+    });
+
+    \$('#load-more').click(function(){
+        var loadMoreElement = \$(this);
+        if(!loadMoreElement.hasClass(disabledClass)){
+            loadMoreElement.addClass(disabledClass);
+            reloadData(true, true);
+        }
+        return false;
+    });
+
+    var maxAutoLoadedCharacters = 500000;
+
+    function reloadData(highlightNewRows, scrollToBottom){
+        var file = \$('#log-file-path').text();
+        updateFromJSON({
+            url: "json/log.json?file=" + encodeURIComponent(file),
+            targetElement: \$('#log-file pre.js-target'),
+            highlightNew: highlightNewRows,
+//            shouldScroll: false,
+            lineContent: function(line){
+                var levelMessage = line.level == "undef" ? "" : line.level.toUpperCase() + ' ';
+                var message = '<span class="log-message">'+ levelMessage + line.message + '</span>';
+                var timestamp = !line.timestamp ? "" : '<span class="log-timestamp">' + line.timestamp + '</span>';
+                return timestamp + ' ' + message;
+            },
+            postLineUpdate: function(data, settings){
+                var loadMoreElement = \$("#load-more");
+                var loadingElement = \$("#loading-marker");           
+                var hideClass = "hide";
+                var scrollBox = \$('html, body');
+
+                loadingElement.addClass(hideClass);
+                loadMoreElement.addClass(hideClass);
+                loadMoreElement.removeClass(disabledClass);
+
+                if(data.halted === "1"){
+                    if(data.lines[data.lines.length-1].position > maxAutoLoadedCharacters) {
+                          loadMoreElement.removeClass(hideClass);
+                    }
+                    else {
+                          loadingElement.removeClass(hideClass);
+                        window.setTimeout(updateFromJSON, 500, settings)
+                    }
+                }
+
+                if(scrollToBottom === true){
+                    scrollBox.scrollTop(settings.targetElement[0].scrollHeight);
+                }
+            }
+        });
+    }
+    
+    reloadData();
+
+    $TAILSCRIPT      
+});
+END_SCRIPT
+
+print $q->header,
+      $q->start_html({
+          -title=>'Log file viewer',
+          -style=>{-src=>["css/main.css", "css/logs.css"], -code=>$newStyle},
+          -script=>[
+              { -type=> 'text/javascript', -src=>'https://code.jquery.com/jquery-3.3.1.min.js' },
+              { -type=> 'text/javascript', -src=>'js/functions.js' },
+              { -type=> 'text/javascript', -code=>$JSCRIPT }
+          ]
+      }),
+      $q->div(
+          {-class=>"header"}, 
+          $q->h1("Log for harvest initiated at $timestamp")
+      );
+
+$timestamp =~ /(\d\d\d\d)-(\d\d)-(\d\d)T(\d\d)-(\d\d)-(\d\d)/;
+my $timeObj = timelocal($6 + 0, $5 + 0, $4 + 0, $3+0, $2-1, $1+0);
+
+my $fileFound = 0;
+my $filePath = "";
+
+my $tailClass = "";
+if($tail eq 'true'){
+    $tailClass = "tail"
+}
+print start_div({-class=>"main-section $tailClass log-file", -id=>"log-file"});
+for (my $i = 0; $i<=5; $i++){
+     $timeObjAdded = $timeObj + $i;    
+     my $timeString = POSIX::strftime("%Y-%m-%dT%H-%M-%S", localtime($timeObjAdded));
+    
+    my $fileName = join "", 'harvester.', $timeString, '.log' ;
+    $filePath = join "", $harvestsLogDirectory, "/" , $fileName;
+    if(-f $filePath){
+        my $opName = $tail eq "true" ? "Tailing" : "Displaying";
+        print $q->h2("$opName file : ", $q->span({-id=>"log-file-path"}, $fileName));
+        $fileFound = 1;
+        last;
+    }
+}
+
+if($fileFound){
+    print $q->pre({-class=>"js-target"}, "");
+} else {
+    print $q->h2("ERROR : No harvest log file could be found corresponding to timestamp : $timestamp");
+}
+
+print $q->a({-href=>'#', -id=>'load-more', -class=>'button rhs-item hide'}, "Load More");
+print $q->span({-id=>'loading-marker', -class=>'rhs-item hide'}, "Loading...");
+print end_div();
+print $q->end_html;

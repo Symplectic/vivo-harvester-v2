@@ -1,0 +1,303 @@
+#!/usr/bin/perl
+use CGI (start_div, start_span, start_ul, start_pre);
+#use File::ReadBackwards;
+use Time::Local;
+use POSIX;
+use IO::Uncompress::Gunzip;
+#use HTML::Entities;
+use XML::Tidy;
+
+use lib ".";
+require "lib/config.pl";
+
+#grab settings from lib/config.pl
+our ( $harvesterDataDirectory );
+our ( $harvesterRawDataDirectory );
+our ( $harvesterTranslatedDataDirectory );
+our ( $harvesterTdbOutputDirectory );
+our ( $harvesterOtherDataDirectory );
+our ( $relationshipsFile );
+our ( $includedFilesFile );
+
+$newStyle=<<END;
+<!-- 
+    div.main-section {
+        width:80%;
+        max-width:unset;
+    }    
+
+    span.related-info {
+        display: inline-block;
+        width: 50%;
+        vertical-align: top;
+    }
+
+    span.related-info ul {
+        max-height: 250px;
+        overflow-y: auto;
+    }
+    
+    span.related-info h3, span.related-info ul{
+        margin: 5px 0;
+    }
+	
+    pre{
+        padding: 2px;
+        border: 1px solid #888;
+    }
+
+    
+-->
+END
+
+my $JSCRIPT=<<"END_SCRIPT";
+\$( document ).ready(function() {
+    bindSelectAll(\$('#log-file pre'));
+});
+END_SCRIPT
+
+
+$q = CGI->new;
+my $item = $q->url_param('item') ;
+my $requestedFile = $q->url_param('file') ;
+my $scriptName = $q->url();
+my $itemInVivoText = "(item in vivo)";
+
+sub getGrepPattern {
+    my $itemDescriptor = shift;
+    if($itemDescriptor =~ /^([\w-]+):(\d+)$/){
+        return " -e \"$1/$2(\\D|\$)\"";
+	}
+	else{
+	    return " -e \"^$itemDescriptor\$\"";
+	}
+}
+
+sub getIncludedSpan {
+    my $inputToTest = shift;
+    my $includedSet = shift;
+    my $textToUse = shift;
+    if($includedSet =~ /$inputToTest\s/){
+        return $q->span({-class=>"in-vivo"},"$textToUse");
+    }
+    return "";
+}
+
+sub processRelatedItem {
+    my $itemDescriptor = shift;
+    my $includedItemsString = shift;
+    my $suffix = shift;
+
+    $itemDescriptor =~ /^([\w-]+):(\d+)$/;
+    my $fileDescriptorFragment = "$1/$2";
+    my $itemID = "$1$2";
+    my $isInVivo = getIncludedSpan($fileDescriptorFragment, $includedItemsString, $itemInVivoText);
+
+    my $name = "$itemDescriptor $suffix";
+    $name =~ s/\s+$//;
+
+    print $q->li($q->a({-href=>"$scriptName?item=$itemID"}, $name), $isInVivo);
+}
+
+my $fileFound = 0;
+my $filePath = "";
+my $fileCompressed = 0;
+my $fileIsXML = 0;
+my @relatedFiles;
+my $relatedFileGrepQueries = "";
+my @relatedItems;
+my $relatedItemGrepQueries = "";
+my $isRelationship = false;
+
+if($item =~ /^(additions|subtractions)$/i) {
+    $filePath = "$harvesterTdbOutputDirectory/$1.n3";
+    if(-f $filePath){
+        $fileFound = 1;
+    }
+}
+elsif($item =~ /^(group-membership)$/i) {
+    $filePath = "$harvesterOtherDataDirectory/group-membership-cache.xml";
+    if(-f $filePath){
+        $fileIsXML = 1;
+        $fileFound = 1;
+    }
+}
+elsif($item =~/^(activity|publication|grant|teaching\-activity|group|user|relationship)(\d+)$/i) {
+
+    my $dir = "$harvesterRawDataDirectory/$1";
+    opendir(my $dh, "$dir");
+    my @fileSet = grep{/^$2($|-)/} readdir($dh);
+    foreach(@fileSet){
+       push(@relatedFiles, "$dir/$_");
+    }
+
+    $dir = "$harvesterTranslatedDataDirectory/$1";
+    opendir(my $dh, "$dir");
+    my @fileSet = grep{/^$2($|-)/} readdir($dh);
+    foreach(@fileSet){
+       @relatedFiles.push(@relatedFiles, "$dir/$_");
+    }
+
+    my $fileRequestMatched = 0;
+    foreach(@relatedFiles){
+        if($requestedFile eq $_){
+            $filePath = $_;
+            $fileRequestMatched = 1;
+        }
+		$relatedFileGrepQueries .= getGrepPattern($_);		
+    }
+    if(!$fileRequestMatched){
+        $filePath = @relatedFiles[0]; 
+    }
+
+    if(-f $filePath){
+        $fileCompressed = 1;
+        $fileIsXML = 1;
+        $fileFound = 1;
+    }
+
+    $isRelationship = $1 eq "relationship";
+
+    my $relatedObjectSearchString = "$1:$2";
+    my $relatedObjects = `grep -F "$relatedObjectSearchString" $relationshipsFile | grep -P "$relatedObjectSearchString(\\D\|\$)"`;
+    open(my $bw, '<:encoding(UTF-8)', \$relatedObjects);
+    while( defined( $line = <$bw> )) {
+        push(@relatedItems, $line);
+        $line =~ /^\s*([\S]+)\s*\|\|\s*([\S]+)\s*\|\s*([\S]+)\s*$/;
+        my $rel = $1;
+        my $obj1 = $2;
+        my $obj2 = $3;
+        if($isRelationship){
+            $relatedItemGrepQueries .= getGrepPattern($obj1);
+            $relatedItemGrepQueries .= getGrepPattern($obj2);
+        }
+        else{
+           $relatedItemGrepQueries .= getGrepPattern($rel);
+        }
+    }
+}
+
+my $simplifiedQueries = $relatedItemGrepQueries;
+$simplifiedQueries =~ s/\(\\\D\|\$\)//g;
+
+#my $includedItems = `grep -E $relatedItemGrepQueries $includedFilesFile`;
+my $includedItems = `grep -F $simplifiedQueries $includedFilesFile | grep -E $relatedItemGrepQueries`;
+
+$simplifiedQueries = $relatedFileGrepQueries;
+$simplifiedQueries =~ s/\$//g;
+$simplifiedQueries =~ s/\^//g;
+
+#my $includedFiles = `grep -E $relatedFileGrepQueries $includedFilesFile`;
+my $includedFiles = `grep -F $simplifiedQueries $includedFilesFile | grep -E $relatedFileGrepQueries`;
+
+print $q->header,
+      $q->start_html({
+          -title=>'Log file viewer',
+          -style=>{-src=>["css/main.css", "css/logs.css"], -code=>$newStyle},
+          -script=>[
+              { -type=> 'text/javascript', -src=>'https://code.jquery.com/jquery-3.3.1.min.js' },
+              { -type=> 'text/javascript', -src=>'https://cdn.rawgit.com/google/code-prettify/master/loader/run_prettify.js' },
+              { -type=> 'text/javascript', -src=>'js/functions.js' },
+              { -type=> 'text/javascript', -code=>$JSCRIPT }
+          ]
+      }),
+      $q->span($simplifiedQueries),
+      $q->div(
+          {-class=>"header"}, 
+          $q->h1("View Data")
+      ),
+      start_div({-class=>"main-section log-file", -id=>"log-file"});
+
+if($fileFound){
+    $isInVivo = "";
+    my $fileDisplayName = $filePath;
+    $fileDisplayName =~ s/$harvesterDataDirectory\///;
+    print $q->h2("Displaying file : ", $q->span({-id=>"log-file-path"}, $fileDisplayName));
+
+
+    my $count = @relatedFiles;
+    if($count > 0){
+        print start_span({-class=>"related-info", -id=>"related-files"}, ""),
+              $q->h3("Related Files"),
+              start_ul();
+    
+        my $fileInVivoText = "(file in vivo)";
+        foreach(@relatedFiles){
+            my $fileName = $_;
+            my $isInVivo = getIncludedSpan($fileName, $includedFiles, $fileInVivoText);
+            my $name = $fileName;
+               $name =~ s/$harvesterDataDirectory\///;
+            print $q->li($q->a({-href=>"$scriptName?item=$item&file=$_"}, $name), $isInVivo);
+        }
+        print end_ul(),
+              end_span();
+    }
+    
+    $count = @relatedItems;
+    if($count > 0){
+        print start_span({-class=>"related-info", -id=>"related-items"}, ""),
+              $q->h3("Related Items"),
+              start_ul();
+    
+        foreach(@relatedItems){
+            $_ =~ /^\s*([\S]+)\s*\|\|\s*([\S]+)\s*\|\s*([\S]+)\s*$/;
+            my $rel = $1;
+            my $obj1 = $2;
+            my $obj2 = $3;
+            if($isRelationship){
+                processRelatedItem($obj1, $includedItems);
+                processRelatedItem($obj2, $includedItems);    
+            }
+            else{
+                processRelatedItem($rel, $includedItems, "($obj1, $obj2)");    
+            }
+        }
+        print end_ul(),
+              end_span();
+    }
+
+	my $preClass = $fileIsXML ? "prettyprint" : "";
+    print start_pre({-class=>"$preClass"});
+	
+    my $fh;
+    if($fileCompressed){
+        $fh = new IO::Uncompress::Gunzip $filePath;
+    }     
+    else{
+        open($fh, '<:encoding(UTF-8)', $filePath);
+    }
+
+    my $bw;
+    if($fileIsXML){
+        my $tidyObj = XML::Tidy->new($fh);
+        $tidyObj->tidy();
+        my $ppText = $tidyObj->toString();        
+        open($bw, '<:encoding(UTF-8)', \$ppText);
+    }
+    else {
+        $bw = $fh;
+    }
+
+    my $counter =0;
+    my $maxLines=5000;
+    my $writtenLines = 0;
+    while( defined( $log_line = <$bw> ) && $counter < $maxLines) {
+        print $q->escapeHTML($log_line);
+        $writtenLines = 1;
+        $counter++;
+    }
+    if(!$writtenLines){
+        print $q->h3("Empty file...");
+    }
+    elsif(defined( <$bw> )){
+        print $q->h3("File Truncated as it exceeded $counter lines...");
+        
+    }
+    print end_pre();
+} else {
+    print $q->h2("ERROR : No files could be found for : $item");
+}
+
+print end_div();
+print $q->end_html;
+

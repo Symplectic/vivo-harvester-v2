@@ -16,11 +16,11 @@ HOME_PATH=$(dirname "$0")
 
 if [ ! -d ${HOME_PATH}/../scripts ];
 then
-    cp ${HOME_PATH}/../example-config/* ${HOME_PATH}/../
-    cp ${HOME_PATH}/../example-bin/*.sh ${HOME_PATH}/../
+    cp ${HOME_PATH}/../examples/example-config/* ${HOME_PATH}/../
+    cp ${HOME_PATH}/../examples/example-bin/*.sh ${HOME_PATH}/../
     echo "Config initialised."
     mkdir ${HOME_PATH}/../scripts
-    cp -r ${HOME_PATH}/../example-scripts/example-elements ${HOME_PATH}/../scripts
+    cp -r ${HOME_PATH}/../examples/example-scripts/example-elements ${HOME_PATH}/../scripts
     echo "Scripts initialised."
 else
     echo "This Harvester already seems to be initialised."

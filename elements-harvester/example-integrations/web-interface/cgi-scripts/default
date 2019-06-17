@@ -1,0 +1,234 @@
+#!/usr/bin/perl
+use CGI (start_div);
+use File::ReadBackwards;
+
+$q = CGI->new;
+
+
+$newStyle=<<END;
+<!-- 
+    #harvest-actions form {
+        margin-left: 35px;
+    }
+
+    #harvest-actions form label{
+        display: list-item;
+    }
+
+    #harvest-actions span.log-timestamp{
+        min-width:140px;
+    }
+  
+    #submit-form{
+        margin-top: -25px;
+    }
+
+    #harvest-actions form label.disabled{
+        color:grey;
+    }
+
+    span.log-message a{
+        display:inline-block;
+        margin-left:10px;
+    }
+
+    #recent-harvests span.log-timestamp{
+        min-width:140px;
+    }
+    
+    #fl-status span.log-timestamp{
+        min-width: 180px;
+    }
+
+    span.program-status {
+        float: right;
+        color:grey
+    }
+
+    span.program-active {
+        color: green;
+    }
+
+    span.program-inactive {
+        color: orangered;
+    } 
+-->
+END
+
+
+my $JSCRIPT=<<"END_SCRIPT";
+\$( document ).ready(function() {
+    
+    var timerInterval = 1000;
+     \$('#harvest-actions').data("status-update-allowed", true);
+       
+    function updateHarvestActionsStatus(enabled){
+        var sectionTitle = \$('#harvest-actions h1'),
+            formInputs =  \$('#harvest-actions form input'),
+            formLabels =  \$('#harvest-actions form label');
+
+        if(\$('#harvest-actions').data("status-update-allowed")){
+            if(enabled){
+                formInputs.prop('disabled', false);
+                formLabels.removeClass('disabled');
+                sectionTitle.removeClass("disabled");
+            } else {
+                formInputs.prop('disabled', true);
+                formLabels.addClass('disabled');
+                sectionTitle.addClass("disabled");            
+            }
+        }
+    }
+
+    \$('#harvest-actions form').submit(function(){        
+        var messageSpan = \$('#harvest-actions h1 span.program-status');
+
+        \$.ajax({
+            url     : \$(this).attr('action'),
+            type    : \$(this).attr('method'),
+            data    : \$(this).serialize(),
+            success : function( data ) {
+                //note, as side effect this will re-enable the inputs if appropraite.
+                window.setTimeout(function(){
+                     messageSpan.text("");
+                     \$('#harvest-actions').data("status-update-allowed", true);
+                     reloadData(true);
+                }, 1200)            },
+            error : function( data ){
+                alert("Unexpected error!");
+            } 
+        }); 
+        
+        messageSpan.text("Processing...")
+        updateHarvestActionsStatus(false);
+        \$('#harvest-actions').data("status-update-allowed", false);
+        return false;
+    });
+
+    function reloadData(highlightNew, initial){
+        reloadHarvestData(highlightNew, initial);
+        reloadFragmentLoaderData(highlightNew, initial);
+    }
+
+    function reloadHarvestData(highlightNewRows, initial){
+        updateFromJSON({
+            url: "json/harvests.json",
+            max: 20,
+            targetElement: \$('#recent-harvest-list'),
+            initialLoad: initial,
+            displayDirection: "reverse",
+            dataDirection : "reverse",
+            highlightNew: highlightNewRows,
+            preLineUpdate: function(data){
+                var activeSpan = \$('#recent-harvests h1 span.program-status');
+                if(data.status == 1){
+                    updateHarvestActionsStatus(false);
+                    activeSpan.text("Harvest Running");
+                    activeSpan.removeClass("program-inactive");
+                    activeSpan.addClass("program-active");
+                } else {
+                    \$('a.tail-monitor').remove();
+                    updateHarvestActionsStatus(true);
+                    activeSpan.text("");
+                    activeSpan.addClass("program-inactive");
+                    activeSpan.removeClass("program-active");
+                }
+            },
+            lineContent: function(line){
+                var sourceMessage = !line.source ? "" : '<span class="log-source">' + line.source.toUpperCase() + '</span>';
+                var timestamp = !line.timestamp ? "" : '<span class="log-timestamp">' + line.timestamp + '</span>';
+                var logFileLink = "";                
+                if(line.monitorLogTimestamp){
+                    logFileLink = '<a class="tail-monitor" href = log?t=' + line.monitorLogTimestamp + '&tail=true>Monitor Ongoing Harvest</a>';
+                } 
+                else if (line.logTimestamp){
+                    logFileLink = "<a href = log?t=" + line.logTimestamp + ">View Log File</a>";
+                }
+                var message = '<span class="log-message">' +  line.message + logFileLink + '</span>';
+                return timestamp + sourceMessage + message;
+            }
+        });
+    }
+
+    function reloadFragmentLoaderData(highlightNewRows, initial){
+        updateFromJSON({
+            url: "json/fragmentLoader.json",
+            max: 30,
+            targetElement: \$('#fragment-loader-list'),
+            initialLoad: initial,
+            displayDirection: "reverse",
+            dataDirection : "reverse",
+            highlightNew: highlightNewRows,
+            preLineUpdate: function(data){
+                var activeSpan = \$('#fl-status span.program-status');
+                var countSpan = \$('#fragmentCount');
+
+                //set the harvest running message appropriately
+                activeSpan.text(data.status == 1 ? 'Active' : 'Disabled');
+                if(data.status == 1){
+                    activeSpan.removeClass("program-inactive");
+                    activeSpan.addClass("program-active");
+                } else {
+                    activeSpan.addClass("program-inactive");
+                    activeSpan.removeClass("program-active");
+                }
+                
+                //set the count
+                countSpan.text(data.fragmentCount);
+            },
+            lineContent: function(line){
+                var levelMessage = (line.level == "undef") ? "" : line.level.toUpperCase() + ' ';
+                var message = '<span class="log-message">' + levelMessage + line.message + '</span>';
+                var timestamp = !line.timestamp ? "" : '<span class="log-timestamp">' + line.timestamp + '</span>';
+                return timestamp + ' ' + message;
+            }
+        });        
+    }
+
+    reloadData(false, true);
+    var timer = window.setInterval(reloadData, timerInterval , true);
+});
+END_SCRIPT
+
+print $q->header(),
+      $q->start_html({
+          -title=>'harvester control',
+          -style=>{-src=>["css/main.css", "css/logs.css"], -code=>$newStyle},
+          -script=>[
+              { -type=> 'text/javascript', -src=>'https://code.jquery.com/jquery-3.3.1.min.js' },
+              { -type=> 'text/javascript', -src=>'js/functions.js' },
+              { -type=> 'text/javascript', -code=>$JSCRIPT}
+          ]
+      }),
+      $q->div(
+          {-class=>"header"},
+          $q->h1('Elements to Vivo Connector')
+      );
+
+print start_div({-class=>"main-section", -id=>"harvest-actions"}),
+      $q->h1('Harvester Actions', $q->span({-class=>"program-status"})),
+      $q->start_form('POST', 'initiateHarvest','application/x-www-form-urlencoded'),
+      $q->radio_group(
+          -name => 'harvest_type',
+          -values => ['differential', 'skip-groups', 'full', 'reprocess'],
+          -default => 'differential',
+      ),
+      $q->br(),
+      $q->submit(-id=>"submit-form", -class=>'button rhs-item', -value => 'Request Harvest'),
+      $q->end_form,
+      $q->end_div;
+           
+print start_div({-class=>"main-section", -id=>"recent-harvests"}),
+      $q->h1('Recent Harvests', $q->span({-class=>"program-status"})),
+      $q->div({-id=>"recent-harvest-list"}, ""),
+      end_div();
+
+
+print start_div({-class=>"main-section", -id=>"fl-status"}),
+      $q->h1('Fragment Loader Status', $q->span({-class=>"program-status"})),
+      $q->h2( $q->span({-id=>"fragmentCount"},""), ' fragments waiting to load'),
+      $q->div({-id=>"fragment-loader-list"}, ""),
+      end_div();
+
+print $q->end_html;
+

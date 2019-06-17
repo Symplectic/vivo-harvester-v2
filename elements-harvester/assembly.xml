@@ -20,23 +20,27 @@
         <fileSet>
             <filtered>true</filtered>
             <directory>bin</directory>
-            <outputDirectory>example-bin</outputDirectory>
-            <fileMode>755</fileMode>
+            <outputDirectory>examples/example-bin</outputDirectory>
+            <fileMode>0755</fileMode>
+            <directoryMode>0755</directoryMode>
         </fileSet>
         <fileSet>
             <filtered>true</filtered>
             <directory>init</directory>
             <outputDirectory>init</outputDirectory>
-            <fileMode>755</fileMode>
+            <fileMode>0755</fileMode>
+            <directoryMode>0755</directoryMode>
         </fileSet>
         <fileSet>
             <filtered>true</filtered>
             <directory>src/main/resources</directory>
-            <outputDirectory>example-config</outputDirectory>
+            <outputDirectory>examples/example-config</outputDirectory>
             <excludes>
                 <exclude>*logback.xml</exclude>
                 <exclude>developer-*.properties</exclude>
             </excludes>
+            <fileMode>0644</fileMode>
+            <directoryMode>0755</directoryMode>
         </fileSet>
         <fileSet>
             <filtered>true</filtered>
@@ -45,15 +49,18 @@
             <includes>
                 <include>*logback.xml</include>
             </includes>
+            <fileMode>0644</fileMode>
         </fileSet>
         <fileSet>
             <filtered>true</filtered>
             <directory>example-scripts</directory>
-            <outputDirectory>example-scripts</outputDirectory>
+            <outputDirectory>examples/example-scripts</outputDirectory>
             <excludes>
                 <!--<exclude>example-elements/*overrides.xsl</exclude>-->
                 <exclude>**/data/**</exclude>
             </excludes>
+            <fileMode>0644</fileMode>
+            <directoryMode>0755</directoryMode>
         </fileSet>
         <!--<fileSet>-->
             <!--<directory>example-scripts/example-elements</directory>-->
@@ -64,9 +71,69 @@
         <!--</fileSet>-->
         <fileSet>
             <filtered>true</filtered>
-            <directory>systemd</directory>
-            <outputDirectory>systemd</outputDirectory>
+            <directory>example-integrations</directory>
+            <outputDirectory>examples/example-integrations</outputDirectory>
+            <excludes>
+                <exclude>web-interface/control/**</exclude>
+                <exclude>web-interface/cgi-scripts/**</exclude>
+            </excludes>
+            <fileMode>0644</fileMode>
+            <directoryMode>0755</directoryMode>
         </fileSet>
+        <!-- custom processing for the web-interface directory -->
+        <!-- control directory-->
+            <!-- ensure we set script permission appropriately -->
+            <fileSet>
+                <filtered>true</filtered>
+                <directory>example-integrations/web-interface/control</directory>
+                <outputDirectory>examples/example-integrations/web-interface/control</outputDirectory>
+                <includes>
+                    <include>harvesterControl.sh</include>
+                </includes>
+                <fileMode>0755</fileMode>
+                <directoryMode>0755</directoryMode>
+            </fileSet>
+            <fileSet>
+                <filtered>true</filtered>
+                <directory>example-integrations/web-interface/control</directory>
+                <outputDirectory>examples/example-integrations/web-interface/control</outputDirectory>
+                <excludes>
+                    <exclude>harvesterControl.sh</exclude>
+                </excludes>
+                <fileMode>0644</fileMode>
+                <directoryMode>0755</directoryMode>
+            </fileSet>
+            <!-- hack to ensure we get an empty "work-requests" directory -->
+            <fileSet>
+                <directory>example-integrations/web-interface/control/work-requests</directory>
+                <outputDirectory>examples/example-integrations/web-interface/control/work-requests</outputDirectory>
+                <excludes>
+                    <exclude>*/**</exclude>
+                </excludes>
+                <directoryMode>0755</directoryMode>
+            </fileSet>
+        <!-- cgi-scripts directory -->
+            <!-- ensure we set script permission appropriately -->
+            <fileSet>
+                <filtered>true</filtered>
+                <directory>example-integrations/web-interface/cgi-scripts</directory>
+                <outputDirectory>examples/example-integrations/web-interface/cgi-scripts</outputDirectory>
+                <excludes>
+                    <exclude>lib/**</exclude>
+                </excludes>
+                <fileMode>0755</fileMode>
+                <directoryMode>0755</directoryMode>
+            </fileSet>
+            <fileSet>
+                <filtered>true</filtered>
+                <directory>example-integrations/web-interface/cgi-scripts</directory>
+                <outputDirectory>examples/example-integrations/web-interface/cgi-scripts</outputDirectory>
+                <includes>
+                    <include>lib/**</include>
+                </includes>
+                <fileMode>0644</fileMode>
+                <directoryMode>0755</directoryMode>
+            </fileSet>
     </fileSets>
     <dependencySets>
         <dependencySet>
