@@ -713,7 +713,7 @@
     -->
 
     <xsl:function name="svfn:getNodeOrLoad" as="node()?">
-        <xsl:param name="input" as="item()" />
+        <xsl:param name="input" as="item()?" />
         <xsl:choose>
             <xsl:when test="$input and $input instance of node()">
                 <xsl:sequence select="$input" />
