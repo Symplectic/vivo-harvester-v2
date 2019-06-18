@@ -77,5 +77,5 @@ function updateFromJSON(settings){
 END
 
 $q = CGI->new;
-print $q->header("text/javascript"),
+print $q->header("text/javascript;charset=UTF-8"),
       $SCRIPT;

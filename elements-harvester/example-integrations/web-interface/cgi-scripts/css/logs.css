@@ -63,5 +63,5 @@ div.main-section.tail pre{
 END
 
 $q = CGI->new;
-print $q->header("text/css"),
+print $q->header("text/css;charset=UTF-8"),
       $newStyle;

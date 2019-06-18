@@ -22,7 +22,7 @@ $q = CGI->new;
 my $fromPosition = $q->url_param('from') ;
 my $max = $q->url_param('max') ;
 
-print $q->header('application/json') ;
+print $q->header('application/json;charset=UTF-8') ;
 print "{",
        jProp("status", $harvesterRunning),
        jProp("file", $filePath),

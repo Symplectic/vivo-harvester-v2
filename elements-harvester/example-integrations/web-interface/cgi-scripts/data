@@ -3,7 +3,7 @@ use CGI (start_div, start_span, start_ul, start_pre);
 #use File::ReadBackwards;
 use Time::Local;
 use POSIX;
-use IO::Uncompress::Gunzip;
+#use IO::Uncompress::Gunzip;
 #use HTML::Entities;
 use XML::Tidy;
 
@@ -190,7 +190,7 @@ $simplifiedQueries =~ s/\^//g;
 #my $includedFiles = `grep -E $relatedFileGrepQueries $includedFilesFile`;
 my $includedFiles = `grep -F $simplifiedQueries $includedFilesFile | grep -E $relatedFileGrepQueries`;
 
-print $q->header,
+print $q->header("text/html;charset=UTF-8"),
       $q->start_html({
           -title=>'Log file viewer',
           -style=>{-src=>["css/main.css", "css/logs.css"], -code=>$newStyle},
@@ -261,7 +261,9 @@ if($fileFound){
 	
     my $fh;
     if($fileCompressed){
-        $fh = new IO::Uncompress::Gunzip $filePath;
+        #$fh = new IO::Uncompress::Gunzip $filePath;
+        #Preferable way to ensure encoding is set for reading data once unzipped..
+        open($fh, '-|:encoding(UTF-8)', "gunzip -c '$filePath'");
     }     
     else{
         open($fh, '<:encoding(UTF-8)', $filePath);
@@ -272,7 +274,9 @@ if($fileFound){
         my $tidyObj = XML::Tidy->new($fh);
         $tidyObj->tidy();
         my $ppText = $tidyObj->toString();        
-        open($bw, '<:encoding(UTF-8)', \$ppText);
+        #open($bw, '<:encoding(UTF-8)', \$ppText);
+        #more reliable across different versions of perl..
+        open($bw, '-|:encoding(UTF-8)', "echo '$ppText'");
     }
     else {
         $bw = $fh;

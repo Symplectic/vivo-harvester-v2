@@ -190,7 +190,7 @@ my $JSCRIPT=<<"END_SCRIPT";
 });
 END_SCRIPT
 
-print $q->header(),
+print $q->header("text/html;charset=UTF-8"),
       $q->start_html({
           -title=>'harvester control',
           -style=>{-src=>["css/main.css", "css/logs.css"], -code=>$newStyle},

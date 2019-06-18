@@ -18,7 +18,7 @@ my $fromPosition = $q->url_param('from') ;
 my($filename) = fileparse($file);
 my $filePath = "$harvestsLogDirectory/$filename" ;
 
-print $q->header('application/json') ;
+print $q->header('application/json;charset=UTF-8') ;
 
 print "{",
        jProp("file", $filePath),
