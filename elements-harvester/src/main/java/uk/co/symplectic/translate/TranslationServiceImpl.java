@@ -8,6 +8,7 @@
  */
 package uk.co.symplectic.translate;
 
+import net.sf.saxon.lib.StandardErrorListener;
 import org.apache.commons.lang.NullArgumentException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,6 +56,18 @@ final class TranslationServiceImpl {
         TransformerFactory factory = null;
         try {
             factory =  TransformerFactory.newInstance("net.sf.saxon.TransformerFactoryImpl", null);
+            factory.setErrorListener(
+                    new StandardErrorListener(){
+                        @Override
+                        //deliberately suppress over zealous warnings about imports
+                        public void warning(TransformerException exception) throws TransformerException {
+                            String messageToLookFor = "is included or imported more than once. This is permitted, but may lead to errors or unexpected behavior";
+                            if(!exception.getMessage().endsWith(messageToLookFor)){
+                                super.warning(exception);
+                            }
+                        }
+                    }
+            );
         } catch (TransformerFactoryConfigurationError transformerFactoryConfigurationError) {
             log.error("Unable to obtain Saxon XSLT factory.", transformerFactoryConfigurationError);
         }
