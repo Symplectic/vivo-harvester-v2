@@ -1,4 +1,5 @@
 #!/bin/bash
+
 #
 # *******************************************************************************
 #   Copyright (c) 2017 Symplectic. All rights reserved.
@@ -6,7 +7,7 @@
 #   License, v. 2.0. If a copy of the MPL was not distributed with this
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # *******************************************************************************
-#   Version :  develop:40ed386caffb43f8847214d055afc78a97402d3a
+#   Version :  ${git.branch}:${git.commit.id}
 # *******************************************************************************
 #
 
@@ -75,7 +76,7 @@ fi
         STATUS=${?}
         if [[ $STATUS = 0 ]]
         then
-            echo "$(date +"%Y/%m/%d %T")    :    $HARVEST_ORIGIN	: $RUN_DESCRIPTOR harvest initiated at $START_TIME completed sucessfully" >> $LOG_FILE
+            echo "$(date +"%Y/%m/%d %T")    :    $HARVEST_ORIGIN	: $RUN_DESCRIPTOR harvest initiated at $START_TIME completed successfully" >> $LOG_FILE
         else
             echo "$(date +"%Y/%m/%d %T")    :    $HARVEST_ORIGIN	: WARNING $RUN_DESCRIPTOR harvest initiated at $START_TIME failed" >> $LOG_FILE
         fi

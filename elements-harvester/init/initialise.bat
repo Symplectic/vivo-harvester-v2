@@ -4,7 +4,7 @@
 ::   License, v. 2.0. If a copy of the MPL was not distributed with this
 ::   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 :: *******************************************************************************
-::   Version :  develop:3dfb81e03accd928583303830519b4a1bfdeddeb
+::   Version :  ${git.branch}:${git.commit.id}
 :: *******************************************************************************
 
 ECHO OFF
