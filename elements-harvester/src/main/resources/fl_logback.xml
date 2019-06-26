@@ -8,6 +8,7 @@
   ~   Version :  ${git.branch}:${git.commit.id}
   ~ *******************************************************************************
   -->
+<!--suppress XmlUnboundNsPrefix, XmlUnboundNsPrefix -->
 <configuration>
 
   <timestamp key="bySecond" datePattern="yyyy-MM-dd'T'HH-mm-ss"/>

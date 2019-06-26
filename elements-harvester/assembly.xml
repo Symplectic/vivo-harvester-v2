@@ -8,9 +8,9 @@
   ~   Version :  ${git.branch}:${git.commit.id}
   ~ *******************************************************************************
   -->
-<assembly xmlns="http://maven.apache.org/POM/4.0.0"
+<assembly xmlns="http://maven.apache.org/ASSEMBLY/2.0.0"
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/assembly-1.1.0-SNAPSHOT.xsd">
+          xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/2.0.0 http://maven.apache.org/xsd/assembly-2.0.0.xsd">
     <id>distrib</id>
     <formats>
         <format>tar.gz</format>
@@ -63,11 +63,11 @@
             <directoryMode>0755</directoryMode>
         </fileSet>
         <!--<fileSet>-->
-            <!--<directory>example-scripts/example-elements</directory>-->
-            <!--<outputDirectory>example-scripts/example-elements/example-overrides</outputDirectory>-->
-            <!--<includes>-->
-                <!--<include>*overrides.xsl</include>-->
-            <!--</includes>-->
+        <!--<directory>example-scripts/example-elements</directory>-->
+        <!--<outputDirectory>example-scripts/example-elements/example-overrides</outputDirectory>-->
+        <!--<includes>-->
+        <!--<include>*overrides.xsl</include>-->
+        <!--</includes>-->
         <!--</fileSet>-->
         <fileSet>
             <filtered>true</filtered>
@@ -82,58 +82,58 @@
         </fileSet>
         <!-- custom processing for the web-interface directory -->
         <!-- control directory-->
-            <!-- ensure we set script permission appropriately -->
-            <fileSet>
-                <filtered>true</filtered>
-                <directory>example-integrations/web-interface/control</directory>
-                <outputDirectory>examples/example-integrations/web-interface/control</outputDirectory>
-                <includes>
-                    <include>harvesterControl.sh</include>
-                </includes>
-                <fileMode>0755</fileMode>
-                <directoryMode>0755</directoryMode>
-            </fileSet>
-            <fileSet>
-                <filtered>true</filtered>
-                <directory>example-integrations/web-interface/control</directory>
-                <outputDirectory>examples/example-integrations/web-interface/control</outputDirectory>
-                <excludes>
-                    <exclude>harvesterControl.sh</exclude>
-                </excludes>
-                <fileMode>0644</fileMode>
-                <directoryMode>0755</directoryMode>
-            </fileSet>
-            <!-- hack to ensure we get an empty "work-requests" directory -->
-            <fileSet>
-                <directory>example-integrations/web-interface/control/work-requests</directory>
-                <outputDirectory>examples/example-integrations/web-interface/control/work-requests</outputDirectory>
-                <excludes>
-                    <exclude>*/**</exclude>
-                </excludes>
-                <directoryMode>0755</directoryMode>
-            </fileSet>
+        <!-- ensure we set script permission appropriately -->
+        <fileSet>
+            <filtered>true</filtered>
+            <directory>example-integrations/web-interface/control</directory>
+            <outputDirectory>examples/example-integrations/web-interface/control</outputDirectory>
+            <includes>
+                <include>harvesterControl.sh</include>
+            </includes>
+            <fileMode>0755</fileMode>
+            <directoryMode>0755</directoryMode>
+        </fileSet>
+        <fileSet>
+            <filtered>true</filtered>
+            <directory>example-integrations/web-interface/control</directory>
+            <outputDirectory>examples/example-integrations/web-interface/control</outputDirectory>
+            <excludes>
+                <exclude>harvesterControl.sh</exclude>
+            </excludes>
+            <fileMode>0644</fileMode>
+            <directoryMode>0755</directoryMode>
+        </fileSet>
+        <!-- hack to ensure we get an empty "work-requests" directory -->
+        <fileSet>
+            <directory>example-integrations/web-interface/control/work-requests</directory>
+            <outputDirectory>examples/example-integrations/web-interface/control/work-requests</outputDirectory>
+            <excludes>
+                <exclude>*/**</exclude>
+            </excludes>
+            <directoryMode>0755</directoryMode>
+        </fileSet>
         <!-- cgi-scripts directory -->
-            <!-- ensure we set script permission appropriately -->
-            <fileSet>
-                <filtered>true</filtered>
-                <directory>example-integrations/web-interface/cgi-scripts</directory>
-                <outputDirectory>examples/example-integrations/web-interface/cgi-scripts</outputDirectory>
-                <excludes>
-                    <exclude>lib/**</exclude>
-                </excludes>
-                <fileMode>0755</fileMode>
-                <directoryMode>0755</directoryMode>
-            </fileSet>
-            <fileSet>
-                <filtered>true</filtered>
-                <directory>example-integrations/web-interface/cgi-scripts</directory>
-                <outputDirectory>examples/example-integrations/web-interface/cgi-scripts</outputDirectory>
-                <includes>
-                    <include>lib/**</include>
-                </includes>
-                <fileMode>0644</fileMode>
-                <directoryMode>0755</directoryMode>
-            </fileSet>
+        <!-- ensure we set script permission appropriately -->
+        <fileSet>
+            <filtered>true</filtered>
+            <directory>example-integrations/web-interface/cgi-scripts</directory>
+            <outputDirectory>examples/example-integrations/web-interface/cgi-scripts</outputDirectory>
+            <excludes>
+                <exclude>lib/**</exclude>
+            </excludes>
+            <fileMode>0755</fileMode>
+            <directoryMode>0755</directoryMode>
+        </fileSet>
+        <fileSet>
+            <filtered>true</filtered>
+            <directory>example-integrations/web-interface/cgi-scripts</directory>
+            <outputDirectory>examples/example-integrations/web-interface/cgi-scripts</outputDirectory>
+            <includes>
+                <include>lib/**</include>
+            </includes>
+            <fileMode>0644</fileMode>
+            <directoryMode>0755</directoryMode>
+        </fileSet>
     </fileSets>
     <dependencySets>
         <dependencySet>
