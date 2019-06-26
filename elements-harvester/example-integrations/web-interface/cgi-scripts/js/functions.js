@@ -10,7 +10,7 @@ function bindSelectAll(targetElement){
             var range = document.createRange() // create new range object
             range.selectNodeContents(targetElement.get(0)) // set range to encompass desired element text
             var selection = window.getSelection() // get Selection object from currently user selected text
-            selection.removeAllRanges() // unselect any user selected text (if any)
+            selection.removeAllRanges() // un-select any user selected text (if any)
             selection.addRange(range)
             return false;
         }

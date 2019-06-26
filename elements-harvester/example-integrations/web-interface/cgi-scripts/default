@@ -88,7 +88,7 @@ my $JSCRIPT=<<"END_SCRIPT";
             type    : \$(this).attr('method'),
             data    : \$(this).serialize(),
             success : function( data ) {
-                //note, as side effect this will re-enable the inputs if appropraite.
+                //note, as side effect this will re-enable the inputs if appropriate.
                 window.setTimeout(function(){
                      messageSpan.text("");
                      \$('#harvest-actions').data("status-update-allowed", true);

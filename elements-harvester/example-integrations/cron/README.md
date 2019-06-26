@@ -1,6 +1,6 @@
 # Cron integration
 
-If you make use of Cron to schedule regular harvests you need to create a "crontab" to run the appropraite harvests. The *vivo-harvester-cron* file in this directory contains a set of example crontab schedules that you can use.
+If you make use of Cron to schedule regular harvests you need to create a "crontab" to run the appropriate harvests. The *vivo-harvester-cron* file in this directory contains a set of example crontab schedules that you can use.
 
 **PLEASE NOTE:**
   - *All the schedules in the file are commented out, you will need to remove the # to uncomment the relevant lines when setting up an actual crontab.*
@@ -25,7 +25,7 @@ At the top of the example crontab file is the line:
   - HARVEST_ORIGIN=CRON
 This is present to set the "HARVEST_ORIGIN" environment variable and ensures that any harvest's run by cron are reported as such in the log of harvests run (e.g. as seen in the web interface if it is configured).
 
-Not all distributions support the abilty to set environment variables in this manner in a crontab. If your distibution does not you should prepend the command in every schedule line of your crontab with:
+Not all distributions support the ability to set environment variables in this manner in a crontab. If your distribution does not you should prepend the command in every schedule line of your crontab with:
   - export HARVEST_ORIGIN=CRON &&
 
 e.g.

@@ -41,7 +41,7 @@ These lines need to go ahead of any other proxypass rules in your virtual host c
     ProxyPass /harvesterControl !
     ProxyPass /harvesterControl/ !
 
-### Configure the RewiteEngine
+### Configure the RewriteEngine
 This is done so that the "default" script is called if you hit the your selected path (e.g. harvesterControl):
 
     RewriteEngine  on

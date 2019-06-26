@@ -57,7 +57,7 @@ pre{
 div.main-section.tail pre{
 	height: 650px;
 	overflow-y: scroll;
-	border-bottom: 1px solid lightgray;
+	border-bottom: 1px solid lightgrey;
 }
 
 END
