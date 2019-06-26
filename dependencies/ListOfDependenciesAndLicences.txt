@@ -21,4 +21,4 @@ Lists of 22 third-party dependencies.
      (BSD style) Hamcrest Core (org.hamcrest:hamcrest-core:1.1 - no url defined)
      (MIT License) SLF4J API Module (org.slf4j:slf4j-api:1.6.1 - http://www.slf4j.org)
      (The Apache Software License, Version 2.0) StAX API (stax:stax-api:1.0.1 - http://stax.codehaus.org/)
-     (Unknown license) xercesImpl (xerces:xercesImpl:2.7.1 - no url defined)
+     (The Apache Software License, Version 2.0) xercesImpl (xerces:xercesImpl:2.7.1 - no url defined)
