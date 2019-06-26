@@ -26,6 +26,7 @@ import java.util.List;
  * Once validated exposes whether the request is secure or not, whether it "matches" the comparison url and offers
  * the ability to rewrite the "host" portion of the url if it is mismatched.
  */
+@SuppressWarnings("WeakerAccess")
 public class ValidatedUrl {
     private static final List<String> allowedInsecureSchemes = Collections.singletonList("http");
     private static final List<String> allowedSecureSchemes = Collections.singletonList("https");
@@ -44,12 +45,12 @@ public class ValidatedUrl {
         if (url == null) throw new NullArgumentException("url");
 
         URI comparisonUri = null;
-        String comprisonTestHost = null;
+        String comparisonTestHost = null;
         if(comparisonUrl != null) {
             try {
                 URL comparisonUrlObj = new URL(comparisonUrl);
                 comparisonUri = comparisonUrlObj.toURI();
-                comprisonTestHost = comparisonUri.getHost();
+                comparisonTestHost = comparisonUri.getHost();
             } catch (MalformedURLException mue) {
                 throw new URISyntaxException(comparisonUrl, "Could not parse provided comparisonUrl");
             }
@@ -70,7 +71,7 @@ public class ValidatedUrl {
             }
 
             this.isSecure = allowedSecureSchemes.contains(scheme);
-            this.isMismatched = comparisonUrl != null && !uriTest.getHost().equals(comprisonTestHost);
+            this.isMismatched = comparisonUrl != null && !uriTest.getHost().equals(comparisonTestHost);
 
             if(isMismatched) {
                 this.rewrittenUrl = new URI(uriTest.getScheme(), uriTest.getUserInfo(), comparisonUri.getHost(), uriTest.getPort(),

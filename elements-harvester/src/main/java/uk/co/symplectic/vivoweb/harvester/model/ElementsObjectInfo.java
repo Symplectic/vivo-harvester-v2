@@ -12,23 +12,31 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.co.symplectic.utils.xml.XMLEventProcessor;
-import uk.co.symplectic.vivoweb.harvester.app.ElementsFetchAndTranslate;
-
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.events.Attribute;
-import javax.xml.stream.events.EndElement;
-import javax.xml.stream.events.StartElement;
-import javax.xml.stream.events.XMLEvent;
-
-import java.text.MessageFormat;
 import java.util.List;
 
 import static uk.co.symplectic.elements.api.ElementsAPI.apiNS;
 import static uk.co.symplectic.elements.api.ElementsAPI.atomNS;
 
-public class ElementsObjectInfo extends ElementsItemInfo{
+/**
+ * Subclass of ElementsItemInfo to store and expose a set of data relating to an Elements Object.
+ * Exposes almost nothing more than the base abstract class, although the itemId is exposed as an ObjectId here..
+ * but the general ElementsObjectInfo Extractor (which can handle extraction of both Users and other types)
+ * is defined here.
+ */
+public abstract class ElementsObjectInfo extends ElementsItemInfo{
 
+
+    /**
+     * An XMLEventProcessor.ItemExtractingFilter based Extractor that can be used to extract an ElementsObjectInfo
+     * object from an XML data stream.
+     * Based on the data being extracted it will create either an ElementsGenericObjectInfo or an ElementsUserObjectInfo
+     * object and populate it appropriately (extracting the desired extra data for the user object).
+     *
+     * Note, can handle processing "deleted" streams, even though the extracted object will typically be almost empty.
+     */
+    @SuppressWarnings("unused")
     public static class Extractor extends XMLEventProcessor.ItemExtractingFilter<ElementsItemInfo>{
 
         final private static Logger log = LoggerFactory.getLogger(Extractor.class);
@@ -37,6 +45,7 @@ public class ElementsObjectInfo extends ElementsItemInfo{
         private static DocumentLocation feedEntryLocation = new DocumentLocation(new QName(atomNS, "feed"), new QName(atomNS, "entry"), new QName(apiNS, "object"));
         private static DocumentLocation feedDeletedEntryLocation = new DocumentLocation(new QName(atomNS, "feed"), new QName(atomNS, "entry"), new QName(apiNS, "deleted-object"));
 
+        @SuppressWarnings("WeakerAccess")
         public static Extractor getExtractor(ElementsItemInfo.ExtractionSource source, int maximumExpected){
             switch(source) {
                 case FEED : return new Extractor(feedEntryLocation, maximumExpected);
@@ -66,7 +75,7 @@ public class ElementsObjectInfo extends ElementsItemInfo{
 
         private DocumentLocation labelLocation = new DocumentLocation(new QName(apiNS, "all-labels"), new QName(apiNS, "keywords"), new QName(apiNS, "keyword"));
 
-        protected  Extractor(DocumentLocation location, int maximumAmountExpected){
+        private Extractor(DocumentLocation location, int maximumAmountExpected){
             super(location, maximumAmountExpected);
         }
 
@@ -133,7 +142,7 @@ public class ElementsObjectInfo extends ElementsItemInfo{
     }
 
     //package private as should only ever be constructed by create calls into superclass
-    protected ElementsObjectInfo(ElementsObjectCategory category, int id) {
+    ElementsObjectInfo(ElementsObjectCategory category, int id) {
         super(ElementsItemId.createObjectId(category, id));
     }
 

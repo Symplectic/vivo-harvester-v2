@@ -12,6 +12,22 @@ package uk.co.symplectic.vivoweb.harvester.model;
 import org.apache.commons.lang.NullArgumentException;
 import uk.co.symplectic.utils.xml.XMLEventProcessor;
 
+/**
+ * A class to represent the concept of a set of data about an Elements Item (represented by the corresponding itemId).
+ * This class primarily acts to provide a static place from which the concrete implementations for different types
+ * of data can be constructed (the implementations themselves are deliberately package private).
+ *
+ * ElementsItemInfo objects offer access to the underlying itemId (an ElementsItemId) and also offer
+ * methods to "cast" a generic ElementsItemInfo to one of the more specific sub classes the ("is" and "as" methods)
+ * The "as" methods will return "null" if the underlying item is not of the appropriate type.
+ * These concrete sub types then expose more properties based on the underlying concreted subclass.
+ *
+ * Also exposes "getExtractor" which provides a single place to request an XMLEventProcessor.ItemExtractingFilter
+ * That can extract an object if a particular type from a given ExtractionSource.
+ * This delegates to the various Extractor inner classes defined within the concrete sub-classes
+ */
+
+@SuppressWarnings("WeakerAccess")
 public abstract class ElementsItemInfo {
 
     public enum ExtractionSource{

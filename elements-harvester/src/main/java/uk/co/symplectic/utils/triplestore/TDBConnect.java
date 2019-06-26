@@ -22,6 +22,7 @@ import java.util.HashMap;
  * Class to represent the concept of a Jena TDB triple store in a particular location.
  * This is a cut down version of the Vivo Harvester's JenaConnect logic.
  */
+@SuppressWarnings("WeakerAccess")
 public class TDBConnect {
 
     private static HashMap<String, Dataset> dirDatasets = new HashMap<String, Dataset>();
@@ -40,6 +41,7 @@ public class TDBConnect {
     //use default graph name if not specified.
     public TDBConnect(File dbDir){ this(dbDir, "urn:x-arq:DefaultGraph"); }
 
+
     public TDBConnect(File dbDir, String modelName) {
         if(dbDir == null) throw new NullArgumentException("dbDir");
         if(StringUtils.trimToNull(modelName) == null) throw new IllegalArgumentException("modelName must not be null or empty");
@@ -47,6 +49,7 @@ public class TDBConnect {
         this.dbDir = dbDir;
         this.modelName = modelName;
 
+        //noinspection ResultOfMethodCallIgnored
         dbDir.mkdirs();
 
         if(!dbDir.exists()){
@@ -56,6 +59,7 @@ public class TDBConnect {
         this.jenaModel = this.getDataset().getNamedModel(this.getModelName());
     }
 
+    @SuppressWarnings("unused")
     public void close() {
         this.getJenaModel().close();
     }

@@ -17,15 +17,11 @@ import uk.co.symplectic.utils.xml.XMLEventProcessor;
 
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.events.Attribute;
-import javax.xml.stream.events.EndElement;
-import javax.xml.stream.events.StartElement;
-import javax.xml.stream.events.XMLEvent;
 import java.util.List;
 
 /**
  * The GeneralPaginationExtractingFilterFactory extends the PaginationExtractingFilterFactory abstract class which
- * represnts the ability to create a new XML filter, that can extract an ElementsFeedPagination from an API response,
+ * represents the ability to create a new XML filter, that can extract an ElementsFeedPagination from an API response,
  * whenever the API needs one (i.e. per request to ensure no potential for the same filter receiving events from different responses).
  * Currently this one class can be used against all API schema response versions so it is "General"
  */
@@ -41,7 +37,7 @@ public class GeneralPaginationExtractingFilterFactory extends PaginationExtracti
 
         ElementsFeedPagination workspace = null;
 
-        public GeneralPaginationExtractingFilter(){
+        GeneralPaginationExtractingFilter(){
             super(new XMLEventProcessor.EventFilter.DocumentLocation(new QName(atomNS, "feed"), new QName(apiNS, "pagination")));
         }
 

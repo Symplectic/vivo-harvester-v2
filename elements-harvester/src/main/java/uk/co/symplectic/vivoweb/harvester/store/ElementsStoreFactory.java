@@ -10,7 +10,12 @@ package uk.co.symplectic.vivoweb.harvester.store;
 
 import uk.co.symplectic.vivoweb.harvester.config.Configuration;
 
+/**
+ * Class to construct singleton instances of ElementsItemFileStore to represent stores for:
+ * RAW data and TRANSLATED data
+ */
 public class ElementsStoreFactory {
+
     private static ElementsItemFileStore objectStore = null;
     private static ElementsRdfStore rdfStore = null;
 
@@ -20,7 +25,7 @@ public class ElementsStoreFactory {
         } else {
             synchronized (ElementsStoreFactory.class) {
                 if (objectStore == null)
-                    objectStore = new ElementsItemFileStore.ElementsRawDataStore(Configuration.getRawOutputDir(), false, Configuration.getZipFiles());
+                    objectStore = new ElementsRawDataStore(Configuration.getRawOutputDir(), false, Configuration.getZipFiles());
                 return objectStore;
             }
         }

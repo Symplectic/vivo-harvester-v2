@@ -17,8 +17,8 @@ import java.util.Collections;
 import java.util.Set;
 
 /**
- * Query representing retrieving data about the "types" of relationships that exist between different categories of objects
- * within Elements, e.g. "authorship" between users and publications.
+ * FeedQuery representing retrieving data about the "types" of relationships that can exist
+ * between different categories of objects within Elements, e.g. "authorship" between users and publications.
  */
 public class ElementsAPIFeedRelationshipTypesQuery extends ElementsFeedQuery {
     public ElementsAPIFeedRelationshipTypesQuery(){

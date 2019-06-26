@@ -14,12 +14,22 @@ import org.apache.commons.lang.NullArgumentException;
 import java.io.*;
 import java.util.zip.GZIPInputStream;
 
+/**
+ * Interface to represent access to some raw data in a store.
+ * Provides:
+ *     Access to the underlying data as an InputStream
+ *     Ability to delete the underlying data (wherever it is stored)
+ *     an "Address" string to represent where the data is stored
+ */
+@SuppressWarnings("unused")
 public interface StoredData {
     String getAddress();
     InputStream getInputStream() throws IOException;
     void delete();
 
-
+    /**
+     * Class to implement StoredData interface for some data in main memory
+     */
     class InRam implements StoredData {
         private byte[] data;
 
@@ -28,6 +38,7 @@ public interface StoredData {
             this.data = data;
         }
 
+        @SuppressWarnings("unused")
         public byte[] getBytes() {
             return data;
         }
@@ -48,6 +59,11 @@ public interface StoredData {
         }
     }
 
+    /**
+     * Class to implement StoredData interface for some data held in a file
+     * where the file may be gzipped or may not.
+     */
+    @SuppressWarnings("WeakerAccess")
     class InFile implements StoredData {
         private final File file;
         private final boolean isZipped;
@@ -79,7 +95,10 @@ public interface StoredData {
         }
 
         public void delete(){
-            if(file.exists()) file.delete();
+            if(file.exists()) {
+                //noinspection ResultOfMethodCallIgnored
+                file.delete();
+            }
         }
     }
 }

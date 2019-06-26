@@ -20,6 +20,7 @@ import java.util.Set;
  * An interface representing the concept of being able to build a specific URL (representing the first page) starting
  * from an ElementsFeedQuery of a specific type and any other pertinent details.
  */
+@SuppressWarnings("unused")
 public interface ElementsAPIURLBuilder {
     String buildObjectFeedQuery(String endpointUrl, ElementsAPIFeedObjectQuery feedQuery, int perPage);
 

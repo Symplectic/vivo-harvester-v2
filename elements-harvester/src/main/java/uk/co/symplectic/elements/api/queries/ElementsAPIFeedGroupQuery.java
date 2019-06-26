@@ -17,7 +17,7 @@ import java.util.Collections;
 import java.util.Set;
 
 /**
- * Query representing the idea of retrieving information about user groups from within Elements.
+ * FeedQuery representing retrieving information about user groups from within Elements.
  */
 public class ElementsAPIFeedGroupQuery extends ElementsFeedQuery {
     public ElementsAPIFeedGroupQuery(){

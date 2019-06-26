@@ -74,6 +74,7 @@ public class ElementsFetchAndTranslate {
      *
      * @param args commandline arguments
      */
+    @SuppressWarnings("ConstantConditions")
     public static void main(String[] args) {
         Throwable caught = null;
 
@@ -158,7 +159,7 @@ public class ElementsFetchAndTranslate {
             //runType = StateType.ODD;
             //end of hacks for testing.
 
-            EligibilityFilter eligibilityFilter = Configuration.getElligibilityFilter();
+            EligibilityFilter eligibilityFilter = Configuration.getEligibilityFilter();
             //Set up the Elements API and check that the configured eligibility settings make sense for that API version.
             ElementsAPI elementsAPI = null;
             if(currentRunClassification != StateManagement.RunClassification.REPROCESSING) {
@@ -174,6 +175,7 @@ public class ElementsFetchAndTranslate {
 
             //TODO: should we ensure that other configured directories are valid (either already exist or can be created at this point?
             File interimTdbDirectory = Configuration.getTdbOutputDir();
+            //noinspection ResultOfMethodCallIgnored
             interimTdbDirectory.mkdirs();
             File currentTdbStore = new File(interimTdbDirectory, currentRunType == StateManagement.StateType.EVEN ? "0" : "1");
             File previousTdbStore = new File(interimTdbDirectory, currentRunType == StateManagement.StateType.ODD ? "0" : "1");
@@ -218,7 +220,7 @@ public class ElementsFetchAndTranslate {
 
                 //TODO: work out how to marshall user photos into a web accessible area in a sensible manner based on included user set...
                 //Hook a photo retrieval observer onto the rdf store so that photos will be fetched and dropped in the object store for any translated users.
-                ElementsUserPhotoRetrievalObserver photoRetrievalObserver = null;
+                ElementsUserPhotoRetrievalObserver photoRetrievalObserver;
                 if(currentRunClassification != StateManagement.RunClassification.REPROCESSING) {
                     photoRetrievalObserver = new ElementsUserPhotoRetrievalObserver.FetchingObserver(elementsAPI, Configuration.getImageType(), objectStore);
                 }
@@ -291,12 +293,12 @@ public class ElementsFetchAndTranslate {
                 }
 
                 //work out the included users
-                ElementsItemKeyedCollection.ItemInfo includedUsers = CalculateIncludedUsers(userInfoCache, groupCache);
+                ElementsItemKeyedCollection.ItemInfo includedUsers = calculateIncludedUsers(userInfoCache, groupCache);
 
                 //work out the included groups too..
-                IncludedGroups includedGroups = CalculateIncludedGroups(groupCache, includedUsers);
+                IncludedGroups includedGroups = calculateIncludedGroups(groupCache, includedUsers);
 
-                //set up some nicely uniqueified names for the groups we are about to send out - to make URI construction easier in the crosswalks.
+                //set up some nicely unique names for the groups we are about to send out - to make URI construction easier in the crosswalks.
                 groupCache.createCanonicalNames(includedGroups.getIncludedGroups().keySet());
 
                 //Wire up the group translation observer...(needs group cache to work out members Ids and included users to get the user info of those members)
@@ -320,7 +322,7 @@ public class ElementsFetchAndTranslate {
                 //full - group memberships may have changed.
                 //TODO : method to decide if we need to do group membership this way?
 
-                //Note all "enqueings" should have been done on this thread - only the translations and retrievals of photos should be off main thread
+                //Note all "enqueueing" should have been done on this thread - only the translations and retrievals of photos should be off main thread
                 //so we can happily remove observers like this..
                 objectStore.removeItemObserver(photoRetrievalObserver);
 
@@ -328,10 +330,10 @@ public class ElementsFetchAndTranslate {
                         new ElementsGroupMembershipTranslateObserver(rdfStore, xslFilename, groupCache, includedGroups);
                 //cleardown the group memberships
                 rdfStore.cleardown(StorableResourceType.TRANSLATED_USER_GROUP_MEMBERSHIP);
-                //and recalc them for the included users.
+                //and recalculate them for the included users.
                 int counter = 0;
                 for(ElementsItemInfo info :includedUsers.values()){
-                    //should run the calc even if there are no included groups as it could be doing the memebership parts based on positions, etc...
+                    //should run the calc even if there are no included groups as it could be doing the membership parts based on positions, etc...
                     objectStore.touchItem(info, StorableResourceType.RAW_OBJECT, groupMembershipTranslateObserver);
                     counter++;
                     if(counter % 1000 == 0) log.info(MessageFormat.format("{0} user's group-membership processed", counter));
@@ -446,7 +448,9 @@ public class ElementsFetchAndTranslate {
                 log.info("ElementsFetchAndTranslate: Finished calculating output files related to included objects");
                 //end of changes towards making include monitoring a separate step in the process
 
+                //noinspection ResultOfMethodCallIgnored
                 currentTdbStore.mkdirs();
+                //noinspection ResultOfMethodCallIgnored
                 previousTdbStore.mkdirs();
 
                 log.info(MessageFormat.format("ElementsFetchAndTranslate: Clearing down triplestore \"{0}\"", currentTdbStore.getAbsolutePath()));
@@ -516,7 +520,7 @@ public class ElementsFetchAndTranslate {
 
             if (caught != null) {
                 //if we are specifically in the middle of a something that goes wrong, we may need to tag our state file to allow for error correction
-                //if an initial fails there is no state, and thats fine for next attempt
+                //if an initial fails there is no state, and that's fine for next attempt
                 //if a delta fails it is safe to leave the file alone (will repull all data from time in current state)
                 //if an error correcting full fails then next time we want to try again to error correct - which we will do with the current state
                 if(begunProcessing){
@@ -535,7 +539,7 @@ public class ElementsFetchAndTranslate {
      * @param elementsFetcher an ElementsFetch helper class designed to facilitate fetching data from the Elements API.
      * @param modifiedSince the date time that the cache was last updated, process will run a "delta" if this is
      *                      supplied, and a "full" if it is null.
-     * @throws IOException
+     * @throws IOException if errors occur
      */
     private static void processObjects(ElementsItemFileStore objectStore, ElementsFetch elementsFetcher, Date modifiedSince) throws IOException{
         //fetch all configured categories - ensure that users ARE fetched regardless of configuration
@@ -595,7 +599,7 @@ public class ElementsFetchAndTranslate {
      * @param relationshipTypesToReprocess Any types of relationship (string) that should be reprocessed regardless of
      *                                     visibility concerns if the linked objects are changed
      *                                     e.g. when the translation of objects occurs when the relationship is processed.
-     * @throws IOException
+     * @throws IOException if errors occur
      */
     private static void processRelationships(ElementsItemFileStore objectStore, ElementsFetch elementsFetcher, Date modifiedSince, Set<ElementsItemId> relationshipTypesToInclude,
                                              boolean repullRelsToCorrectVisibility, Set<String> relationshipTypesToReprocess) throws IOException{
@@ -641,12 +645,12 @@ public class ElementsFetchAndTranslate {
                                     break;
                                 }
 
-                                //hack that exists to handle case where a user has been "modified" in a way that affets their URI (e.g. username)
+                                //hack that exists to handle case where a user has been "modified" in a way that affects their URI (e.g. username)
                                 //In this case we need to ensure that we repull the relationships for v5.5 API endpoints.
                                 //With v4.9 API endpoints this was not needed as modifying the user stamped all neighbouring objects as affected.
                                 //As v4.9 API only operates on affected-when (even though it calls it "modified-since") the result of this is that every item in a relationship
                                 //with the modified user is going to have been updated this run (and therefore in modified objects) because we repull all rels containing an object we updated this run
-                                //in order to ensure we pick up visibility changes, all rels to the modified user were being repulled anyway.
+                                //in order to ensure we pick up visibility changes, all rels to the modified user were being re-pulled anyway.
                                 //This is NOT be picked up against a v5.5 API as that specifically pulls based on the real "modification date", not "affected".
                                 //The neighbouring objects have therefore not been updated this run, and we need a specific check to force the repull of the rel, to ensure the
                                 //"stub" version of the object in the raw-relationship data will create the correct URI (e.g. with the new username).
@@ -667,7 +671,7 @@ public class ElementsFetchAndTranslate {
                             }
                         }
 
-                        //put link into appropriate bin, repull if requested, if not being repulled then reprocess if requested.
+                        //put link into appropriate bin, repull if requested, if not being re-pulled then reprocess if requested.
                         if(shouldRepull) relationshipsToRepull.add(relItem.getItemInfo().getItemId());
                         else if (shouldReprocess) relationshipsToReprocess.add(relItem.getItemInfo());
                     }
@@ -706,7 +710,7 @@ public class ElementsFetchAndTranslate {
      * Helper method to load the previously persisted cache of of user group membership in the source Elements system.
      * Note that any new users that have been created in the source system since the cache of of user group membership
      * was created will not have the correct group memberships until a non group-skipping update is completed.
-     * Any New users will sinply appear as members of the top level "organisation" group if it is transferred to Vivo.
+     * Any New users will simply appear as members of the top level "organisation" group if it is transferred to Vivo.
      * @param objectStore the local cache of raw data.
      * @param systemUsers Set of ElementsItemId's representing all the users in the source Elements system.
      * @return ElementsGroupCollection
@@ -740,7 +744,7 @@ public class ElementsFetchAndTranslate {
                 NodeList userNodes = groupNode.getElementsByTagName("user");
                 if(userNodes.getLength() > 0){
                     ElementsItemId.GroupId groupId = ElementsItemId.createGroupId(Integer.parseInt(groupNode.getAttribute("id")));
-                    Set userSet = new HashSet<ElementsItemId>();
+                    Set<ElementsItemId> userSet = new HashSet<ElementsItemId>();
                     for(int j = 0; j < userNodes.getLength(); j++) {
                         Element userNode = (Element) userNodes.item(j);
                         ElementsItemId userID = ElementsItemId.createObjectId(ElementsObjectCategory.USER, Integer.parseInt(userNode.getTextContent()));
@@ -760,16 +764,14 @@ public class ElementsFetchAndTranslate {
 
     /**
      * Helper method to write out an XML file cache representing the harvester's current understanding of
-     * user group membership from the source Elements system
+     * user group membership from the source Elements system to a file
      * @param groupCache an ElementsGroupCollection representing the current understanding of users and groups.
-     * @return ElementsGroupCollection
      */
     private static void createGroupMembershipDocument(ElementsGroupCollection groupCache){
         try {
             DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
             Document doc = docBuilder.newDocument();
-            //Element rootElement = doc.createElementNS("blahblahblah", "entry");
             Element rootElement = doc.createElement("groups");
             doc.appendChild(rootElement);
             for(ElementsGroupInfo.GroupHierarchyWrapper group : groupCache.values()){
@@ -805,7 +807,7 @@ public class ElementsFetchAndTranslate {
      * @param groupCache the current
      * @return ElementsItemKeyedCollection.ItemInfo containing Groups to be included in Vivo.
      */
-    private static IncludedGroups CalculateIncludedGroups(ElementsGroupCollection groupCache, ElementsItemKeyedCollection.ItemInfo includedUsers) {
+    private static IncludedGroups calculateIncludedGroups(ElementsGroupCollection groupCache, ElementsItemKeyedCollection.ItemInfo includedUsers) {
         IncludedGroups includedGroups = new IncludedGroups();
 
         //only assume we include the org group by default if no groups (or child groups) are specified as to be included
@@ -819,7 +821,7 @@ public class ElementsFetchAndTranslate {
     /**
      * what action should be taken for a particular group in elements with regard to Vivo
      */
-    private static enum GroupAction {
+    private enum GroupAction {
         INCLUDE, //group will appear in Vivo with its members wired up to it
         EXCLUDE, //group will not appear in Vivo, its members will be wired up to the nearest parent group being send to Vivo (if one exists)
         EXCISE //group will not appear in Vivo, memberships will not appear in Vivo anywhere.
@@ -911,16 +913,16 @@ public class ElementsFetchAndTranslate {
 
     /**
      * Method to calculate which Elements users should be included in the output sent to Vivo
-     * This is based on the configured ElligibilityFilters (current, academic, and custom generic fiels/label scheme)
-     * And secondartily on the configured usergroups to include and or exclude.
+     * This is based on the configured ElligibilityFilters (current, academic, and custom generic fields/label scheme)
+     * And secondarily on the configured user-groups to include and or exclude.
      * @param userInfoCache Cache of data about all Elements users.
      * @param groupCache The cache of information about our current understanding of user group memberships.
      *                   (which might be based on an out of date cache if this is a --skipgroups run)
-     * @return
+     * @return ElementsItemKeyedCollection.ItemInfo representing the users *id and info) who are being included in Vivo
      */
-    private static ElementsItemKeyedCollection.ItemInfo CalculateIncludedUsers(ElementsItemKeyedCollection.ItemInfo userInfoCache, ElementsGroupCollection groupCache){
+    private static ElementsItemKeyedCollection.ItemInfo calculateIncludedUsers(ElementsItemKeyedCollection.ItemInfo userInfoCache, ElementsGroupCollection groupCache){
 
-        EligibilityFilter filter = Configuration.getElligibilityFilter();
+        EligibilityFilter filter = Configuration.getEligibilityFilter();
 
         //find the users who are definitely not going to be included based on their raw metadata
         List<ElementsItemId> invalidUsers = new ArrayList<ElementsItemId>();
@@ -982,7 +984,7 @@ public class ElementsFetchAndTranslate {
 
     /**
      * Helper method to retrieve a correctly configured ElementsAPI object.
-     * @return
+     * @return a suitably configured ElementsAPI object
      */
     private static ElementsAPI getElementsAPI() {
         String apiEndpoint = Configuration.getApiEndpoint();
@@ -1014,9 +1016,10 @@ public class ElementsFetchAndTranslate {
     }
 
     /**
-     * Helper method to retrieve a File object given a path.
-     * @param path
-     * @return
+     * Helper method to retrieve a File object representing a directory
+     * Will create the directory if it is not present.
+     * @param path the path where a directory should be present in the file system
+     * @return a File object
      */
     private static File getDirectoryFromPath(String path) {
         File file = null;
@@ -1027,6 +1030,7 @@ public class ElementsFetchAndTranslate {
                     throw new IllegalStateException(MessageFormat.format("Path {0} is not a directory", path));
                 }
             } else {
+                //noinspection ResultOfMethodCallIgnored
                 file.mkdirs();
             }
         }
@@ -1034,11 +1038,11 @@ public class ElementsFetchAndTranslate {
     }
 
     /**
-     * Helper method to configure the number of threads for any Exevutor services (asynchronous task execution engines).
+     * Helper method to configure the number of threads for any Executor services (asynchronous task execution engines).
      * We use these for the TranslationService (that performs XSLt translations)
      * and the FetchService (that fetches extra data from the Elements API, e.g. photos).
-     * @param poolName
-     * @param maxThreads
+     * @param poolName The "name" of the pool you want to configure the # of threads for
+     * @param maxThreads The maximum number of threads the named pool should have access to
      */
     private static void setExecutorServiceMaxThreadsForPool(String poolName, int maxThreads) {
         if (maxThreads > 0) {

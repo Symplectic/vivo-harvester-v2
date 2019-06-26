@@ -20,7 +20,7 @@ import java.io.InputStream;
  */
 public final class ImageUtils {
 
-    public static enum PhotoType{
+    public enum PhotoType{
         NONE,
         ORIGINAL,
         PROFILE,
@@ -46,12 +46,13 @@ public final class ImageUtils {
         try {
             ImageIO.write(image, format, outputFile);
             return true;
-        } catch (IOException e) {
+        } catch (IOException ignored) {
         }
 
         return false;
     }
 
+    @SuppressWarnings("unused")
     public static BufferedImage cropToSquare(BufferedImage inputImage){
         int height = inputImage.getHeight();
         int width = inputImage.getWidth();
@@ -142,15 +143,15 @@ public final class ImageUtils {
         return calculateSecondaryDimension(currentWidth, currentHeight, targetWidth);
     }
 
+    @SuppressWarnings("unused")
     public static int getTargetWidth(int currentWidth, int currentHeight, int targetHeight) {
-        return calculateSecondaryDimension(currentWidth, currentHeight, targetHeight);
+        return calculateSecondaryDimension(currentHeight, currentWidth, targetHeight);
     }
 
-    private static int calculateSecondaryDimension(int currentX, int currentY, int targetX) {
-        if (currentX != targetX) {
-            return (targetX * currentY) / currentX;
+    private static int calculateSecondaryDimension(int dimension1, int dimension2, int targetDimension1) {
+        if (dimension1 != targetDimension1) {
+            return (targetDimension1 * dimension2) / dimension1;
         }
-
-        return currentY;
+        return dimension2;
     }
 }

@@ -16,10 +16,11 @@ import java.util.concurrent.*;
 
 /**
  * Set of utilities representing the idea of a multithreaded "task" executor that processes runnable objects in parallel.
- * The class ExecutorServiceUtils provides static functions for instantiating xecutorServiceWrapper objects
+ * The class ExecutorServiceUtils provides static functions for instantiating ExecutorServiceWrapper objects
  * which do the real work.
  *
  */
+@SuppressWarnings("WeakerAccess")
 public final class ExecutorServiceUtils {
     private static final Map<String, Integer> maxProcessorsPerPool = new HashMap<String, Integer>();
 
@@ -90,6 +91,7 @@ public final class ExecutorServiceUtils {
      *  When shutdown is called the Wrapper attempts to perform a graceful termination of the ExecutorService, and the running tasks.
      *
      */
+    @SuppressWarnings({"WeakerAccess", "UnusedReturnValue", "SameParameterValue"})
     public static class ExecutorServiceWrapper<T> {
 
         List<Future<T>> uncompletedTasks = new ArrayList<Future<T>>();
@@ -102,7 +104,7 @@ public final class ExecutorServiceUtils {
 
         //Shutdown configuration - how long to wait between checking if shutdown has completed
         private int shutdownWaitCycleInSecs = 30;
-        //Shutdown configuration - how long to wait during attempted shutdown before force teminating the service if no work appears to be being done in each cycle.
+        //Shutdown configuration - how long to wait during attempted shutdown before force terminating the service if no work appears to be being done in each cycle.
         private int shutdownStalledWaitTimeInSecs = 300; /* 5 minutes */
 
         //State tracking flags - whether shutdown has already been initiated on this object
@@ -113,17 +115,17 @@ public final class ExecutorServiceUtils {
 
 
         //Base constructor to create Wrapper with appropriate defaults for timeouts, etc.
-        protected ExecutorServiceWrapper(String poolName, int poolSize) {
+        ExecutorServiceWrapper(String poolName, int poolSize) {
             this(poolName, poolSize, 30, 300, true);
         }
 
         //Main constructor for the service wrapper
-        protected ExecutorServiceWrapper(String poolName, int poolSize, int shutdownWaitCycleInSecs, int shutdownStalledWaitTimeInSecs, boolean shutdownOnExit) {
+        ExecutorServiceWrapper(String poolName, int poolSize, int shutdownWaitCycleInSecs, int shutdownStalledWaitTimeInSecs, boolean shutdownOnExit) {
             this.poolName = poolName;
             this.shutdownWaitCycleInSecs = shutdownWaitCycleInSecs;
             this.shutdownStalledWaitTimeInSecs = shutdownStalledWaitTimeInSecs;
 
-            //Create a daemon threaded ExecutorService to perform the actual sork
+            //Create a daemon threaded ExecutorService to perform the actual work
             ExecutorService aService = Executors.newFixedThreadPool(poolSize, new ThreadFactory() {
                 @Override
                 public Thread newThread(Runnable runnable) {
@@ -146,12 +148,11 @@ public final class ExecutorServiceUtils {
             return submit(task, true);
         }
 
-
         public synchronized Future<T> submit(Callable<T> task, boolean checkForExceptions) {
             try {
                 //when adding a new task check if any of the previously submitted tasks are now finished
                 if(checkForExceptions) {
-                    //we do this to ensure that any errors are marshallewd back onto our main thread in a reasonably timely manner.
+                    //we do this to ensure that any errors are marshaled back onto our main thread in a reasonably timely manner.
                     Iterator<Future<T>> iter = uncompletedTasks.iterator();
                     while (iter.hasNext()) {
                         Future<T> submittedTask = iter.next();

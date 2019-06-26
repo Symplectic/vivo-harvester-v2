@@ -15,12 +15,13 @@ import uk.co.symplectic.vivoweb.harvester.model.ElementsItemType;
 
 import java.util.*;
 
+/**
+ * FeedQuery representing retrieving data about relationships (links between objects) from Elements
+ * optionally fetching only items modified since a particular datetime.
+ */
 public class ElementsAPIFeedRelationshipQuery extends ElementsFeedQuery.DeltaCapable {
 
-    // How many relationships to request per API request:Default of 100 used for optimal performance (see constructor chain)
-    private static int defaultPerPage = 100;
-
-    List<Integer> relationshipTypeIds = new ArrayList<Integer>();
+    private List<Integer> relationshipTypeIds = new ArrayList<Integer>();
 
     public ElementsAPIFeedRelationshipQuery(boolean fullDetails, Date modifiedSince, Set<ElementsItemId.RelationshipTypeId> relTypeIds) {
         super(ElementsItemType.RELATIONSHIP, fullDetails, modifiedSince);
@@ -38,6 +39,9 @@ public class ElementsAPIFeedRelationshipQuery extends ElementsFeedQuery.DeltaCap
         return Collections.singleton(builder.buildRelationshipFeedQuery(apiBaseUrl, this, perPage));
     }
 
+    /**
+     * Subclass of ElementsAPIFeedRelationshipQuery to represent querying items that have been deleted
+     */
     public static class Deleted extends ElementsAPIFeedRelationshipQuery{
         public Deleted(Date deletedSince, Set<ElementsItemId.RelationshipTypeId> relTypeIds) {
             super(false, deletedSince, relTypeIds);
@@ -47,6 +51,9 @@ public class ElementsAPIFeedRelationshipQuery extends ElementsFeedQuery.DeltaCap
         public boolean queryRepresentsDeletedItems(){ return true;}
     }
 
+    /**
+     * Subclass of ElementsAPIFeedRelationshipQuery to represent querying a specific known list of relationships (by id)
+     */
     public static class IdList extends ElementsAPIFeedRelationshipQuery{
         List<Integer> relationshipIds = new ArrayList<Integer>();
 

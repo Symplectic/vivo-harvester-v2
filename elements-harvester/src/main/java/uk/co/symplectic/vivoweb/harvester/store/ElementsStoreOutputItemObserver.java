@@ -17,25 +17,38 @@ import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 import java.io.File;
 import java.io.IOException;
 import java.text.MessageFormat;
-import java.util.List;
+
+/**
+ * An extension of ElementsStoredResourceObserverAdapter that represents the idea of an observer that monitors the
+ * observed store for changes in an "input" resourceType and in response will somehow generate an "output" resource
+ * and store that output in a second store (e.g. a translation)
+ *
+ * Implements observeTypeCleardown on the basis that if the input type is cleared down in its entirety in the observed
+ * store, we know we want to cleardown the output type in the output store too.
+ *
+ * Does not implement observeObjectDeletion as subclasses may be more discriminative than just inputType, so
+ * we may need to be more careful in what we delete from the outputStore.
+ * Nonetheless provides protected "safelyDeleteItem" methods to ease the task of removing items from the outputStore
+ */
 
 public abstract class ElementsStoreOutputItemObserver extends IElementsStoredItemObserver.ElementsStoredResourceObserverAdapter {
 
     private static final Logger log = LoggerFactory.getLogger(ElementsStoreOutputItemObserver.class);
-    private final ElementsItemFileStore store;
+    private final ElementsItemFileStore outputStore;
     private final StorableResourceType outputType;
     private final boolean tolerateIndividualIoFailures;
 
-    protected ElementsItemFileStore getStore(){return store;}
+    protected ElementsItemFileStore getStore(){return outputStore;}
     protected StorableResourceType getOutputType(){return outputType;}
 
-    protected ElementsStoreOutputItemObserver(ElementsItemFileStore fileStore, StorableResourceType inputType, StorableResourceType outputType, boolean tolerateIndividualIoFailures) {
+    @SuppressWarnings("SameParameterValue")
+    protected ElementsStoreOutputItemObserver(ElementsItemFileStore outputStore, StorableResourceType inputType, StorableResourceType outputType, boolean tolerateIndividualIoFailures) {
         super(inputType);
-        if(fileStore == null) throw new NullArgumentException("fileStore");
+        if(outputStore == null) throw new NullArgumentException("outputStore");
         if(outputType == null) throw new NullArgumentException("outputType");
         if(inputType.getKeyItemType() != outputType.getKeyItemType()) throw new IllegalArgumentException("outputType must be compatible with inputType");
 
-        this.store = fileStore;
+        this.outputStore = outputStore;
         this.outputType = outputType;
         this.tolerateIndividualIoFailures = tolerateIndividualIoFailures;
     }
@@ -44,9 +57,10 @@ public abstract class ElementsStoreOutputItemObserver extends IElementsStoredIte
 
     protected void safelyDeleteItem(ElementsItemId itemId, File[] additionalFilesToDelete, String failureMessage){
         try {
-            store.deleteItem(itemId, outputType);
+            outputStore.deleteItem(itemId, outputType);
             if(additionalFilesToDelete != null){
                 for(File file : additionalFilesToDelete){
+                    //noinspection ResultOfMethodCallIgnored
                     file.delete();
                 }
             }
@@ -60,7 +74,7 @@ public abstract class ElementsStoreOutputItemObserver extends IElementsStoredIte
     @Override
     public void observeTypeCleardown(StorableResourceType type, ElementsItemStore source){
         try {
-            store.cleardown(outputType, true);
+            outputStore.cleardown(outputType, true);
         }
         catch (IOException e){
             String failureMessage = MessageFormat.format("Failed to cleardown {0} output from store", type.toString());

@@ -8,9 +8,7 @@
  */
 package uk.co.symplectic.elements.api.versions;
 
-import org.apache.commons.lang.NullArgumentException;
 import uk.co.symplectic.elements.api.ElementsAPIURLBuilder;
-import uk.co.symplectic.elements.api.ElementsAPIVersion;
 import uk.co.symplectic.elements.api.ElementsFeedQuery;
 import uk.co.symplectic.elements.api.queries.ElementsAPIFeedGroupQuery;
 import uk.co.symplectic.elements.api.queries.ElementsAPIFeedObjectQuery;
@@ -22,19 +20,39 @@ import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Set;
 
+
+/**
+ * Object to perform the task of converting different FeedQueries into appropriate Elements API urls
+ * This version performs the task for any Elements API running a v4.X (e.g. 4.6, 4.9) API Endpoint specification.
+ */
 public class GeneralAPIv4XOr55_URLBuilder extends ElementsAPIURLBuilder.GenericBase {
 
+    /**
+     * Method to return a builder configured to be suitable for use with v4.X Elements API endpoints
+     * @return GeneralAPIv4XOr55_URLBuilder
+     */
     public static GeneralAPIv4XOr55_URLBuilder get4XBuilder(){
         return new GeneralAPIv4XOr55_URLBuilder(true, false);
     }
 
+    /**
+     * Method to return a builder configured to be suitable for use with v4.X Elements API endpoints
+     * @param useAffectedWhen whether to use "affected-when" or "modified-when"  as the trigger for inclusion in timestamped queries
+     *                        (neighbourhood changes vs item itself changed)
+     * @return GeneralAPIv4XOr55_URLBuilder
+     */
     public static GeneralAPIv4XOr55_URLBuilder get55Builder(boolean useAffectedWhen){
         return new GeneralAPIv4XOr55_URLBuilder(false, useAffectedWhen);
     }
 
-    public final boolean useOrderBy;
-    public final boolean useAffectedWhen;
+    private final boolean useOrderBy;
+    private final boolean useAffectedWhen;
 
+    /**
+     * Private constructor, use static members (get4XBuilder, get55Builder) to construct a builder for a given API type
+     * @param useOrderBy whether the "order-by" parameter should be provided for resources that support it (only relevant to 4.X API endpoints)
+     * @param useAffectedWhen whether to use "modified-when" or "affected-when" in timestamped queries (only relevant to 5.X API endpoint)
+     */
     private GeneralAPIv4XOr55_URLBuilder(boolean useOrderBy, boolean useAffectedWhen){
         this.useOrderBy = useOrderBy;
         this.useAffectedWhen = useAffectedWhen;
@@ -48,7 +66,7 @@ public class GeneralAPIv4XOr55_URLBuilder extends ElementsAPIURLBuilder.GenericB
         //if using affected and its a cats query then affected-since
         if(useAffectedWhen && feedQuery instanceof ElementsAPIFeedObjectQuery)
             return "affected-since";
-        //otherwise just retun modified-since
+        //otherwise just return modified-since
         return "modified-since";
     }
 
@@ -93,8 +111,8 @@ public class GeneralAPIv4XOr55_URLBuilder extends ElementsAPIURLBuilder.GenericB
 
         //if we are not querying deleted objects we should order by id (regardless of whether we are doing a delta or a full pull
         if(useOrderBy &&!feedQuery.queryRepresentsDeletedItems()) {
-            //TODO: this needs to exist on the equivalent deleted resource to make things better (really needs to be a continuation token)
-            //TODO: also same concepts need extending to relationships and deleted relationships - relationships in particular definitely need it for deleted I think.
+            //WARNING: that order-by does not exist on the deleted %cats% resources means they are particularly susceptible to missing items.
+            //for v4.X API endpoints, v5.5 API Endpoints do not need it as they use continuation tokens
             queryUrl.addParam("order-by", "id");
         }
 
@@ -146,12 +164,10 @@ public class GeneralAPIv4XOr55_URLBuilder extends ElementsAPIURLBuilder.GenericB
             queryUrl.addParam(getDateTypeString(feedQuery), modifiedSinceString);
         }
 
-        //TODO: no point doing order by as only supported by {cats} resources in 4.6 and 4.9
-        //5.5 does not need it
+        // WARNING: order-by does not exist on the relationship or deleted relationships resources
+        // this means they are particularly susceptible to missing items for v4.X API endpoints
+        // v5.5 API Endpoints do not need it as they use continuation tokens
         //queryUrl.addParam("order-by", "id");
-
-        //hack in a page for testing
-        //queryUrl.addParam("types", Integer.toString(83));
 
         return queryUrl.toString();
     }

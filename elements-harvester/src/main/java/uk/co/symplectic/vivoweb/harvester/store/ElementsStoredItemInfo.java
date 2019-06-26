@@ -22,9 +22,24 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.MessageFormat;
 
+/**
+ * A class to represent data about an Elements item held in a store.
+ * Extends a BasicElementsStoredItem (which this holds internally) with an ElementsItemInfo providing richer detail
+ * about the underlying Elements item.
+ *
+ * Provides information about the itemInfo, the resourceType, access to the underlying data as a StoredData object
+ * and information about the "address" (e.g. filename) where the underlying file can be found.
+ *
+ * Additionally provides static "loadStoredResource" methods to create one of these from:
+ * BasicElementsStoredItem, StoredData/ResourceType pairs
+ * These load methods will only work for "RAW-xxx" storable resources types and leverage the relevant Extractors to
+ * create the ElementsItemInfo from the underlying data.
+ */
+
+@SuppressWarnings("unused")
 public class ElementsStoredItemInfo {
     private final ElementsItemInfo itemInfo;
-    protected final BasicElementsStoredItem innerItem;
+    private final BasicElementsStoredItem innerItem;
 
     public ElementsStoredItemInfo(ElementsItemInfo itemInfo, StorableResourceType resourceType, StoredData data) {
         if (itemInfo == null) throw new NullArgumentException("itemInfo");
@@ -69,12 +84,12 @@ public class ElementsStoredItemInfo {
         } catch (XMLStreamException xmlStreamException) {
             throw new IllegalStateException("Catastrophic failure reading files - abandoning", xmlStreamException);
         } finally {
-            if (inputStream != null) {
-                try {
+            try {
+                if (inputStream != null) {
                     inputStream.close();
-                } catch (IOException e) {
-                    throw new IllegalStateException("Catastrophic failure closing stream after reading files - abandoning", e);
                 }
+            } catch (IOException ignored) {
+                // no sensible way to report this without hiding things - all sensible paths exit
             }
         }
     }
@@ -95,6 +110,7 @@ public class ElementsStoredItemInfo {
         return loadStoredResource(data, type, null);
     }
 
+    @SuppressWarnings("WeakerAccess")
     public synchronized static ElementsStoredItemInfo loadStoredResource(StoredData data, StorableResourceType type, ElementsItemId idToCompareTo){
         if(data == null) throw new NullArgumentException("data");
         if(type == null) throw new NullArgumentException("type");

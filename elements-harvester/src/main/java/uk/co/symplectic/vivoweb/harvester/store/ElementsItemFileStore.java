@@ -14,14 +14,28 @@ import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemInfo;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemType;
 import java.io.*;
-import java.text.MessageFormat;
 import java.util.*;
 import java.util.zip.GZIPOutputStream;
 
-
+/**
+ * This class allows you to create a generic disk backed store of data for essentially any raw data that corresponds to
+ * a StorableResourceType. Implements the ElementsDeletableItemStore interface so has store, touch, and delete methods
+ * for a given resource associated with a known item  and cleardown to delete all data about a particular resource type
+ * for all items.
+ * Importantly provides an Observer pattern whereby IElementsStoredItemObserver objects can be added to the store.
+ * These observers are triggered for any of the "store" methods listed above (store, delete, touch & cleardown).
+ *
+ * Additionally adds extra methods to allow retrieval of items and all types of items from the store, as well as
+ * tracking which items in the store have been "affected" during the objects lifetime.
+ *
+ *
+ *
+ * Offers various options for how files are handled: Layout strategy, handling of empty files, zipping of files, etc
+ */
+@SuppressWarnings({"unused", "WeakerAccess"})
 public class ElementsItemFileStore implements ElementsItemStore.ElementsDeletableItemStore {
-    List<StorableResourceType> supportedTypes = new ArrayList<StorableResourceType>();
-    protected File dir = null;
+    private List<StorableResourceType> supportedTypes = new ArrayList<StorableResourceType>();
+    private File dir = null;
     final private LayoutStrategy layoutStrategy;
     private List<IElementsStoredItemObserver> itemObservers = new ArrayList<IElementsStoredItemObserver>();
     private final Map<StorableResourceType, Set<ElementsItemId>> affectedItems = new HashMap<StorableResourceType, Set<ElementsItemId>>();
@@ -40,30 +54,56 @@ public class ElementsItemFileStore implements ElementsItemStore.ElementsDeletabl
 
         this.layoutStrategy = layoutStrategy != null ? layoutStrategy : new DefaultLayoutStrategy();
         this.supportedTypes.addAll(Arrays.asList(supportedTypes));
-        //intialise affected item lists for each resource type
+        //initialise affected item lists for each resource type
         for(StorableResourceType type : supportedTypes){
             affectedItems.put(type, new HashSet<ElementsItemId>());
         }
     }
 
+    /**
+     * Method to retrieve information about all the resource in this store, of a particular StorableResourceType,
+     * that have been "affected" during the lifetime of this object
+     * @param resourceType the StorableResourceType of items you are interested in
+     * @return  Set<ElementsItemId> of all the items for which the resourceType has been affected
+     */
     public Set<ElementsItemId> getAffectedItems(StorableResourceType resourceType){
         if(!supportedTypes.contains(resourceType)) throw new IllegalStateException("resourceType is incompatible with store");
         return Collections.unmodifiableSet(affectedItems.get(resourceType));
     }
 
-    //returns true if the item has already been affected
+    /**
+     * Internal method to mark an item as affected
+     * @param resourceType the StorableResourceType of the resource in the store that was affected
+     * @param itemId the Elements item that the resource was associated with
+     * @return true if the item is newly added to the affected list for this resource type
+     *         false if it was already on the affected list
+     */
     private boolean markItemAsAffected(StorableResourceType resourceType, ElementsItemId itemId) {
         //TODO: do checks that resource type is valid for store and item? its only ever called from places that already do their own checks?
         Set<ElementsItemId> currentList = affectedItems.get(resourceType);
         return currentList != null && currentList.add(itemId);
     }
 
+    /**
+     * Add an IElementsStoredItemObserver to this store
+     * @param observer the observer to add
+     */
     public void addItemObserver(IElementsStoredItemObserver observer){ itemObservers.add(observer); }
 
+    /**
+     * Remove an IElementsStoredItemObserver to this store
+     * @param observer the observer to remove
+     */
     public void removeItemObserver(IElementsStoredItemObserver observer){
         itemObservers.remove(observer);
     }
 
+    /**
+     * Method to fetch all resources in this store that are keyed to a specific Elements item
+     * regardless of StorableResourceType
+     * @param itemId the id of the Elements item you are interested in
+     * @return Collection<BasicElementsStoredItem> of all the stored items related to itemId
+     */
     public Collection<BasicElementsStoredItem> retrieveAllRelatedResources(ElementsItemId itemId){
         List<BasicElementsStoredItem> items = new ArrayList<BasicElementsStoredItem>();
         for(StorableResourceType resourceType : supportedTypes){
@@ -78,9 +118,9 @@ public class ElementsItemFileStore implements ElementsItemStore.ElementsDeletabl
     /**
      * Method to retrieve a StoredItem representing a particular resource
      * The corresponding file may or may not exist in this store - no guarantees are made about it by this call.
-     * @param itemId
-     * @param resourceType
-     * @return
+     * @param itemId The Elements Item for which you want to retrieve a resource from the Store
+     * @param resourceType The Type of resource you want to retrieve
+     * @return A BasicElementsStoredItem object to provide access to the relevant resource (or null if nothing available)
      */
     public BasicElementsStoredItem retrieveItem(ElementsItemId itemId, StorableResourceType resourceType){
         if(!resourceType.isAppropriateForItem(itemId))  throw new IllegalStateException("resourceType is incompatible with item");
@@ -90,10 +130,21 @@ public class ElementsItemFileStore implements ElementsItemStore.ElementsDeletabl
         return file == null || !file.exists() ? null : new BasicElementsStoredItem(itemId, resourceType, new StoredData.InFile(file, shouldZipResourceFile(resourceType)));
     }
 
+    /**
+     * Method to retrieve all StoredItem of a particular resourceType that exist in this store.
+     * @param resourceType The Type of resource you want to retrieve
+     * @return A Collection of StoredData.InFile objects to provide access to the relevant resources
+     */
     public Collection<StoredData.InFile> getAllExistingFilesOfType(StorableResourceType resourceType){
         return getAllExistingFilesOfType(resourceType, null);
     }
 
+    /**
+     * Method to retrieve all StoredItem of a particular resourceType that exist in this store.
+     * @param resourceType The Type of resource you want to retrieve
+     * @param subType The subtype of resource you want to retrieve
+     * @return A Collection of StoredData.InFile objects to provide access to the relevant resources
+     */
     public Collection<StoredData.InFile> getAllExistingFilesOfType(StorableResourceType resourceType, ElementsItemType.SubType subType){
         if(!supportedTypes.contains(resourceType)) throw new IllegalStateException("resourceType is incompatible with store");
         Collection<File> files = subType == null ? layoutStrategy.getAllExistingFilesOfType(dir,resourceType) : layoutStrategy.getAllExistingFilesOfType(dir, resourceType, subType);
@@ -103,6 +154,7 @@ public class ElementsItemFileStore implements ElementsItemStore.ElementsDeletabl
         return data;
     }
 
+    //See interface for javadoc
     @Override
     public ElementsStoredItemInfo storeItem(ElementsItemInfo itemInfo, StorableResourceType resourceType, byte[] data) throws IOException{
         //TODO: do something better here with error message?
@@ -122,8 +174,9 @@ public class ElementsItemFileStore implements ElementsItemStore.ElementsDeletabl
         return storedItem;
     }
 
+    //See interface for javadoc
     @Override
-    public ElementsStoredItemInfo touchItem(ElementsItemInfo itemInfo, StorableResourceType resourceType, IElementsStoredItemObserver... observersToRecalculate) throws IOException{
+    public ElementsStoredItemInfo touchItem(ElementsItemInfo itemInfo, StorableResourceType resourceType, IElementsStoredItemObserver... explicitObservers) throws IOException{
         //TODO: do something better here with error message?
         if(!resourceType.isAppropriateForItem(itemInfo.getItemId())) throw new IllegalStateException("resourceType is incompatible with item");
         if(!supportedTypes.contains(resourceType)) throw new IllegalStateException("resourceType is incompatible with store");
@@ -132,9 +185,9 @@ public class ElementsItemFileStore implements ElementsItemStore.ElementsDeletabl
         if(!file.exists()){ throw new FileNotFoundException(file.getAbsolutePath()); }
 
 
-        if(observersToRecalculate != null && observersToRecalculate.length != 0) {
+        if(explicitObservers != null && explicitObservers.length != 0) {
             //reprocess any specifically requested observers regardless of whether the item has been "affected" already.
-            for (IElementsStoredItemObserver observer : observersToRecalculate) {
+            for (IElementsStoredItemObserver observer : explicitObservers) {
                 observer.observe(storedItem);
             }
         }
@@ -149,6 +202,7 @@ public class ElementsItemFileStore implements ElementsItemStore.ElementsDeletabl
         return storedItem;
     }
 
+    //See interface for javadoc
     @Override
     public void deleteItem(ElementsItemId itemId, StorableResourceType resourceType) throws IOException{
         //TODO: do something better here with error message?
@@ -157,6 +211,7 @@ public class ElementsItemFileStore implements ElementsItemStore.ElementsDeletabl
         File file = layoutStrategy.getItemFile(dir, itemId, resourceType);
         //TODO: should this log if there is nothing to delete?, note that file would not always be present, e.g. for a translated prof-activity?
         if(file.exists())
+            //noinspection ResultOfMethodCallIgnored
             file.delete();
         //TODO: should this use markAsAffected?
         for(IElementsStoredItemObserver observer : itemObservers) {
@@ -168,6 +223,7 @@ public class ElementsItemFileStore implements ElementsItemStore.ElementsDeletabl
         cleardown(resourceType, true);
     }
 
+    //See interface for javadoc
     @Override
     public void cleardown(StorableResourceType resourceType, boolean followObservers) throws IOException {
         for (StoredData.InFile data : getAllExistingFilesOfType(resourceType)) {
@@ -198,23 +254,8 @@ public class ElementsItemFileStore implements ElementsItemStore.ElementsDeletabl
         }
         //if not keeping empties and the file is empty
         else if(file.exists()){
+            //noinspection ResultOfMethodCallIgnored
             file.delete();
-        }
-    }
-
-    public static class ElementsRawDataStore extends ElementsItemFileStore {
-        private static LayoutStrategy layoutStrategy = new DefaultLayoutStrategy(
-                new StorableResourceType[]{StorableResourceType.RAW_OBJECT, StorableResourceType.RAW_RELATIONSHIP, StorableResourceType.RAW_GROUP},
-                new StorableResourceType[]{StorableResourceType.RAW_USER_PHOTO}
-        );
-
-        public ElementsRawDataStore(File dir) {
-            this(dir, false, false);
-        }
-
-        public ElementsRawDataStore(File dir, boolean keepEmpty, boolean zipFiles){
-            super(dir, keepEmpty, zipFiles, ElementsRawDataStore.layoutStrategy,
-                    StorableResourceType.RAW_OBJECT, StorableResourceType.RAW_RELATIONSHIP, StorableResourceType.RAW_USER_PHOTO, StorableResourceType.RAW_GROUP);
         }
     }
 }

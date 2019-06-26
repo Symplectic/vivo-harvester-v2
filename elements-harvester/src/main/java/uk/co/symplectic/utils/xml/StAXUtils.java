@@ -13,6 +13,10 @@ import javax.xml.stream.XMLEventFactory;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLOutputFactory;
 
+/**
+ * Class to simplify use of StAX Factories in the application by wrapping them as thread safe singletons
+ */
+
 public final class StAXUtils {
     private static XMLEventFactory xmlEventFactory = null;
     private static XMLInputFactory xmlInputFactory = null;

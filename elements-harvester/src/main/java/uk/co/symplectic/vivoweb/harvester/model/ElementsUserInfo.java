@@ -17,6 +17,17 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * Subclass of ElementsItemInfo to store and expose a set of data relating to an Elements Users
+ * Exposes a set of data about the user: isPublic, isCurrent, isAcademic, photoUrl, username, proprietaryID.
+ * Additionally exposes data about a specific label scheme or generic field.
+ * The scheme and field to be looked at are specified by the static values on ElementsObjectInfo.Extractor
+ *
+ * All this Additional data is provided as a single update (a UserExtraData object) in the addExtraData method.
+ * which is deliberately package private.
+ */
+
+//TODO: separate extractor code for users into this class?
 public class ElementsUserInfo extends ElementsObjectInfo {
 
     private UserExtraData additionalInfo;
@@ -26,33 +37,34 @@ public class ElementsUserInfo extends ElementsObjectInfo {
         super(ElementsObjectCategory.USER, id);
     }
 
-    public boolean isFullyPopulated(){
-        return additionalInfo != null;
+    private boolean isNotFullyPopulated(){
+        return additionalInfo == null;
     }
 
-    public void addExtraData(UserExtraData additionalInfo){
+    void addExtraData(UserExtraData additionalInfo){
         this.additionalInfo = additionalInfo;
     }
 
     public boolean getIsPublic() {
-        if(!isFullyPopulated()) throw new IllegalAccessError("Cannot access isPublic if ElementsUserInfo is not fully populated");
+        if(isNotFullyPopulated()) throw new IllegalAccessError("Cannot access isPublic if ElementsUserInfo is not fully populated");
         return additionalInfo.isPublic;
     }
 
     public boolean getIsCurrentStaff() {
-        if(!isFullyPopulated()) throw new IllegalAccessError("Cannot access current-staff if ElementsUserInfo is not fully populated");
+        if(isNotFullyPopulated()) throw new IllegalAccessError("Cannot access current-staff if ElementsUserInfo is not fully populated");
         return additionalInfo.isCurrentStaff;
     }
 
     public boolean getIsAcademic() {
-        if(!isFullyPopulated()) throw new IllegalAccessError("Cannot access isAcademic if ElementsUserInfo is not fully populated");
+        if(isNotFullyPopulated()) throw new IllegalAccessError("Cannot access isAcademic if ElementsUserInfo is not fully populated");
         return additionalInfo.isAcademic;
     }
 
+    @SuppressWarnings("unused")
     public String getPhotoUrl() { return getPhotoUrl(ImageUtils.PhotoType.PROFILE); }
 
     public String getPhotoUrl(ImageUtils.PhotoType photoType) {
-        if(!isFullyPopulated()) throw new IllegalAccessError("Cannot access photo-url if ElementsUserInfo is not fully populated");
+        if(isNotFullyPopulated()) throw new IllegalAccessError("Cannot access photo-url if ElementsUserInfo is not fully populated");
         //Note: additionalInfo.photoUrl is trimmed to null in setter
         if(additionalInfo.photoUrl == null || photoType == null) return additionalInfo.photoUrl;
         try {
@@ -72,26 +84,27 @@ public class ElementsUserInfo extends ElementsObjectInfo {
     }
 
     public String getUsername() {
-        if(!isFullyPopulated()) throw new IllegalAccessError("Cannot access username if ElementsUserInfo is not fully populated");
+        if(isNotFullyPopulated()) throw new IllegalAccessError("Cannot access username if ElementsUserInfo is not fully populated");
         return additionalInfo.username;
     }
 
     public String getProprietaryID() {
-        if(!isFullyPopulated()) throw new IllegalAccessError("Cannot access proprietaryID if ElementsUserInfo is not fully populated");
+        if(isNotFullyPopulated()) throw new IllegalAccessError("Cannot access proprietaryID if ElementsUserInfo is not fully populated");
         return additionalInfo.proprietaryID;
     }
 
     public Set<String> getLabelSchemeValues() {
-        if(!isFullyPopulated()) throw new IllegalAccessError("Cannot access labelSchemeValue if ElementsUserInfo is not fully populated");
+        if(isNotFullyPopulated()) throw new IllegalAccessError("Cannot access labelSchemeValue if ElementsUserInfo is not fully populated");
         return Collections.unmodifiableSet(additionalInfo.labelSchemeValues);
     }
 
     public String getGenericFieldValue() {
-        if(!isFullyPopulated()) throw new IllegalAccessError("Cannot access genericFieldValue if ElementsUserInfo is not fully populated");
+        if(isNotFullyPopulated()) throw new IllegalAccessError("Cannot access genericFieldValue if ElementsUserInfo is not fully populated");
         return additionalInfo.genericFieldValue;
     }
 
-    public static class UserExtraData{
+    @SuppressWarnings("UnusedReturnValue")
+    static class UserExtraData{
         private boolean isPublic = true;
         private boolean isCurrentStaff = true;
         private boolean isAcademic = true;
@@ -101,42 +114,42 @@ public class ElementsUserInfo extends ElementsObjectInfo {
         private Set<String> labelSchemeValues = new HashSet<String>();
         private String genericFieldValue = null;
 
-        public UserExtraData setIsPublic(boolean isPublic) {
+        UserExtraData setIsPublic(boolean isPublic) {
             this.isPublic = isPublic;
             return this;
         }
 
-        public UserExtraData setIsCurrentStaff(boolean isCurrentStaff) {
+        UserExtraData setIsCurrentStaff(boolean isCurrentStaff) {
             this.isCurrentStaff = isCurrentStaff;
             return this;
         }
 
-        public void setIsAcademic(boolean isAcademic) {
+        void setIsAcademic(boolean isAcademic) {
             this.isAcademic = isAcademic;
         }
 
-        public UserExtraData setPhotoUrl(String photoUrl) {
+        UserExtraData setPhotoUrl(String photoUrl) {
             this.photoUrl = StringUtils.trimToNull(photoUrl);
             return this;
         }
 
-        public UserExtraData setUsername(String username) {
+        UserExtraData setUsername(String username) {
             this.username = StringUtils.trimToNull(username);
             return this;
         }
 
-        public UserExtraData setProprietaryID(String proprietaryID) {
+        UserExtraData setProprietaryID(String proprietaryID) {
             this.proprietaryID = StringUtils.trimToNull(proprietaryID);
             return this;
         }
 
-        public UserExtraData addLabelSchemeValue(String labelSchemeValue) {
+        UserExtraData addLabelSchemeValue(String labelSchemeValue) {
             String trimmedValue = StringUtils.trimToNull(labelSchemeValue);
             if(trimmedValue != null) this.labelSchemeValues.add(trimmedValue);
             return this;
         }
 
-        public UserExtraData setGenericFieldValue(String genericFieldValue) {
+        UserExtraData setGenericFieldValue(String genericFieldValue) {
             this.genericFieldValue = StringUtils.trimToNull(genericFieldValue);
             return this;
         }

@@ -8,8 +8,6 @@
  */
 package uk.co.symplectic.translate;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsItemStore;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItemInfo;
 import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
@@ -22,12 +20,11 @@ import java.util.Map;
 
 
 /**
- * Public interface to the Translation service.
- *
+ * Public interface to the Translation service, which acts to translate any passed in data asynchronously.
  * Wraps the static implementation in an object, so that it can be mocked / substituted.
  */
+@SuppressWarnings("unused")
 public final class TranslationService {
-    private static Logger log = LoggerFactory.getLogger(TranslationService.class);
 
     private TranslationServiceConfig config = new TranslationServiceConfig();
 
@@ -35,7 +32,7 @@ public final class TranslationService {
 
     public TranslationServiceConfig getConfig(){ return config; }
 
-    public static Templates compileSource(File file) {
+    static Templates compileSource(File file) {
         return TranslationServiceImpl.compileSource(new StreamSource(file));
     }
 

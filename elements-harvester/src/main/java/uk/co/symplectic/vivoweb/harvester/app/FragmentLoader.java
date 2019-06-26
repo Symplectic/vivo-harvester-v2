@@ -15,13 +15,11 @@ import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import uk.co.symplectic.utils.ExecutorServiceUtils;
 import uk.co.symplectic.utils.LoggingUtils;
 import uk.co.symplectic.utils.configuration.ConfigParser;
 import uk.co.symplectic.utils.triplestore.FileSplitter;
 import uk.co.symplectic.utils.http.HttpClient;
 import uk.co.symplectic.vivoweb.harvester.config.FLConfiguration;
-
 import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -30,7 +28,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-//TODO: move to proper logging framework, and make log retries vs actual errors better.
+/**
+ * Main class for the FragmentLoader application
+ * Its job is to look for fragment files matching known patterns in the configured directory and process those fragments (in timestamp/type order).
+ * Processing consists of posting the fragment to the configured VIVO sparql update API, and on success response deleting the fragment file.
+ */
+
+//TODO: Review if log retries should log stack trace - possibly to a different file?
+@SuppressWarnings("WeakerAccess")
 public class FragmentLoader {
 
     private static final Logger log = LoggerFactory.getLogger(FragmentLoader.class);
@@ -45,6 +50,7 @@ public class FragmentLoader {
         }
     }
 
+    @SuppressWarnings("ConstantConditions")
     public static void main(String[] args) {
         //initLogger();
         //if(args.length != 1) throw new IllegalArgumentException("Args must contain 1 parameter, containing the path of the directory to monitor");
@@ -100,6 +106,7 @@ public class FragmentLoader {
             FileSplitter splitter = new FileSplitter.NTriplesSplitter(storeDir);
 
             //loop until stopped.
+            //noinspection InfiniteLoopStatement
             while (true) {
                 if (storeDir.exists()) {
                     if (!storeDir.isDirectory()) {
@@ -121,7 +128,7 @@ public class FragmentLoader {
                                 //if (count > 10) break;
                                 //get the content we are sending from the fragment file
                                 BufferedReader fileInput = null;
-                                String sparqlContent = null;
+                                String sparqlContent;
                                 try {
                                     fileInput = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
                                     String line;
@@ -174,10 +181,8 @@ public class FragmentLoader {
                             }
                         } catch (URISyntaxException e) {
                             throw new IllegalStateException("Either the Sparql API Endpoint or Graph URI is invalid", e);
-                            //todo: do something sensible
                         } catch (IOException e) {
                             throw new IllegalStateException(e);
-                            //todo: do something sensible
                         }
                     }
                     else {
@@ -224,11 +229,12 @@ public class FragmentLoader {
         }
     }
 
-    //tryies to send the fragment as required, attempting to repeat if general io type exceptions occur
+    //tries to send the fragment as required, attempting to repeat if general io type exceptions occur
     private static void trySendFragment(SparqlUpdateHttpClient client, String sparqlContent, boolean shouldDeleteContent) throws IllegalStateException {
         int retryCount = 0;
         do {
             HttpClient.ApiResponse apiResponse = null;
+            IOException responseDisposalError = null;
             try {
                 apiResponse = client.postSparqlFragment(sparqlContent, shouldDeleteContent);
                 if(retryCount != 0) System.out.print(')');
@@ -242,20 +248,25 @@ public class FragmentLoader {
                         throw new IllegalStateException(e.getMessage(), e);
                     }
                 }
+                ++retryCount;
                 //always log a warning..
-                log.warn("IO Error handling Sparql API request", e);
-
-                if (++retryCount >= maxRetries) {
-                    throw new IllegalStateException("IO Error handling Sparql API request", e);
+                log.warn(MessageFormat.format("IO Error handling Sparql API request - retrying request - ({0} attempts)", retryCount), e.getMessage());
+                if (retryCount >= maxRetries) {
+                    throw new IllegalStateException("Unrecoverable IO Error handling Sparql API request", e);
                 }
             } finally {
                 if (apiResponse != null) {
                     try {
                         apiResponse.dispose();
                     } catch (IOException e) {
-                        throw new IllegalStateException("IOException attempting to dispose apiResponse from Sparql api request", e);
+                        responseDisposalError = e;
                     }
                 }
+            }
+
+            //noinspection ConstantConditions
+            if(responseDisposalError != null) {
+                throw new IllegalStateException("IOException attempting to dispose apiResponse from Sparql api request", responseDisposalError);
             }
 
             try {
@@ -286,7 +297,7 @@ public class FragmentLoader {
             this.graphToModify = graphToModify;
             this.username = username;
             this.password = password;
-            //set up the innerclient (username and password not passed on as are sent in the form data not in the request).
+            //set up the inner client (username and password not passed on as are sent in the form data not in the request).
             innerClient = new HttpClient(url);
         }
 

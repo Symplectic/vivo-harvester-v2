@@ -18,6 +18,13 @@ import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Set;
 
+//DEPRECATED : replaced by GeneralAPIv4XOr55_URLBuilder
+
+/**
+ * Object to perform the task of converting different FeedQueries into appropriate Elements API urls
+ * This version performs the task for any Elements API running a v4.X (e.g. 4.6, 4.9) API Endpoint specification.
+ */
+@SuppressWarnings("unused")
 public class ElementsAPIv4_XURLBuilder extends ElementsAPIURLBuilder.GenericBase {
     @Override
 
@@ -65,8 +72,10 @@ public class ElementsAPIv4_XURLBuilder extends ElementsAPIURLBuilder.GenericBase
 
         //if we are not querying deleted objects we should order by id (regardless of whether we are doing a delta or a full pull
         if(!feedQuery.queryRepresentsDeletedItems()) {
-            //TODO: this needs to exist on the equivalent deleted resource to make things better (really needs to be a continuation token)
-            //TODO: also same concepts need extending to relationships and deleted relationships - relationships in particular definitely need it for deleted I think.
+            //WARNING: that order-by does not exist on the deleted resources means they are particularly susceptible to missing items.
+            // The same issues occur for the relationships and deleted relationships resources
+            // relationships in particular need it for deleted I think.
+            // pagination needs to move to a continuation token in future Elements API releases
             queryUrl.addParam("order-by", "id");
         }
 
@@ -119,8 +128,8 @@ public class ElementsAPIv4_XURLBuilder extends ElementsAPIURLBuilder.GenericBase
                 queryUrl.addParam("deleted-since", modifiedSinceString);
             else {
                 queryUrl.addParam("modified-since", modifiedSinceString);
-                //TODO: this needs to exist on the equivalent deleted resource to make things better (really needs to be a continuation token)
-                //TODO: also same concepts need extending to relationships and deleted relationships - relationships in particular definitely need it for deleted I think.
+                //WARNING: order-by does not exist on the relationships and deleted relationships resources
+                // pagination needs to move to a continuation token in future Elements API releases
                 //queryUrl.addParam("order-by", "id");
             }
             //always order by id if using modified since..

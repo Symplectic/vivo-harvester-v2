@@ -12,23 +12,32 @@ import uk.co.symplectic.utils.xml.XMLEventProcessor;
 
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.events.EndElement;
-import javax.xml.stream.events.StartElement;
-import javax.xml.stream.events.XMLEvent;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import static uk.co.symplectic.elements.api.ElementsAPI.apiNS;
 import static uk.co.symplectic.elements.api.ElementsAPI.atomNS;
 
+/**
+ * Subclass of ElementsItemInfo to store and expose a set of data relating to an Elements Relationship Type
+ * (e.g. publication-user-authorship, publication-user-editorship, user-grant-primary-investigation, etc).
+ *
+ * Stores the id of the relationship type as well as which categories of data it links "from" and "to".
+ */
 public class ElementsRelationshipTypeInfo extends ElementsItemInfo{
 
+    /**
+     * An XMLEventProcessor.ItemExtractingFilter based Extractor that can be used to extract an
+     * ElementsRelationshipTypeInfo object from an XML data stream.
+     *
+     * Note, there are no "deleted" streams for this type of data. The relationship type data is always represented in
+     * its entirety by the Elements API.
+     */
     public static class Extractor extends XMLEventProcessor.ItemExtractingFilter<ElementsItemInfo>{
 
         private static DocumentLocation fileEntryLocation = new DocumentLocation(new QName(atomNS, "entry"), new QName(apiNS, "relationship-type"));
         private static DocumentLocation feedEntryLocation = new DocumentLocation(new QName(atomNS, "feed"), new QName(atomNS, "entry"), new QName(apiNS, "relationship-type"));
 
+        @SuppressWarnings("WeakerAccess")
         public static Extractor getExtractor(ElementsItemInfo.ExtractionSource source, int maximumExpected){
             switch(source) {
                 case FEED : return new Extractor(feedEntryLocation, maximumExpected);
@@ -92,7 +101,7 @@ public class ElementsRelationshipTypeInfo extends ElementsItemInfo{
         return fromCategory;
     }
 
-    public void setFromCategory(ElementsObjectCategory fromCategory) {
+    private void setFromCategory(ElementsObjectCategory fromCategory) {
         this.fromCategory = fromCategory;
     }
 
@@ -100,14 +109,11 @@ public class ElementsRelationshipTypeInfo extends ElementsItemInfo{
         return toCategory;
     }
 
-    public void setToCategory(ElementsObjectCategory toCategory) {
+    private void setToCategory(ElementsObjectCategory toCategory) {
         this.toCategory = toCategory;
     }
 
     public boolean isComplete(){
-        if(getFromCategory() == null || getToCategory() == null){
-            return false;
-        }
-        return true;
+        return getFromCategory() != null && getToCategory() != null;
     }
 }

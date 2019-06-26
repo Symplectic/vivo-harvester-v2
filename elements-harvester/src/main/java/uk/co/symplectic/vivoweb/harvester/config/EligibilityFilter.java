@@ -10,8 +10,6 @@
 package uk.co.symplectic.vivoweb.harvester.config;
 import org.apache.commons.lang.NullArgumentException;
 import org.apache.commons.lang.StringUtils;
-import uk.co.symplectic.vivoweb.harvester.model.ElementsItemInfo;
-import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsUserInfo;
 
 import java.util.Collections;
@@ -20,7 +18,7 @@ import java.util.Set;
 /**
  * Class representing a filter to exclude some users from being sent to vivo.
  * There may be additional reasons that a user is not sent (e.g. group membership), this is just one layer
- * The simplest type operates on whether the user is academic or current.
+ * The simplest type operates on whether the user is academic/current/public outcome depending on configuration
  */
 public class EligibilityFilter {
     private final boolean academicsOnly;
@@ -29,7 +27,7 @@ public class EligibilityFilter {
 
     public boolean filtersOutNonPublicStaff(){ return publicOnly; }
 
-    protected EligibilityFilter(boolean academicsOnly, boolean currentStaffOnly, boolean publicOnly){
+    EligibilityFilter(boolean academicsOnly, boolean currentStaffOnly, boolean publicOnly){
         this.academicsOnly = academicsOnly;
         this.currentStaffOnly = currentStaffOnly;
         this.publicOnly = publicOnly;
@@ -38,11 +36,12 @@ public class EligibilityFilter {
     public final boolean isUserEligible(ElementsUserInfo userToTest){
         if(this.academicsOnly && !userToTest.getIsAcademic()) return false;
         if(this.currentStaffOnly && !userToTest.getIsCurrentStaff()) return false;
+        //noinspection SimplifiableIfStatement
         if(this.publicOnly && !userToTest.getIsPublic()) return false;
         return innerIsUserEligible(userToTest);
     }
 
-    protected boolean innerIsUserEligible(ElementsUserInfo userToTest) {return true;}
+    boolean innerIsUserEligible(ElementsUserInfo userToTest) {return true;}
 
     /**
      * Abstract class based on including or excluding a user because they have a particular value "somewhere".
@@ -54,7 +53,7 @@ public class EligibilityFilter {
 
         public String getName(){return schemeName; }
 
-        protected InclusionExclusionFilter(String schemeName, String inclusionValue, String exclusionValue, boolean academicsOnly, boolean currentStaffOnly, boolean publicOnly){
+        InclusionExclusionFilter(String schemeName, String inclusionValue, String exclusionValue, boolean academicsOnly, boolean currentStaffOnly, boolean publicOnly){
             super(academicsOnly, currentStaffOnly, publicOnly);
             if(StringUtils.trimToNull(schemeName) == null) throw new NullArgumentException("name");
             this.schemeName = schemeName;
@@ -65,11 +64,12 @@ public class EligibilityFilter {
         }
 
         @Override
-        protected boolean innerIsUserEligible(ElementsUserInfo userToTest) {
+        boolean innerIsUserEligible(ElementsUserInfo userToTest) {
             Set<String> valuesToTest = getValuesToTest(userToTest);
             //if an exclusion is configured and it trips then we just are not interested - exclusions win over inclusions..
             if(exclusionValue != null && valuesToTest.contains(exclusionValue)) return false;
             //otherwise if not yet excluded and an inclusion is configured that does not trip, then we just are not interested..
+            //noinspection RedundantIfStatement
             if(inclusionValue != null && !valuesToTest.contains(inclusionValue)) return false;
             return true;
         }
@@ -82,7 +82,7 @@ public class EligibilityFilter {
      */
     public static class LabelSchemeFilter extends InclusionExclusionFilter{
 
-        public LabelSchemeFilter(String schemeName, String inclusionValue, String exclusionValue, boolean academicsOnly, boolean currentStaffOnly, boolean publicOnly){
+        LabelSchemeFilter(String schemeName, String inclusionValue, String exclusionValue, boolean academicsOnly, boolean currentStaffOnly, boolean publicOnly){
             super(schemeName, inclusionValue, exclusionValue, academicsOnly, currentStaffOnly, publicOnly);
         }
 
@@ -95,7 +95,7 @@ public class EligibilityFilter {
      */
     public static class GenericFieldFilter extends InclusionExclusionFilter{
 
-        public GenericFieldFilter(String schemeName, String inclusionValue, String exclusionValue, boolean academicsOnly, boolean currentStaffOnly, boolean publicOnly){
+        GenericFieldFilter(String schemeName, String inclusionValue, String exclusionValue, boolean academicsOnly, boolean currentStaffOnly, boolean publicOnly){
             super(schemeName, inclusionValue, exclusionValue, academicsOnly, currentStaffOnly, publicOnly);
         }
 

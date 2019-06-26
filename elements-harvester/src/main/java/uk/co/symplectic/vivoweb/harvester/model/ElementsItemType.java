@@ -16,7 +16,11 @@ import java.text.MessageFormat;
 import java.util.*;
 
 /**
- * enum representing the idea of a "type" of data from Elements
+ * enum representing the concept of a "type" of data from Elements
+ * The four main types are split into "sub-types" (see inner class below).
+ * These subclasses can represent a specific sub-set of a type, or an aggregate grouping of sub-types (e.g. all-objects)
+ * The SubTypes are registered in the static dictionaries here, so all extant "sub types" are always directly comparable
+ * as they are the same object...
  */
 public enum ElementsItemType {
     OBJECT("object"),
@@ -48,7 +52,7 @@ public enum ElementsItemType {
 
     /**
      * method to register an item type in the maps above (called by constructor within SubType class)
-     * @param subType
+     * @param subType the Subtype to be registered in the static type maps
      */
     private static synchronized void addSubType(SubType subType){
         ElementsItemType mainType = subType.getMainType();
@@ -62,9 +66,9 @@ public enum ElementsItemType {
 
     /**
      * Method to retrieve a "known" subtype based on ItemType and name from the maps
-     * @param type
-     * @param value
-     * @return
+     * @param type The ElementsItemType to search for sub types.
+     * @param value The name of the desired subType.
+     * @return The desired type
      */
     public static SubType getSubType(ElementsItemType type, String value) {
         if (singularMap.containsKey(type) && singularMap.get(type).containsKey(value)) {
@@ -78,8 +82,8 @@ public enum ElementsItemType {
 
     /**
      * Method to retrieve all the "known" sub types for a particular item type.
-     * @param type
-     * @return
+     * @param type The ElementsItemType to search for sub types.
+     * @return Collection<SubType> of all registered sub types
      */
     public static Collection<SubType> knownSubTypes (ElementsItemType type) {
         if(singularMap.containsKey(type)) {
@@ -88,7 +92,7 @@ public enum ElementsItemType {
         return Collections.unmodifiableCollection(new HashSet<SubType>());
     }
 
-    //static block to instantiate the generic subtypes encompasing all groups and all relationships
+    //static block to instantiate the generic subtypes encompassing all groups and all relationships
     public static SubType AllObjects = new AggregateSubType(ElementsItemType.OBJECT, false);
     public static SubType AllGroups = new AggregateSubType(ElementsItemType.GROUP, true);
     public static SubType AllRelationships = new AggregateSubType(ElementsItemType.RELATIONSHIP, true);
@@ -100,6 +104,7 @@ public enum ElementsItemType {
      * If not concrete they might be simple abstract groupings of types that facilitate certain things via the
      * matches method.
      */
+    @SuppressWarnings("WeakerAccess")
     public static class SubType{
         private final ElementsItemType mainType;
         private final String singular;
@@ -115,6 +120,7 @@ public enum ElementsItemType {
             return isConcrete;
         }
 
+        @SuppressWarnings("SameParameterValue")
         protected SubType(ElementsItemType mainType, String singular, String plural){
             this(mainType, singular, plural, true);
         }

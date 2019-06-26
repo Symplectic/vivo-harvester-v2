@@ -14,7 +14,12 @@ import uk.co.symplectic.vivoweb.harvester.model.ElementsItemType;
 import java.io.File;
 import java.util.Collection;
 
-public interface LayoutStrategy {
+/**
+ * Interface to define methods that affect how a Store places data on disk for Elements items assuming a given
+ * a base directory. Additional methods to search for all files of a particular Type/SubType held in the store
+ */
+
+interface LayoutStrategy {
 
     File getItemFile(File storeDir, ElementsItemId itemId, StorableResourceType resourceType);
 

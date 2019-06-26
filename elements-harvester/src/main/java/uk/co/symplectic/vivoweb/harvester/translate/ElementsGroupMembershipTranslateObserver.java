@@ -11,12 +11,9 @@
 package uk.co.symplectic.vivoweb.harvester.translate;
 
 import org.apache.commons.lang.NullArgumentException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import uk.co.symplectic.vivoweb.harvester.utils.ElementsGroupCollection;
-import uk.co.symplectic.vivoweb.harvester.utils.ElementsItemKeyedCollection;
 import uk.co.symplectic.vivoweb.harvester.model.*;
 import uk.co.symplectic.vivoweb.harvester.store.*;
 import uk.co.symplectic.vivoweb.harvester.utils.IncludedGroups;
@@ -30,9 +27,26 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+
+/**
+ * Specialised Concrete subclass of ElementsTranslateObserver
+ * Observes RAW_OBJECT data (specifically raw user data) and converts it into TRANSLATED_USER_GROUP_MEMBERSHIP data,
+ * by passing in extra information.
+ * It Overrides the  observeStoredObject method and calls into the translate methods provided by the super classes
+ * to perform the actual work, passing in extraXSLTParameters.
+ * One parameter is a document describing the groups (from the Elements group hierarchy) that the user being processed
+ * should be shown as being a member of in Vivo given the current harvester configuration:
+ * (i.e based on include/exclude/excise groups as represented by the passed in groupCache & includedGroups params)
+ * It sets an additional (boolean) parameter to indicate to the crosswalks that that this processing pass
+ * should be attempting to create group membership information about the user being processed rather than a general pass
+ *
+ * Note, observeObjectDeletion is  overridden, likely never called as the group membership info is always processed in full
+ * The output rdf is normally cleared down by observeTypeCleardown in ElementsStoreOutputItemObserver
+ * */
+
+
 public class ElementsGroupMembershipTranslateObserver extends ElementsTranslateObserver{
 
-    private static final Logger log = LoggerFactory.getLogger(ElementsGroupMembershipTranslateObserver.class);
     private final ElementsGroupCollection groupCache;
     private final IncludedGroups includedGroups;
 
@@ -53,7 +67,7 @@ public class ElementsGroupMembershipTranslateObserver extends ElementsTranslateO
             Set<ElementsItemId.GroupId> usersIncludedGroups = getUsersIncludedGroups(userInfo);
             extraXSLTParameters.put("userGroupMembershipProcessing", true);
             if(usersIncludedGroups != null){
-                extraXSLTParameters.put("userGroups", getExtraObjectsDescription(userInfo, usersIncludedGroups));
+                extraXSLTParameters.put("userGroups", getUserGroupsDescription(userInfo, usersIncludedGroups));
             }
 
             translate(item, extraXSLTParameters);
@@ -94,14 +108,14 @@ public class ElementsGroupMembershipTranslateObserver extends ElementsTranslateO
 
     /**
      * Get an XML description of the groups that this user is a member of
-     * filterered to only include groups that are "included" in vivo
+     * filtered to only include groups that are "included" in vivo
      * Note, for any group memberships corresponding to excluded groups the system will run up the group hierarchy to find the
      * nearest parent that is included and use that.
-     * @param userInfo
-     * @param usersIncludedGroups
-     * @return
+     * @param userInfo The ElementsUserInfo object you want the group description document for
+     * @param usersIncludedGroups The set of groups that the user is effectively an explicit member of
+     * @return A Document describing the user's groups
      */
-    private Document getExtraObjectsDescription(ElementsUserInfo userInfo, Set<ElementsItemId.GroupId> usersIncludedGroups) {
+    private Document getUserGroupsDescription(ElementsUserInfo userInfo, Set<ElementsItemId.GroupId> usersIncludedGroups) {
         try {
             DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder docBuilder = docFactory.newDocumentBuilder();

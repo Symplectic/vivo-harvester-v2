@@ -19,11 +19,18 @@ import uk.co.symplectic.vivoweb.harvester.store.ElementsItemFileStore;
 import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
 
 import java.io.ByteArrayOutputStream;
-import java.net.MalformedURLException;
 import java.text.MessageFormat;
 import java.util.concurrent.Callable;
 
-public final class ResourceFetchServiceImpl {
+/**
+ * Static implementation of an Executor based resource fetch service, which asynchronously fetches resources from
+ * an External API and places them in a store. Modelled on the pattern of the TranslationService.
+ * Package private, as this is not part of the public API.
+ * Users should access via the ResourceFetchService() object.
+ */
+
+
+final class ResourceFetchServiceImpl {
 
     private static final Logger log = LoggerFactory.getLogger(ResourceFetchServiceImpl.class);
 
@@ -31,7 +38,7 @@ public final class ResourceFetchServiceImpl {
 
     private ResourceFetchServiceImpl() {}
 
-    static void fetchUserPhoto(ElementsAPI api, ImageUtils.PhotoType photoType, ElementsUserInfo userInfo, ElementsItemFileStore objectStore) throws MalformedURLException {
+    static void fetchUserPhoto(ElementsAPI api, ImageUtils.PhotoType photoType, ElementsUserInfo userInfo, ElementsItemFileStore objectStore) {
         wrapper.submit(new UserPhotoFetchTask(api, photoType, userInfo, objectStore));
     }
 

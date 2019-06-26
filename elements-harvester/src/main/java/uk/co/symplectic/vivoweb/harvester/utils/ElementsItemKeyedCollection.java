@@ -24,12 +24,22 @@ import java.text.MessageFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * An abstract generic class representing an in memory dictionary of data (of type T) keyed by ElementsItemIDs.
+ * The Collection can be "restricted" to only accept certain types of itemId by adding an "ItemRestrictor"
+ *
+ * In additional to the expected put, remove, etc calls, all of which appropriately check the restrictor,
+ * the class exposes a "StoreWrapper" which allows the object to be used as an ElementsItemStore so that
+ * it can be targeted (for example) as the output of a FetchConfig.
+ *
+ * @param <T> The type of data being held in the dictionary.
+ */
 public abstract class ElementsItemKeyedCollection<T> {
 
     private final Map<ElementsItemId, T> mData = new ConcurrentHashMap<ElementsItemId, T>();
     private ItemRestrictor mRestrictor = null;
 
-    protected ElementsItemKeyedCollection(ItemRestrictor restrictor){
+    ElementsItemKeyedCollection(ItemRestrictor restrictor){
         mRestrictor = restrictor;
     }
 
@@ -40,6 +50,7 @@ public abstract class ElementsItemKeyedCollection<T> {
         }
     }
 
+    @SuppressWarnings("unused")
     public synchronized T remove(ElementsItemId key) {
         if(key == null) return null;
         return mData.remove(key);
@@ -64,6 +75,7 @@ public abstract class ElementsItemKeyedCollection<T> {
         return mData.get(key);
     }
 
+    @SuppressWarnings("unused")
     public synchronized void clear() {
         mData.clear();
     }
@@ -82,11 +94,18 @@ public abstract class ElementsItemKeyedCollection<T> {
         }
     }
 
+    /**
+     * Interface required for any "restrictor" used to limit the type of data an ElementsItemKeyedCollection can store
+     */
     public interface ItemRestrictor{
         //checkItemId should throw an IllegalStateException if the item key is invalid
         void checkItemIdIsValid(ElementsItemId itemId);
     }
 
+    /**
+     * ItemRestrictor that limits access to only ItemId's of a particular type.
+     */
+    @SuppressWarnings("WeakerAccess")
     public static class RestrictToType implements ItemRestrictor{
         private final ElementsItemType mType;
 
@@ -101,6 +120,9 @@ public abstract class ElementsItemKeyedCollection<T> {
         }
     }
 
+    /**
+     * ItemRestrictor that limits access to only ItemId's of particular subtypes.
+     */
     public static class RestrictToSubTypes implements ItemRestrictor{
         private List<ElementsItemType.SubType> mAllowedCategories = new ArrayList<ElementsItemType.SubType>();
 
@@ -124,6 +146,12 @@ public abstract class ElementsItemKeyedCollection<T> {
         }
     }
 
+
+    /**
+     * A concrete version of an ElementsItemKeyedCollection that stores "ItemInfo" data keyed by the itemID
+     * getItemToStore knows how to extract an ElementsItemInfo from the underlying XML data streams
+     */
+    @SuppressWarnings("unused")
     public static class ItemInfo extends ElementsItemKeyedCollection<ElementsItemInfo>{
         public ItemInfo(){ super(null); }
         public ItemInfo(ItemRestrictor restrictor){ super(restrictor); }
@@ -134,6 +162,12 @@ public abstract class ElementsItemKeyedCollection<T> {
         }
     }
 
+    /**
+     * A concrete version of an ElementsItemKeyedCollection that stores the raw extracted data keyed by the itemID
+     * Where the raw data is represented as a StoredData.InRam object.
+     * getItemToStore knows how to store the raw byteArray as a StoredData.InRam
+     */
+    @SuppressWarnings("unused")
     public static class StoredItem extends ElementsItemKeyedCollection<ElementsStoredItemInfo>{
         public StoredItem(){ super(null); }
         public StoredItem(ItemRestrictor restrictor){ super(restrictor); }

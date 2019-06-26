@@ -12,6 +12,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Class exposing the main global configuration options of the TranslationService
+ * Exposed via getConfig() method on a TranslationService object
+ * Users should access via the TranslationService() object
+ */
+
+@SuppressWarnings({"WeakerAccess", "unused"})
 public class TranslationServiceConfig {
     private boolean ignoreFileNotFound = false;
     private Map<String, Object> xslParameters = new HashMap<String, Object>();

@@ -14,7 +14,7 @@ import uk.co.symplectic.vivoweb.harvester.model.ElementsItemType;
 import java.util.*;
 
 /**
- * Abstract class representing a query against the Elements API that will return a response containig API XML data
+ * Abstract class representing a query against the Elements API that will return a response containing API XML data
  * encapsulates the concepts of the "Type" of data being requested and whether the response should be returned at
  * "full" or "ref" level detail.
  */
@@ -30,7 +30,7 @@ abstract public class ElementsFeedQuery {
      *
      * @param fullDetails to request whether the feed contain full object details or reference level information
      */
-    public ElementsFeedQuery(ElementsItemType itemType, boolean fullDetails){
+    protected ElementsFeedQuery(ElementsItemType itemType, boolean fullDetails){
         if(itemType == null) throw new NullArgumentException("itemType");
         this.itemType = itemType;
         this.fullDetails = fullDetails;
@@ -87,7 +87,7 @@ abstract public class ElementsFeedQuery {
 
         public Date getModifiedSince(){return modifiedSince;}
 
-        public DeltaCapable(ElementsItemType itemType, boolean fullDetails, Date modifiedSince){
+        protected DeltaCapable(ElementsItemType itemType, boolean fullDetails, Date modifiedSince){
             super(itemType, fullDetails);
             this.modifiedSince = modifiedSince;
         }
@@ -95,7 +95,7 @@ abstract public class ElementsFeedQuery {
 
     /**
      * Class that abstracts over the concept of a feedQuery returning potentially multiple query urls, each of which
-     * may have (generally) mutliple pages to be processed.
+     * may have (generally) multiple pages to be processed.
      * exposes a hasNext and a next operation in line with typical Java iterator patterns
      * both of these accept an ElementsFeedPagination object which should have been extracted from the previous query in the loop.
      */

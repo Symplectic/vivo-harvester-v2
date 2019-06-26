@@ -13,6 +13,11 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Class to build a URL from a base URL, paths and any QueryString parameters.
+ * The ToString() method will return the full URL, with the parameters URL encoded and appended correctly.
+ */
+
 public class URLBuilder {
     private StringBuilder url;
     private List<URLParam> params;
@@ -59,7 +64,7 @@ public class URLBuilder {
                     urlBuilder.append(URLEncoder.encode(param.name, "UTF-8"));
                     urlBuilder.append("=");
                     urlBuilder.append(URLEncoder.encode(param.value, "UTF-8"));
-                } catch (UnsupportedEncodingException e) {
+                } catch (UnsupportedEncodingException ignored) {
                 }
             }
         }
@@ -67,6 +72,10 @@ public class URLBuilder {
         return urlBuilder.toString();
     }
 
+    /**
+     * Simple class to represent a QueryString parameter, key and value as strings
+     */
+    @SuppressWarnings("unused")
     private class URLParam {
         private String name;
         private String value;

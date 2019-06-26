@@ -50,7 +50,6 @@ public class LoggingUtils {
                 if (inputStream != null) {
                     context.reset();
                     context.stop();
-                    //context.putProperty("api-logging-level", "");
                     jc.doConfigure(inputStream);
                     context.start();
                 }

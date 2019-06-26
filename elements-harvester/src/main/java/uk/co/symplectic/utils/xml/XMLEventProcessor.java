@@ -11,13 +11,10 @@ package uk.co.symplectic.utils.xml;
 
 import org.apache.commons.lang.NullArgumentException;
 
-import javax.xml.namespace.NamespaceContext;
 import javax.xml.namespace.QName;
-import javax.xml.stream.Location;
 import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.events.*;
-import java.io.Writer;
 import java.text.MessageFormat;
 import java.util.*;
 
@@ -58,7 +55,7 @@ public class XMLEventProcessor {
     /*
     Helper method used by "process" - Tests that the incoming reader is in a sensible place to start processing and errors out if not.
      */
-    private void CheckInitialState(ReaderProxy proxy) {
+    private void checkInitialState(ReaderProxy proxy) {
         XMLEvent initialEvent = proxy.peek();
         if (!initialEvent.isStartDocument() && !initialEvent.isStartElement())
             throw new IllegalStateException("Must enter process with the XMLEventReader currently on a StartElements or StartDocument event");
@@ -76,7 +73,7 @@ public class XMLEventProcessor {
             ReaderProxy proxy = new ReaderProxy(reader);
 
             //Test that incoming reader is in a sensible state to start processing
-            CheckInitialState(proxy);
+            checkInitialState(proxy);
 
             //initialise scope tracking stack
             Stack<ProcessScope> stack = new Stack<ProcessScope>();
@@ -172,11 +169,20 @@ public class XMLEventProcessor {
         List<EventFilter> getFiltersInScope() { return filtersInScope; }
     }
 
+    /**
+     * A wrapping class around a raw XMLEvent which exposes methods to ease extraction of values and attributes from the
+     * underlying events.
+     *
+     * The XMLEventProcessor only ever passes WrappedXmlEvent objects out (e.g. to EventFilters, etc), so you can rely on
+     * having one of these if you are using this framework to parse XML.
+     */
+    @SuppressWarnings({"WeakerAccess", "unused"})
     public static class WrappedXmlEvent{
         private final XMLEvent innerEvent;
         private final ReaderProxy reader;
 
-        public WrappedXmlEvent(XMLEvent event, ReaderProxy reader){
+        //package access as should only be created by these processes..
+        WrappedXmlEvent(XMLEvent event, ReaderProxy reader){
             if(event == null) throw new NullArgumentException("event");
             if(reader == null) throw new NullArgumentException("reader");
             this.innerEvent = event;
@@ -198,7 +204,7 @@ public class XMLEventProcessor {
         }
 
         public boolean hasAttribute(QName name){
-            if(innerEvent.isStartElement()){
+            if(isRelevantForExtraction()){
                 Attribute att = innerEvent.asStartElement().getAttributeByName(name);
                 return att != null;
             }
@@ -209,22 +215,36 @@ public class XMLEventProcessor {
             return hasAttribute(new QName(name));
         }
 
-        public String getAttribute(QName name){
-            if(innerEvent.isStartElement()){
+        private  String innerGetAttribute(QName name, boolean required){
+            if(isRelevantForExtraction()){
                 Attribute att = innerEvent.asStartElement().getAttributeByName(name);
-                return att.getValue();
+                if(att != null) return att.getValue();
+                if(required) throw new IllegalStateException(MessageFormat.format("Missing attribute ({0}) attempting extraction at [{1}]", name.toString(), getName().toString()));
+                return null;
             }
-            throw new IllegalStateException(MessageFormat.format("Missing attribute ({0}) attempting extraction at [{1}]", name.toString(), getName().toString()));
+            throw new IllegalStateException(MessageFormat.format("Illegal site to attempt attribute ({0}) extraction [{1}]", name.toString(), getEventTypeString()));
         }
 
         public String getAttribute(String name) {
             return getAttribute(new QName(name));
         }
 
+        public String getAttribute(QName name){
+            return innerGetAttribute(name, true);
+        }
+
+        public String getAttributeValueOrNull(String name){
+            return getAttributeValueOrNull(new QName(name));
+        }
+
+        public String getAttributeValueOrNull(QName name){
+            return innerGetAttribute(name, false);
+        }
+
         //This is naive extraction logic. It should really be calculated across the entire "scope" of the current Element.
         //this works for all our use cases though...
         public boolean hasValue() throws XMLStreamException{
-            if(innerEvent.isStartElement()){
+            if(isRelevantForExtraction()){
                 XMLEvent nextEvent = getNextEvent();
                 if (nextEvent != null && nextEvent.isCharacters()){
                     return true;
@@ -236,14 +256,15 @@ public class XMLEventProcessor {
         //This is naive extraction logic. It should really be calculated across the entire "scope" of the current Element.
         //this works for all our use cases though...
         private String innerGetValue(boolean required) throws XMLStreamException{
-            if(innerEvent.isStartElement()){
+            if(isRelevantForExtraction()){
                 XMLEvent nextEvent = getNextEvent();
                 if (nextEvent != null && nextEvent.isCharacters()){
                     return nextEvent.asCharacters().getData();
                 }
+                if(required) throw new IllegalStateException(MessageFormat.format("Missing value attempting extraction at [{0}]", getName().toString()));
+                return null;
             }
-            if(required) throw new IllegalStateException(MessageFormat.format("Missing value attempting extraction at [{0}]", getName().toString()));
-            return null;
+            throw new IllegalStateException(MessageFormat.format("Illegal site to attempt value extraction [{0}]", getEventTypeString()));
         }
 
         public String getValueOrNull() throws XMLStreamException {
@@ -252,18 +273,39 @@ public class XMLEventProcessor {
         public String getRequiredValue() throws XMLStreamException {
             return innerGetValue(true);
         }
+
+        //helper method to expose underlying event type as a string... for logging/exceptions
+        private String getEventTypeString() {
+            int eventType = getRawEvent().getEventType();
+            switch (eventType) {
+                case XMLEvent.START_ELEMENT: return "START_ELEMENT";
+                case XMLEvent.END_ELEMENT: return "END_ELEMENT";
+                case XMLEvent.PROCESSING_INSTRUCTION: return "PROCESSING_INSTRUCTION";
+                case XMLEvent.CHARACTERS: return "CHARACTERS";
+                case XMLEvent.COMMENT: return "COMMENT";
+                case XMLEvent.START_DOCUMENT: return "START_DOCUMENT";
+                case XMLEvent.END_DOCUMENT: return "END_DOCUMENT";
+                case XMLEvent.ENTITY_REFERENCE: return "ENTITY_REFERENCE";
+                case XMLEvent.ATTRIBUTE: return "ATTRIBUTE";
+                case XMLEvent.DTD: return "DTD";
+                case XMLEvent.CDATA: return "CDATA";
+                case XMLEvent.SPACE:return "SPACE";
+            }
+            return "UNKNOWN_EVENT_TYPE," + eventType;
+        }
+
     }
 
     /*
     Helper class to wrap an XMLEventReader to only provide access to the underlying peek method
     Exists to allow access to the stream to be exposed to invoked filters without granting access to methods that advance the stream.
      */
-    public class ReaderProxy {
+    class ReaderProxy {
         private final XMLEventReader reader;
 
         ReaderProxy(XMLEventReader reader) { this.reader = reader; }
 
-        public XMLEvent peek() {
+        XMLEvent peek() {
             try {
                 return this.reader.peek();
             } catch (XMLStreamException e) {
@@ -273,19 +315,22 @@ public class XMLEventProcessor {
         }
     }
 
-    /*
-    For every location in the document being processed by an XmlEventProcessor that matches the location defined by "names".
-    The processor ensures that itemStart is called on the filter, which then receives every event that is passed in from the system
-    until the filter goes out of scope at which point the processor invokes itemEnd
+    /**
+     * EventFilter objects are used to register an interest in sections of the Events being handled by an XmlEventProcessor.
+     * You define a filter by passing in a DocumentLocation to express the "path" within an XML document that you are
+     * interested in.
+     * For every location in the document being processed by an XmlEventProcessor that matches the location defined by "names".
+     * The processor ensures that itemStart is called on the filter, which then receives every event that is passed in from the system
+     * until the filter goes out of scope at which point the processor invokes itemEnd
+     *
+     * This class represents a common base from which any Filters defined for use with an XmlEventProcessor must inherit.
      */
+    @SuppressWarnings("WeakerAccess")
     public abstract static class EventFilter {
 
-        //Helper method to get attribute or null if not present;
-        public static String getAttributeValueOrNull(StartElement startElement, QName name){
-            Attribute attr = startElement.getAttributeByName(name);
-            return attr == null ? null : attr.getValue();
-        }
-
+        /**
+         * Class to represent the location of an Element in an XML document as a list of "path" fragments
+         */
         public static class DocumentLocation{
             private final List<QName> location = new ArrayList<QName>();
 
@@ -295,7 +340,7 @@ public class XMLEventProcessor {
                     this.location.add(name);
                 }
             }
-            public List<QName> getLocationAsList(){ return Collections.unmodifiableList(location); }
+            List<QName> getLocationAsList(){ return Collections.unmodifiableList(location); }
 
             @Override
             public final boolean equals(Object objectToTest) {
@@ -312,6 +357,7 @@ public class XMLEventProcessor {
             }
 
             public boolean matches(List<QName> objectToTest){
+                //noinspection SimplifiableIfStatement
                 if (objectToTest == null) return false;
                 return this.getLocationAsList().equals(objectToTest);
             }
@@ -334,10 +380,14 @@ public class XMLEventProcessor {
         //default methods to do "nothing" on item start and end only override if you need to do something
         protected void itemStart(WrappedXmlEvent initialEvent) throws XMLStreamException { }
         protected void itemEnd(WrappedXmlEvent finalEvent) throws XMLStreamException { }
-        //abstract stub for process event - have to do something to create a concrete filter.
+        //abstract stub for process event - ensure users have to do something to create a concrete filter.
         protected abstract void processEvent(WrappedXmlEvent event, List<QName> relativeLocation) throws XMLStreamException;
     }
 
+    /**
+     * A base class for a Filter that will "count" the number of items that have been processed from the XML document
+     * Where each item is a "scope" that matches the DocumentLocation provided in the constructor.
+     */
     public static class ItemCountingFilter extends EventFilter{
         int itemCount = 0;
 
@@ -354,6 +404,15 @@ public class XMLEventProcessor {
         protected void processEvent(WrappedXmlEvent event, List<QName> relativeLocation) throws XMLStreamException {}
     }
 
+    /**
+     * A (still abstract) specialization of an EventFilter that is designed to extract a Java object of Type T from
+     * the set of underlying events that come from each scope matching the DocumentLocation provided in the constructor.
+     *
+     * Users are expected to override  initialiseItemExtraction, processEvent and finaliseItemExtraction as appropriate
+     * to populate an item T corresponding to the set of data from a given "scope" of the underlying XML document.
+     * @param <T> the type of item that is going to be extracted
+     */
+    @SuppressWarnings("unused")
     public abstract static class ItemExtractingFilter<T> extends EventFilter{
         final private int maximumAmountExpected;
         private boolean extractionAttempted = false;
@@ -399,6 +458,13 @@ public class XMLEventProcessor {
         abstract protected T finaliseItemExtraction(WrappedXmlEvent finalEvent);
     }
 
+    /**
+     * A wrapper for an EventFilter object which is itself an EventFilter.
+     * Which exposes hook points to allow this wrapper to perform additional processing of the WrappedXMLEvent's
+     * before and after (pre and post) the wrapped filter's itemStart itemEnd and processEvent methods being called.
+     * @param <T>
+     */
+    @SuppressWarnings({"unused", "WeakerAccess", "EmptyMethod"})
     public abstract static class EventFilterWrapper<T extends EventFilter> extends EventFilter {
         final protected T innerFilter;
 

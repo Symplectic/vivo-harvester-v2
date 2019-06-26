@@ -15,6 +15,12 @@ import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItemInfo;
 import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
 import java.text.MessageFormat;
 
+/**
+ * Concrete subclass of ElementsTranslateObserver for translating Elements objects from RAW_OBJECT data to
+ * TRANSLATED_OBJECT data. Overrides the relevant observeStoredObject and observeObjectDeletion methods and calls into
+ * the translate/delete methods provided by the super classes to perform the actual work.
+ */
+
 public class ElementsObjectTranslateObserver extends ElementsTranslateObserver{
     public ElementsObjectTranslateObserver(ElementsRdfStore rdfStore, String xslFilename){
         super(rdfStore, xslFilename, StorableResourceType.RAW_OBJECT, StorableResourceType.TRANSLATED_OBJECT);

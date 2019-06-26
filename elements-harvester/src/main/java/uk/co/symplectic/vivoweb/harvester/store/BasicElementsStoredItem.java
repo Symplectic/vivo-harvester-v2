@@ -12,8 +12,17 @@ package uk.co.symplectic.vivoweb.harvester.store;
 import org.apache.commons.lang.NullArgumentException;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 
+/**
+ * Simple class to represent data about an Elements item held in a store.
+ * Provides information about the itemId, the resourceType and access to the underlying data as a StoredData object
+ *
+ * This class is used when you don't already have the rich ElementsItemInfo to hand and you want to avoid extracting the
+ * ElementsItemInfo from the file for the time being.
+ */
+
+@SuppressWarnings("WeakerAccess")
 public class BasicElementsStoredItem {
-    protected ElementsItemId itemId;
+    private ElementsItemId itemId;
     private final StorableResourceType resourceType;
     private final StoredData data;
     public BasicElementsStoredItem(ElementsItemId itemId, StorableResourceType resourceType, StoredData data) {

@@ -15,8 +15,6 @@ import org.apache.commons.lang.NullArgumentException;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import uk.co.symplectic.vivoweb.harvester.app.ElementsFetchAndTranslate;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,10 +26,12 @@ Class representing the idea of a a utility for parsing config out of .properties
  provides a set of utility functions designed to extract typed data based on ConfigKeys.
 This abstract class should be extended to create a relevant parser for your tool.
  */
+@SuppressWarnings("SameParameterValue")
 public abstract class ConfigParser {
 
     final private static Logger log = LoggerFactory.getLogger(ConfigParser.class);
 
+    @SuppressWarnings("WeakerAccess")
     public static class UsageException extends Exception {
         public UsageException() {
             this(null);
@@ -48,10 +48,10 @@ public abstract class ConfigParser {
     /**
      * Constructor for a parser that accepts the properties file being processed and an errorList
      * where any issues encountered by the parsing utility functions will be listed.
-     * @param input
-     * @param errorList
+     * @param input the "Properties" object to be parsed into Config data
+     * @param errorList a List<string> that will be used by the parser to log any errors that occur whilst parsing
      */
-    public ConfigParser(Properties input, List<String> errorList) {
+    protected ConfigParser(Properties input, List<String> errorList) {
         if (input == null) throw new NullArgumentException("input");
         if (errorList == null) throw new NullArgumentException("errorList");
 
@@ -61,7 +61,6 @@ public abstract class ConfigParser {
 
     /**
      * returns a report about all the configured values being used for all the ConfigKeys that exist in this app.
-     * @return
      */
     public String reportConfiguredValues(){
         if(props == null) return null;
@@ -79,9 +78,9 @@ public abstract class ConfigParser {
 
     /**
      * method to extract a set of Strings from the named configKey (delimited by ",")
-     * @param configKey
+     * @param configKey The Key to be parsed.
      * @param tolerateNull whether parsing no value is acceptable.
-     * @return
+     * @return The parsed List of String values List<String>.
      */
     protected List<String> getStrings(ConfigKey configKey, boolean tolerateNull) {
         String key = configKey.getName();
@@ -104,9 +103,9 @@ public abstract class ConfigParser {
     /**
      * method to extract a set of Strings from the named configKey (delimited by ",") where the key is formatted as
      * a line in a CSV document would be - to allow possibility of complex characters and reuse of , in values.
-     * @param configKey
+     * @param configKey The Key to be parsed.
      * @param tolerateNull whether parsing no value is acceptable.
-     * @return
+     * @return The parsed List of String values as a List<String>.
      */
     protected List<String> getStringsFromCSVFragment(ConfigKey configKey, boolean tolerateNull) {
         String key = configKey.getName();
@@ -115,6 +114,7 @@ public abstract class ConfigParser {
         if (!StringUtils.isEmpty(value)) {
             try {
                 CSVParser parser = CSVParser.parse(value, CSVFormat.RFC4180.withIgnoreSurroundingSpaces(true));
+                //noinspection LoopStatementThatDoesntLoop
                 for(CSVRecord record : parser){
                     for(String parsedValue : record){
                         detectedValues.add(parsedValue);
@@ -137,9 +137,9 @@ public abstract class ConfigParser {
 
     /**
      * method to extract a set of Integers from the named configKey (delimited by ",")
-     * @param configKey
-     * @param tolerateNull whether parsing no value is acceptable
-     * @return
+     * @param configKey The Key to be parsed.
+     * @param tolerateNull whether parsing no value is acceptable.
+     * @return The parsed List of Integer values List<Integer>.
      */
     protected List<Integer> getIntegers(ConfigKey configKey, boolean tolerateNull) {
         List<Integer> integers = new ArrayList<Integer>();
@@ -162,9 +162,9 @@ public abstract class ConfigParser {
 
     /**
      * method to extract a boolean from the named configKey.
-     * retrieving null is not acceptable and will reult in an error being logged in the list.
-     * @param configKey
-     * @return
+     * retrieving null is not acceptable and will result in an error being logged in the list.
+     * @param configKey The Key to be parsed as a boolean
+     * @return the parsed boolean.
      */
     protected boolean getBoolean(ConfigKey configKey) {
         String key = configKey.getName();
@@ -183,8 +183,8 @@ public abstract class ConfigParser {
     /**
      * method to extract an integer from the named configKey.
      * retrieving null is acceptable and will result in -1.
-     * @param configKey
-     * @return
+     * @param configKey The Key to be parsed as an int.
+     * @return the parsed int.
      */
     protected int getInt(ConfigKey configKey) {
         String key = configKey.getName();
@@ -203,9 +203,10 @@ public abstract class ConfigParser {
     /**
      * method to extract a double precision floating point number from the named configKey.
      * retrieving null is not acceptable and will result in an error being logged in the list.
-     * @param configKey
-     * @return
+     * @param configKey The Key to be parsed as a double.
+     * @return the parsed double.
      */
+    @SuppressWarnings("unused")
     protected double getDouble(ConfigKey configKey){
         return getDouble(configKey, null, null);
     }
@@ -214,21 +215,21 @@ public abstract class ConfigParser {
      * method to extract a double precision floating point number from the named configKey.
      * value must be between the provided parameter values -inclusive- (if they are not null)
      * retrieving null is not acceptable and will result in an error being logged in the list.
-     * @param configKey
-     * @param minValue
-     * @param maxValue
-     * @return
+     * @param configKey The Key to be parsed as a double.
+     * @param minValue minimum acceptable value (can be null for no limit).
+     * @param maxValue maximum acceptable value (can be null for no limit).
+     * @return the parsed double.
      */
     protected double getDouble(ConfigKey configKey, Double minValue, Double maxValue) {
         String key = configKey.getName();
         String value = configKey.getValue(props);
         try {
             double aDouble = Double.parseDouble(value);
-            if(minValue != null && aDouble < minValue.doubleValue()){
+            if(minValue != null && aDouble < minValue){
                 configErrors.add(MessageFormat.format("Invalid value provided for argument {0} : {1} (must be larger than {2})", key, value, minValue));
                 return 0;
             }
-            if(maxValue != null && aDouble > maxValue.doubleValue()){
+            if(maxValue != null && aDouble > maxValue){
                 configErrors.add(MessageFormat.format("Invalid value provided for argument {0} : {1} (must be less than {2})", key, value, maxValue));
                 return 0;
             }
@@ -245,9 +246,9 @@ public abstract class ConfigParser {
 
     /**
      * method to extract a string from the named configKey.
-     * @param configKey
-     * @param tolerateNull whether parsing no value is acceptable
-     * @return
+     * @param configKey The Key to be parsed as a string
+     * @param tolerateNull whether parsing no value is acceptable.
+     * @return The parsed string.
      */
     protected String getString(ConfigKey configKey, boolean tolerateNull) {
         String key = configKey.getName();
@@ -263,8 +264,8 @@ public abstract class ConfigParser {
 
     /**
      * method to extract a File object representing a directory from the named configKey.
-     * @param configKey
-     * @return
+     * @param configKey The Key to be parsed as file/dir name and turned into a "File" object.
+     * @return The parsed File object.
      */
     protected File getFileDirFromConfig(ConfigKey configKey) {
         return new File(normaliseDirectoryFormat(getString(configKey, false)));
@@ -272,9 +273,10 @@ public abstract class ConfigParser {
 
     /**
      * helper method to try and ensure that directory paths are correctly formatted.
-     * @param directoryName
-     * @return
+     * @param directoryName string that should represent a "path" will be cleansed of trailing \ or / characters
+     * @return the cleansed string.
      */
+    @SuppressWarnings("WeakerAccess")
     protected String normaliseDirectoryFormat(String directoryName) {
         if (directoryName.contains("/")) {
             if (!directoryName.endsWith("/")) {
@@ -293,6 +295,14 @@ public abstract class ConfigParser {
     }
 
 
+    /**
+     * Method to return a "Properties" object from a named file.
+     * Will look for a corresponding "developer-xxxxx" file to override the main config and load that if one is present
+     * Otherwise looks for the named file in the classpath and loads it into a Properties object
+     * @param propertiesFileName the name of the file to look for.
+     * @return The loaded "Properties" object.
+     * @throws IOException if errors occur loading the file
+     */
     public static Properties getPropsFromFile(String propertiesFileName) throws IOException {
         InputStream stream = null;
         try {

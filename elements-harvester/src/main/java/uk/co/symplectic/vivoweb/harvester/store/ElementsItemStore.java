@@ -13,26 +13,25 @@ import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemInfo;
 
 import java.io.IOException;
-//import java.util.ArrayList;
-//import java.util.Arrays;
-//import java.util.List;
-
 
 /**
- * Interface representing the concept of a "Store" for ElementsItem related resources.
+ * Interfaces representing the concept of a "Store" for ElementsItem related resources.
  */
+@SuppressWarnings("unused")
 public interface ElementsItemStore {
 
     /**
-     * The basic interface exposes just one method - store - which starts the data that represents a paricular resource
+     * The basic interface exposes just one method - store - which starts the data that represents a particular resource
      * associated with a particular Elements item.
-     * @param itemInfo
-     * @param resourceType
-     * @param data
-     * @return
-     * @throws IOException
+     * @param itemInfo An ElementsItemInfo object representing the item to be stored (this includes the item id).
+     * @param resourceType The "type" of the resource being stored.
+     * @param data The raw byte array that should be stored
+     * @return an ElementsStoredItemInfo object that provides access to the newly stored item.
+     * @throws IOException if the item cannot be stored for some reason
      */
+    @SuppressWarnings("UnusedReturnValue")
     ElementsStoredItemInfo storeItem(ElementsItemInfo itemInfo, StorableResourceType resourceType, byte[] data) throws IOException;
+
 
 //    class MultiStore implements ElementsItemStore {
 //        List<ElementsItemStore> stores = new ArrayList<ElementsItemStore>();
@@ -59,22 +58,25 @@ public interface ElementsItemStore {
      * Unlike the concept of "touch" for filesystems, this operation has no actual effect on the stored data.
      * It exists primarily to allow invocation of any "observers" for a particular item's specified resource.
      */
+    @SuppressWarnings({"RedundantThrows", "UnusedReturnValue"})
     interface ElementsDeletableItemStore extends ElementsItemStore{
-         /**
+        /**
          * touch item and force or request processing of the specific observers requested
          * @param itemInfo the source elements item.
          * @param resourceType the resource type of the item.
-         * @return
-         * @throws IOException
+         * @param explicitObservers A list of explicit observers that should be processed for the item being touched
+         *                          over and above any observers already registered with the store.
+         * @return an ElementsStoredItemInfo object that provides access to the stored item being touched.
+         * @throws IOException if errors occur.
          */
-        ElementsStoredItemInfo touchItem(ElementsItemInfo itemInfo, StorableResourceType resourceType, IElementsStoredItemObserver... observersToRecalculate) throws IOException;
+        ElementsStoredItemInfo touchItem(ElementsItemInfo itemInfo, StorableResourceType resourceType, IElementsStoredItemObserver... explicitObservers) throws IOException;
 
 
         /**
          * delete removes any data about the specified resource type for the specified item from the store.
          * @param itemId the source elements item.
          * @param resourceType the resource type of data to delete.
-         * @throws IOException
+         * @throws IOException if errors occur
          */
         void deleteItem(ElementsItemId itemId, StorableResourceType resourceType) throws IOException;
 
@@ -82,7 +84,7 @@ public interface ElementsItemStore {
          * cleardown deletes ALL data of a particular resource type across all items in the store.
          * @param resourceType the resource type to clear down.
          * @param followObservers whether any "observers" should be informed of the cleardown operation.
-         * @throws IOException
+         * @throws IOException if errors occur
          */
         void cleardown(StorableResourceType resourceType, boolean followObservers) throws IOException;
     }

@@ -14,12 +14,19 @@ import org.apache.commons.lang.StringUtils;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemType;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
-
 import java.text.MessageFormat;
 //import java.util.*;
 
+/**
+ * Class (and static instances) to represent all the different types of "resource" that might be placed in a store.
+ * Resources are keyed to a specific ElementsItemType.SubType, but this can be an "unknown" Aggregate to indicate that
+ * any of the known aggregated subtypes are valid (e.g. AllObjects).
+ */
+
+@SuppressWarnings({"WeakerAccess", "unused"})
 public class StorableResourceType {
 
+    //Static instances of all the known "resource types" that can be stored..
     final public static StorableResourceType RAW_OBJECT = new StorableResourceType(ElementsItemType.AllObjects, "raw", "xml", true);
 	final public static StorableResourceType RAW_USER_PHOTO = new StorableResourceType(ElementsObjectCategory.USER, "photo", null, false);
     final public static StorableResourceType RAW_RELATIONSHIP = new StorableResourceType(ElementsItemType.AllRelationships, "raw", "xml", true);
@@ -43,7 +50,7 @@ public class StorableResourceType {
         return name;
     }
 
-    //TODO: file extensions are complicated by the fact that raw photo data may be a variety of mime types - so this is not implemented at the moment.
+    //TODO: file extensions are complicated by the fact that raw photo data may be a variety of mime types - so this is not used at the moment.
     public String getFileExtension() {
         return fileExtension;
     }

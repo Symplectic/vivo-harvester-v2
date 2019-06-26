@@ -11,8 +11,6 @@ package uk.co.symplectic.vivoweb.harvester.translate;
 
 import org.apache.commons.lang.NullArgumentException;
 import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import uk.co.symplectic.translate.TemplatesHolder;
 import uk.co.symplectic.translate.TranslationService;
 import uk.co.symplectic.vivoweb.harvester.config.Configuration;
@@ -21,15 +19,25 @@ import uk.co.symplectic.vivoweb.harvester.store.*;
 import javax.xml.transform.Source;
 import java.util.Map;
 
-public abstract class ElementsTranslateObserver extends ElementsStoreOutputItemObserver {
-
-    private static final Logger log = LoggerFactory.getLogger(ElementsTranslateObserver.class);
+/**
+ * Abstract sub class of ElementsStoreOutputItemObserver that represents the concept of an observer that monitors
+ * for a particular type of data (StorableResourceType inputType) being added to the store it is observing,
+ * translates that data to a different type of data (StorableResourceType outputType) and stores the translated output
+ * in another store (ElementsRdfStore rdfStore)
+ *
+ * Sets sensible default configuration up in the TranslationService (e.g. setting globally applied xsl parameters)
+ * Alo provides two translate methods to easily enqueue work  in the TranslationService, but does not override any of the
+ * "observe" methods from its parent class.
+ *
+ * Concrete subclasses provide actual implementation details of the translations to be enqueued.
+ */
+abstract class ElementsTranslateObserver extends ElementsStoreOutputItemObserver {
 
     //TODO: fix object as static thing here
     private final TranslationService translationService = new TranslationService();
     private TemplatesHolder templatesHolder = null;
 
-    protected ElementsTranslateObserver(ElementsRdfStore rdfStore, String xslFilename, StorableResourceType inputType, StorableResourceType outputType) {
+    ElementsTranslateObserver(ElementsRdfStore rdfStore, String xslFilename, StorableResourceType inputType, StorableResourceType outputType) {
         //todo: can't reference translationService before super has been called... need to move tolerateIOErrors somewhere better..
         super(rdfStore, inputType, outputType, false);
         if(StringUtils.trimToNull(xslFilename) == null) throw new NullArgumentException("xslFilename");
@@ -48,11 +56,12 @@ public abstract class ElementsTranslateObserver extends ElementsStoreOutputItemO
 
     }
 
-    protected void translate(ElementsStoredItemInfo item, Map<String, Object> extraParams){
+    void translate(ElementsStoredItemInfo item, Map<String, Object> extraParams){
         translationService.translate(item, getStore(), getOutputType(), templatesHolder, extraParams);
     }
 
-    protected void translate(ElementsStoredItemInfo item, Source inputSource, Map<String, Object> extraParams){
+    @SuppressWarnings("SameParameterValue")
+    void translate(ElementsStoredItemInfo item, Source inputSource, Map<String, Object> extraParams){
         translationService.translate(item, inputSource, getStore(), getOutputType(), templatesHolder, extraParams);
     }
 }

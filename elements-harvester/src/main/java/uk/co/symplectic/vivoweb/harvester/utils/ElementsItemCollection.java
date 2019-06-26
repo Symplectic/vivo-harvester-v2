@@ -16,6 +16,12 @@ import uk.co.symplectic.vivoweb.harvester.model.ElementsItemType;
 
 import java.util.*;
 
+/**
+ * A class representing a collection of ElementsItems (as ElementsItemId objects), sorted by ElementsItemType.
+ * you can simply add and remove items as if this was a simple set, but you can retrieve items by Category.
+ */
+
+@SuppressWarnings("unused")
 public class ElementsItemCollection {
     private final Map<ElementsItemType, Set<ElementsItemId>> mData = new HashMap<ElementsItemType, Set<ElementsItemId>>();
 

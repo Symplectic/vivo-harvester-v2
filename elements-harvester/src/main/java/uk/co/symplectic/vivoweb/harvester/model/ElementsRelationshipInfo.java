@@ -11,9 +11,6 @@ package uk.co.symplectic.vivoweb.harvester.model;
 import uk.co.symplectic.utils.xml.XMLEventProcessor;
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.events.EndElement;
-import javax.xml.stream.events.StartElement;
-import javax.xml.stream.events.XMLEvent;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -21,14 +18,26 @@ import java.util.List;
 import static uk.co.symplectic.elements.api.ElementsAPI.apiNS;
 import static uk.co.symplectic.elements.api.ElementsAPI.atomNS;
 
+/**
+ * Subclass of ElementsItemInfo to store and expose a set of data relating to an Elements Relationship.
+ * Exposes Type, Visible, Complete, ObjectIds (the set [2] of ItemId's of the linked objects).
+ * Also offers getUserIds, and getNonUserIds to get the subset of ObjectIds that either do, or do not represent users.
+ */
+
 public class ElementsRelationshipInfo extends ElementsItemInfo{
 
+    /**
+     * An XMLEventProcessor.ItemExtractingFilter based Extractor that can be used to extract an ElementsRelationshipInfo
+     * object from an XML data stream.
+     * Note, can handle processing "deleted" streams, even though the extracted object will typically be almost empty.
+     */
     public static class Extractor extends XMLEventProcessor.ItemExtractingFilter<ElementsItemInfo>{
 
         private static DocumentLocation fileEntryLocation = new DocumentLocation(new QName(atomNS, "entry"), new QName(apiNS, "relationship"));
         private static DocumentLocation feedEntryLocation = new DocumentLocation(new QName(atomNS, "feed"), new QName(atomNS, "entry"), new QName(apiNS, "relationship"));
         private static DocumentLocation feedDeletedEntryLocation = new DocumentLocation(new QName(atomNS, "feed"), new QName(atomNS, "entry"), new QName(apiNS, "deleted-relationship"));
 
+        @SuppressWarnings("WeakerAccess")
         public static Extractor getExtractor(ElementsItemInfo.ExtractionSource source, int maximumExpected){
             switch(source) {
                 case FEED : return new Extractor(feedEntryLocation, maximumExpected);
@@ -38,6 +47,7 @@ public class ElementsRelationshipInfo extends ElementsItemInfo{
             }
         }
 
+        //Where the item currently being extracted is built.
         private ElementsRelationshipInfo workspace = null;
 
         private Extractor(DocumentLocation location, int maximumAmountExpected){
@@ -94,6 +104,7 @@ public class ElementsRelationshipInfo extends ElementsItemInfo{
         if(type == null) throw new IllegalAccessError("typeId has not been initialised");
         return type;
     }
+    //Note: setters are private as only extractor should use them..
     private void setType(String type) {
         this.type = type;
     }

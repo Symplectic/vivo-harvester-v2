@@ -29,6 +29,15 @@ import java.io.InputStream;
 import java.text.MessageFormat;
 import java.util.*;
 
+/**
+ * Concrete subclass of ElementsTranslateObserver for translating Elements objects from RAW_RELATIONSHIP data to
+ * TRANSLATED_RELATIONSHIP data. Overrides the relevant observeStoredRelationship and observeRelationshipDeletion methods
+ * and calls into the * the translate/delete methods provided by the super classes to perform the actual work.
+ *
+ * For the observeStoredRelationship call the method  can pass in an ExtraObjectsDocument as an extraXSLTParameter
+ * This document contains raw XML descriptions of the Elements items in the relationship, pulled from the rawDataStore.
+ * This action is only performed for relationships of the types listed in "relationshipTypesNeedingObjectsForTranslation". *
+ */
 public class ElementsRelationshipTranslateObserver extends ElementsTranslateObserver{
 
     private static final Logger log = LoggerFactory.getLogger(ElementsRelationshipTranslateObserver.class);
@@ -44,12 +53,10 @@ public class ElementsRelationshipTranslateObserver extends ElementsTranslateObse
         }else {
             this.relationshipTypesNeedingObjectsForTranslation = null;
         }
-
-
     }
     @Override
     protected void observeStoredRelationship(ElementsRelationshipInfo info, ElementsStoredItemInfo item) {
-        //if we don't think this is a complete relationships then the current code base can't process it effectively - no point translating it..
+        //If we don't think this is a complete relationships then the current code base can't process it effectively - no point translating it..
         if(!info.getIsComplete()){
             log.warn(MessageFormat.format("{0} appears to be incomplete, this may indicate new Elements object categories have been added.", info.getItemId()));
             return;
@@ -68,15 +75,20 @@ public class ElementsRelationshipTranslateObserver extends ElementsTranslateObse
     }
 
     @Override
-    protected void observeRelationshipDeletion(ElementsItemId.RelationshipId relationsipId, StorableResourceType type){
-        safelyDeleteItem(relationsipId, MessageFormat.format("Unable to delete translated-rdf for relationship {0}", relationsipId.toString()));
+    protected void observeRelationshipDeletion(ElementsItemId.RelationshipId relationshipId, StorableResourceType type){
+        safelyDeleteItem(relationshipId, MessageFormat.format("Unable to delete translated-rdf for relationship {0}", relationshipId.toString()));
     }
 
-    public static class ExtraObjectsDocument implements TranslationDocumentProvider {
+    /**
+     * Class to represent the Extra Object data that is sometimes provided when an ElementsRelationshipTranslateObserver
+     * enqueues work with the TranslationService. This is implemented as a subclass of TranslationDocumentProvider
+     * To ensure that the extra object data is not loaded into ram until it is actually needed.
+     */
+    private static class ExtraObjectsDocument implements TranslationDocumentProvider {
         private final List<BasicElementsStoredItem> items = new ArrayList<BasicElementsStoredItem>();
         private final String context;
 
-        public static ExtraObjectsDocument createExtraObjectsDocument(ElementsRelationshipInfo info, ElementsItemFileStore rawDataStore){
+        private static ExtraObjectsDocument createExtraObjectsDocument(ElementsRelationshipInfo info, ElementsItemFileStore rawDataStore){
             List<BasicElementsStoredItem> items = new ArrayList<BasicElementsStoredItem>();
             for (ElementsItemId.ObjectId id : info.getObjectIds()) {
                 BasicElementsStoredItem storedRawObject = rawDataStore.retrieveItem(id, StorableResourceType.RAW_OBJECT);
@@ -114,7 +126,7 @@ public class ElementsRelationshipTranslateObserver extends ElementsTranslateObse
                             Element storedObjectRootElement = storedObjectDoc.getDocumentElement();
                             Node importedNode = doc.importNode(storedObjectRootElement, true);
                             mainDocRootElement.appendChild(importedNode);
-                        } catch (FileNotFoundException fnfe) {
+                        } catch (FileNotFoundException doh) {
                             //todo: decide if this is desirable or not - needed to avoid failures in relation to data categories you are not really processing at the moment.
                             if (storedRawData instanceof StoredData.InFile) {
                                 StoredData.InFile fileStoredData = (StoredData.InFile) storedRawData;

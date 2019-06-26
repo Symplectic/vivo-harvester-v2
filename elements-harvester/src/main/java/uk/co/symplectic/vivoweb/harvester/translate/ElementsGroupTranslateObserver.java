@@ -12,7 +12,6 @@ package uk.co.symplectic.vivoweb.harvester.translate;
 import org.apache.commons.lang.NullArgumentException;
 import org.w3c.dom.Document;
 import uk.co.symplectic.vivoweb.harvester.utils.ElementsGroupCollection;
-import uk.co.symplectic.vivoweb.harvester.utils.ElementsItemKeyedCollection;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsGroupInfo;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsRdfStore;
@@ -25,6 +24,20 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.util.HashMap;
 import java.util.Map;
+
+/**
+ * Concrete subclass of ElementsTranslateObserver for translating Elements objects from RAW_GROUP data to
+ * TRANSLATED_GROUP data. Overrides the relevant observeStoredGroup method and calls into
+ * the translate methods provided by the super classes to perform the actual work.
+ *
+ * Note, no need to override observeGroupDeletion as groups are always reprocessed in full..there is no deleted stream.
+ * The output rdf is typically cleared down by observeTypeCleardown in ElementsStoreOutputItemObserver
+ *
+ * For the observeStoredGroup call the method passes in a Document as an extraXSLTParameter.
+ * This document contains an XML fragment describing the nearest Ancestral Group (from the Elements group hierarchy)
+ * that is actually going to be included in Vivo based on the current harvester configuration
+ * (as represented by the groupCache and the includedGroups)
+ */
 
 public class ElementsGroupTranslateObserver extends ElementsTranslateObserver {
 

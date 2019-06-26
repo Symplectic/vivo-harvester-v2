@@ -28,8 +28,8 @@ import java.text.MessageFormat;
 import java.util.Iterator;
 
 /**
- * static class exposing  a single public method (load) that performas a bulk load of triples from the specified files
- * into the specified TDB TRiple store (represented by the TDBConnect object).
+ * static class exposing  a single public method (load) that perform a bulk load of triples from the specified files
+ * into the specified TDB Triple store (represented by the TDBConnect object).
  * Note this is based heavily on the jena TDB BulkLoader code
  */
 public class TDBLoadUtility {
@@ -72,7 +72,7 @@ public class TDBLoadUtility {
 
     private static Destination<Triple> destination(DatasetGraphTDB dsg, NodeTupleTable nodeTupleTable) {
         //LoadMonitor monitor = createLoadMonitor(dsg, "triples", showProgress);
-        LoadMonitor monitor = new LoadMonitor(dsg, (Logger)null, "triples", (long) BulkLoader.DataTickPoint, BulkLoader.IndexTickPoint);
+        LoadMonitor monitor = new LoadMonitor(dsg, null, "triples", (long) BulkLoader.DataTickPoint, BulkLoader.IndexTickPoint);
         final LoaderNodeTupleTable loaderTriples = new LoaderNodeTupleTable(nodeTupleTable, "triples", monitor);
         return new Destination<Triple>() {
             long count = 0L;

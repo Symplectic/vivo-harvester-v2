@@ -10,6 +10,11 @@ package uk.co.symplectic.vivoweb.harvester.store;
 
 import java.io.File;
 
+/**
+ * An ElementsItemFileStore, specifically configured (in terms of accepted types, layout strategy, etc)
+ * to act as the output rdf data store for the harvester
+ */
+@SuppressWarnings("unused")
 public class ElementsRdfStore extends ElementsItemFileStore {
 
     private static LayoutStrategy layoutStrategy = new DefaultLayoutStrategy(

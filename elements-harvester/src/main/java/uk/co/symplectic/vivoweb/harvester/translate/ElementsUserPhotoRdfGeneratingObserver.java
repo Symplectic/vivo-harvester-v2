@@ -33,11 +33,28 @@ import java.io.File;
 import java.io.IOException;
 import java.text.MessageFormat;
 
+
+/**
+ * Specialised Concrete subclass of ElementsTranslateObserver.
+ * Overrides observeStoredObject/observeObjectDeletion to observe the arrival of RAW_USER_PHOTO data (photo image data)
+ * in the rawDataStore. Based on that data it generates two jpegs suitable for use with Vivo and writes those to disk.
+ * It then generates a TRANSLATED_USER_PHOTO_DESCRIPTION document of RDF that contains triples describing
+ * where the generated photos are expected to be made available from within the JAVA servlet container hosting Vivo.
+ *
+ * The generation of the TRANSLATED_USER_PHOTO_DESCRIPTION RDF document is done by passing a custom input document to
+ * the TranslationService. The custom input document being created internally here by the method getUserXMLDescription
+ *
+ * Note: the generated photos are NOT deleted when a deletion of the RAW_USER_PHOTO is observed in the rawDataStore.
+ * This is to avoid (for example) having user photos go missing during "full" harvests.
+ *
+ */
 public class ElementsUserPhotoRdfGeneratingObserver extends ElementsTranslateObserver{
 
     private static final Logger log = LoggerFactory.getLogger(ElementsUserPhotoRdfGeneratingObserver.class);
 
+    @SuppressWarnings("FieldCanBeLocal")
     private static int VIVO_THUMBNAIL_WIDTH = 200;
+    @SuppressWarnings("unused")
     private static int VIVO_THUMBNAIL_HEIGHT = 200;
 
     private final File processedImageDir;
@@ -75,14 +92,12 @@ public class ElementsUserPhotoRdfGeneratingObserver extends ElementsTranslateObs
     }
 
 
-    protected Document getUserXMLDescription(ElementsUserInfo userInfo){
+    private Document getUserXMLDescription(ElementsUserInfo userInfo){
         try {
             DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
             Document doc = docBuilder.newDocument();
-            //Element rootElement = doc.createElementNS("blahblahblah", "entry");
             Element rootElement = doc.createElementNS(ElementsAPI.atomNS, "entry");
-            //Element rootElement = doc.createElement("entry");
             doc.appendChild(rootElement);
             Element userElement = doc.createElement("user-with-photo");
             //create id  and username attributes on our user Element
@@ -130,6 +145,7 @@ public class ElementsUserPhotoRdfGeneratingObserver extends ElementsTranslateObs
             File fullImageFile = getFullImageFile(userInfo.getObjectId());
             File fullImageDir = fullImageFile.getParentFile();
             if (fullImageDir != null && !fullImageDir.exists()) {
+                //noinspection ResultOfMethodCallIgnored
                 fullImageDir.mkdirs();
             }
 
@@ -140,6 +156,7 @@ public class ElementsUserPhotoRdfGeneratingObserver extends ElementsTranslateObs
             File thumbnailImageFile = getThumbnailImageFile(userInfo.getObjectId());
             File thumbnailDir = thumbnailImageFile.getParentFile();
             if (thumbnailDir != null && !thumbnailDir.exists()) {
+                //noinspection ResultOfMethodCallIgnored
                 thumbnailDir.mkdirs();
             }
 

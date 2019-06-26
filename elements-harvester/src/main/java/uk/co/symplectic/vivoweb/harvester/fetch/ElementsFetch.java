@@ -24,15 +24,11 @@ import uk.co.symplectic.vivoweb.harvester.store.ElementsItemStore;
 import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
 import uk.co.symplectic.utils.xml.StAXUtils;
 import uk.co.symplectic.utils.xml.XMLEventProcessor;
-
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLEventFactory;
 import javax.xml.stream.XMLEventWriter;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.events.EndElement;
-import javax.xml.stream.events.StartElement;
-import javax.xml.stream.events.XMLEvent;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.text.MessageFormat;
@@ -48,13 +44,13 @@ import java.util.*;
 public class ElementsFetch {
 
     /**
-     * General purpose XMLEventFilterWrapper designed to wrap and ItemExtractingFilter T that extracts an item of type S
+     * General purpose XMLEventFilterWrapper designed to wrap an ItemExtractingFilter T that extracts an item of type S
      * For every entry processed by the filter. The Raw XML that was parsed to create the extracted item S is internally
      * stored (by outputting all the processed events passing through this wrapper to an XMLOutputStream) and then stored
      * in a byte array. The extracted Item S and the byte array representing the raw data that was parsed to extract S
      * are then passed to an abstract method (processItem).
-     * @param <S>
-     * @param <T>
+     * @param <S> Type of Item to be extracted.
+     * @param <T> Type of Inner Filter that extracts an Item of type S.
      */
     static abstract class DataProcessingFilter<S, T extends XMLEventProcessor.ItemExtractingFilter<S>> extends XMLEventProcessor.EventFilterWrapper<T> {
 
@@ -70,7 +66,7 @@ public class ElementsFetch {
         /**
          * package private constructor for this Abstract class.
          * @param rootElement the root XML element that should be used to wrap the XML data in the byte array that
-         *                    represents each extracxted item
+         *                    represents each extracted item
          * @param innerFilter the innerFilter that is used to extract S from the raw data represented in the byte array
          * @param itemDescriptor a name to represent the type of extracted items S (used in logging)
          */
@@ -117,9 +113,9 @@ public class ElementsFetch {
         /**
          * The abstract method called by the filter with the extracted item S and a byte array containing the raw XML data
          * that S was extracted from wrapped in the the specified rootElement
-         * @param item
-         * @param data
-         * @throws IOException
+         * @param item The item (of type S) extracted by the wrapped inner filter.
+         * @param data the raw XML from which the item was extracted.
+         * @throws IOException if errors occur during processing.
          */
         protected abstract void processItem(S item, byte[] data) throws IOException;
     }
@@ -129,8 +125,10 @@ public class ElementsFetch {
      * The filter will parse each entry into an ElementsItemInfo using the relevant Extractor and
      * then pass that ItemInfo along with the raw data it was parsed from on to the specified ElementsItemStore.
      */
+    @SuppressWarnings("WeakerAccess")
     private static class ItemProcessingFilter extends DataProcessingFilter<ElementsItemInfo, XMLEventProcessor.ItemExtractingFilter<ElementsItemInfo>> {
 
+        //The default "root" element that will be used when outputting the processed data to a file (see constructor chain)
         protected static final QName outputRootElement = new QName(ElementsAPI.atomNS, "entry");
 
         private final StorableResourceType resourceType;
@@ -144,9 +142,9 @@ public class ElementsFetch {
          * Constructor specifying the type of resource being stored.
          * the type of data being parsed and where to store the data.
          * The root XML element used in each stored entry will be the default value, i.e <atom:entry>.
-         * @param resourceType
-         * @param extractionSource
-         * @param objectStore
+         * @param resourceType The StorableResourceType of the data to be extracted (RAW_XXXX)
+         * @param extractionSource Where the data is being extracted from (feed/deleted feed, etc)
+         * @param objectStore the store where the extracted data will be stored
          */
         public ItemProcessingFilter(StorableResourceType resourceType, ElementsItemInfo.ExtractionSource extractionSource, ElementsItemStore objectStore) {
             this(outputRootElement, resourceType, extractionSource, objectStore);
@@ -155,15 +153,17 @@ public class ElementsFetch {
         /**
          * Constructor specifying the root XML Element to be used when storing each item, the type of resource being stored.
          * the type of data being parsed and where to store the data.
-         * @param rootElement
-         * @param resourceType
-         * @param extractionSource
-         * @param objectStore
+         * @param rootElement What "root" element should be used to wrap the processed XML data for output?
+         * @param resourceType The StorableResourceType of the data to be extracted (RAW_XXXX)
+         * @param extractionSource Where the data is being extracted from (feed/ deleted feed, etc)
+         * @param objectStore the store where the extracted data will be stored
          */
+        @SuppressWarnings("SameParameterValue")
         protected ItemProcessingFilter(QName rootElement, StorableResourceType resourceType, ElementsItemInfo.ExtractionSource extractionSource, ElementsItemStore objectStore) {
+            //Note call to ElementsItemInfo.getExtractor in the super line below..
             super(rootElement, ElementsItemInfo.getExtractor(resourceType.getKeyItemType(), extractionSource, 0), resourceType.getKeyItemType().getPluralName());
             if (objectStore == null) throw new NullArgumentException("objectStore");
-            if(resourceType == null) throw new NullArgumentException("resourceType");
+            //if(resourceType == null) throw new NullArgumentException("resourceType");
             if(extractionSource == null ) throw new NullArgumentException("extractionSource");
             else if(extractionSource == ElementsItemInfo.ExtractionSource.DELETED_FEED && !(objectStore instanceof ElementsItemStore.ElementsDeletableItemStore))
                 throw new IllegalArgumentException("objectStore must be an ElementsItemStore.ElementsDeletableItemStore if extraction source is DELETED_FEED");
@@ -173,11 +173,11 @@ public class ElementsFetch {
             this.extractionSource = extractionSource;
         }
 
-        @Override
         /**
-         * implementation of superclasse's processItem stub that depending on the extraction source will either
+         * * implementation of superclasses processItem stub that depending on the extraction source will either
          * delete or store the data against the item in the objectStore.
          */
+        @Override
         protected void processItem(ElementsItemInfo item, byte[] data) throws IOException {
             if(extractionSource == ElementsItemInfo.ExtractionSource.DELETED_FEED)
                 ((ElementsItemStore.ElementsDeletableItemStore) getObjectStore()).deleteItem(item.getItemId(), getResourceType());
@@ -187,40 +187,39 @@ public class ElementsFetch {
     }
 
     /**
-     * The FetchConfig class and its various subclasses represent the concept of a set or type of data to be retreived
+     * The FetchConfig class and its various subclasses represent the concept of a set or type of data to be retrieved
      * from the ElementsAPI by the ElementsFetch class.
      * Each type of FetchConfig exposes methods that represents generically a set of DescribedQueries to be run against the API
      * along with the "Extractor" Filter that should be used to extract the ElementsItemInfo along with the raw XML data that represents that item.
-     * The ElementsFetch class uses these to query the API and put the extracted data into the requeseted ElementsItemStore.
+     * The ElementsFetch class uses these to query the API and put the extracted data into the requested ElementsItemStore.
      */
+    @SuppressWarnings("WeakerAccess")
     public abstract static class FetchConfig {
         final private boolean getFullDetails;
 
         /**
          * FetchConfigs generically understand whether the data being queried should be returned in "full"
          * or just "ref" detail by the ElementsAPI
-         * @param getFullDetails
+         * @param getFullDetails whether to request "full" or "ref" level detail from the ElementsAPI.
          */
         public FetchConfig(boolean getFullDetails){
             this.getFullDetails = getFullDetails;
         }
 
         /**
-         * The set of Queries to be run to complete this FetchConfig
-         * @return
+         * Call to get the set of Queries to be run to complete this FetchConfig
+         * Calls into corresponding abstract stub below, which is implemented by child classes
          */
         public final Collection<DescribedQuery> getQueries(){return getQueries(getFullDetails);}
 
         /**
-         * Abstract call tp specify the set of DescribedQueries to be run to complete this FetchConfig
+         * Abstract call to specify the set of DescribedQueries to be run to complete this FetchConfig
          * this exists purely to retain complete encapsulation of the getFullDetails field.
          * This is just the abstract stub that is filled in by concrete sub classes.
-         * @param fullDetails
-         * @return
+         * @param fullDetails whether to request "full" or "ref" level detail from the ElementsAPI.
+         * @return The set of Queries to be run to complete this FetchConfig.
          */
         protected abstract Collection<DescribedQuery> getQueries(boolean fullDetails);
-        //This should return a "new" object not the same one..
-        //public abstract ElementsAPI.APIResponseFilter getExtractor(ElementsItemStore objectStore);
 
         /**
          * Inner class DescribedQuery represents an ElementsFeedQuery along with a basic description to be used during logging.
@@ -254,13 +253,14 @@ public class ElementsFetch {
             }
 
             /**
-             * Method that returns the extractor that can be used on this query.
+             * Method that returns the extractor that can be used for this query.
              * This only works because currently the same extraction code is valid against every supported API endpoint.
              * If and when this changes, this will need to be broken up so that there FetchConfigs, DescribedQueries and
              * the ItemProcessingFilter and the ElementsItemInfo.getExtractor call (used in the ItemProcessingFilter constructor)
              * all know about APIVersions in a similar manner to the API Queries.
-             * @param objectStore
-             * @return
+             * @param objectStore The store where the extracted data will be put
+             * @return an ElementsAPI.APIResponseFilter that can be used to process an XML stream to extract data of the
+             * type this query is interested in.
              */
             protected ElementsAPI.APIResponseFilter getExtractor(ElementsItemStore objectStore){
                 ElementsItemInfo.ExtractionSource extractionSource = query.queryRepresentsDeletedItems() ? ElementsItemInfo.ExtractionSource.DELETED_FEED : ElementsItemInfo.ExtractionSource.FEED;
@@ -271,8 +271,9 @@ public class ElementsFetch {
 
     /**
      * An interim Abstract version of a FetchConfig that represents the concept of a type of resource that is capable
-     * of being querues in a delta manner (i.e. supports modified/affected since semantics)
+     * of being queried in a delta manner (i.e. supports modified/affected since semantics)
      */
+    @SuppressWarnings("WeakerAccess")
     public abstract static class DeltaCapableFeedConfig extends FetchConfig{
         final private Date modifiedSince;
 
@@ -286,10 +287,11 @@ public class ElementsFetch {
 
     /**
      * A Fetch Config that represents a set of ElementsObjectCategories to be queried
-     * either in full or in a delta manner (if modifiedsince is not null)
+     * either in full or in a delta manner (if modified-since is not null)
      * Note that for "delta" queries the set of Described queries contains two queries per configured Elements category
      * one to fetch any new or updated objects another to fetch any deleted objects.
      */
+    @SuppressWarnings("unused")
     public static class ObjectConfig extends DeltaCapableFeedConfig {
         //Which categories of Elements objects should be retrieved?
         final private List<ElementsObjectCategory> categoriesToHarvest = new ArrayList<ElementsObjectCategory>();
@@ -328,13 +330,13 @@ public class ElementsFetch {
 
     /**
      * A Fetch Config that represents querying all the relationships of a certain set of types
-     * either in full or in a delta manner (if modifiedsince is not null)
+     * either in full or in a delta manner (if modified-since is not null)
      * * Note that for "delta" queries the set of Described queries contains two queries
      * one to fetch any new or updated relationships and the other to fetch any objects deleted.
      */
     public static class RelationshipConfig extends DeltaCapableFeedConfig{
 
-        protected final Set<ElementsItemId.RelationshipTypeId> relationshipTypesToInclude = new HashSet<ElementsItemId.RelationshipTypeId>();
+        final Set<ElementsItemId.RelationshipTypeId> relationshipTypesToInclude = new HashSet<ElementsItemId.RelationshipTypeId>();
 
         public RelationshipConfig(Date modifiedSince, Set<ElementsItemId> relationshipTypesToInclude){
             super(false, modifiedSince);
@@ -453,7 +455,7 @@ public class ElementsFetch {
 
     /**
      * ElementsFetch constructor accepting the ElementsAPI object that will be the source of all data fetched.
-     * @param api
+     * @param api the ElementsAPI from which data will be fetched
      */
     public ElementsFetch(ElementsAPI api) {
         if (api == null) throw new NullArgumentException("api");
@@ -465,8 +467,9 @@ public class ElementsFetch {
      * ElementsAPI and store (or delete) it in the provided ElementsItemStore
      * @param config the "FetchConfig" to process
      * @param objectStore where the fetched data should be stored (or deleted).
-     * @throws IOException
+     * @throws IOException if errors occur.
      */
+    @SuppressWarnings("RedundantThrows")
     public void execute(FetchConfig config, ElementsItemStore objectStore)throws IOException {
         if(config == null) throw new NullArgumentException("config");
         if (objectStore == null) throw new NullArgumentException("objectStore");

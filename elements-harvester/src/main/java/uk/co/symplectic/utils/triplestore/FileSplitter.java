@@ -28,15 +28,17 @@ import java.util.regex.Pattern;
  * NOTE: currently only the NTriplesSplitter is reliable as the N3 format can have the same subject that has many thousands of predicate/object pairs
  * when this happens the N3 file will not split nicely into chunks of the requested size given the current code.
  */
+@SuppressWarnings("WeakerAccess")
 public abstract class FileSplitter {
 
     private static final Logger log = LoggerFactory.getLogger(FileSplitter.class);
 
-    //template for how dates will be converted in this class, note how matches the regexes //note Z is for timezone..
+    //template for how dates will be converted in this class, note how matches the reg-exes //note Z is for timezone..
     final private static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd'T'HH_mm_ssZ");
     //templates for generating output filenames based on position and integer
     final private static String addFilePattern = "add_{0}_{1}.{2}";
     final private static String subtractFilePattern = "subtract_{0}_{1}.{2}";
+    @SuppressWarnings("SingleCharAlternation")
     final private static String fileNameRegExPattern = "^(add|subtract)_(\\d+)_(\\d{4}_\\d{2}_\\d{2}T\\d{2}_\\d{2}_\\d{2}(?:\\+|-)\\d{4})\\.";
 
     //600 to leave room for the extra data to come later (username, password, sparql update boilerplate and url encoding) and remain below 2MB (TOMCAT default limit) in posts
@@ -104,7 +106,7 @@ public abstract class FileSplitter {
 
                     if(isLineInvalid(trimmedStr)){
                         //deliberately allow subtractions to flow through - as if the interim db contains uri forms
-                        //that the final store can't supprot we will get them as subtractions - but they will never have
+                        //that the final store can't support we will get them as subtractions - but they will never have
                         //made it into the main store.
                         if(type == Type.Subtractions) {
                             log.warn(MessageFormat.format("An invalid line was detected in the file {0}, and was deliberately excluded", fileToSplit.getName()));
@@ -148,9 +150,10 @@ public abstract class FileSplitter {
             }
         }
         catch (IOException e) {
-            //TODO: report on where we are (add logging)?
+            //TODO: should we report on where we are up to (add logging)?
             //try to clear out any files created during this run - which has now failed..
             for(File file : filesCreated){
+                //noinspection ResultOfMethodCallIgnored
                 file.delete(); //allow delete to fail as it is safer - not a massive problem if we can't delete it at this point.
             }
             //rethrow e to bring the processing to a halt.
@@ -287,6 +290,7 @@ public abstract class FileSplitter {
     }
 
 
+    @SuppressWarnings("unused")
     public static class N3Splitter extends FileSplitter{
         //default of 122880
         public N3Splitter(File fragmentDirectory){super(fragmentDirectory, "n3");}

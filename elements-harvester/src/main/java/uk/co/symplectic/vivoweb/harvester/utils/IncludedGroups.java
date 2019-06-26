@@ -12,6 +12,10 @@
 package uk.co.symplectic.vivoweb.harvester.utils;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemType;
 
+/**
+ * Helper Class to represent the Elements groups that are actually going to be included in (includedGroups)
+ * Also represents the set of groups that will be "excised" from Vivo (excisedGroups)
+ */
 public class IncludedGroups {
     private final ElementsItemKeyedCollection.ItemRestrictor restrictToGroupsOnly = new ElementsItemKeyedCollection.RestrictToType(ElementsItemType.GROUP);
     private final ElementsItemKeyedCollection.ItemInfo includedGroups = new ElementsItemKeyedCollection.ItemInfo(restrictToGroupsOnly);

@@ -21,6 +21,7 @@ import java.util.Date;
 /**
  * Class to handle management of the "state.txt" file that represents what state the harvester is currently in.
  */
+@SuppressWarnings("UnusedReturnValue")
 public class StateManagement {
     public enum StateType{
         ODD,
@@ -40,6 +41,7 @@ public class StateManagement {
         FAILED_REPROCESS,
     }
 
+    @SuppressWarnings("WeakerAccess")
     public static class State{
         //Current Run classification - always assume initial until have loaded state..
         private final int previousRunCount;
@@ -76,7 +78,7 @@ public class StateManagement {
             if(previousUserCount < 0) throw new IllegalArgumentException("previousUserCount cannot be < 0");
             if(previousObjectCount < 0) throw new IllegalArgumentException("previousObjectCount cannot be < 0");
 
-            //priorRunclassification can legitimately be set to null..
+            //PriorRunClassification can legitimately be set to null..
 
             this.previousRunCount = previousRunCount;
             this.previousUserCount = previousUserCount;
@@ -115,6 +117,7 @@ public class StateManagement {
         this.stateFile = stateFile;
     }
 
+    @SuppressWarnings("ConstantConditions")
     public State loadState(boolean forceFullPull, boolean reprocessTranslations){
         BufferedReader reader = null;
         if(stateFile.exists()) {
@@ -138,6 +141,7 @@ public class StateManagement {
                 runClassification = RunClassification.DELTA;
             }
 
+            IOException readerDisposalError = null;
             try {
                 reader = new BufferedReader(new InputStreamReader(new FileInputStream(stateFile), "utf-8"));
                 String str;
@@ -181,8 +185,12 @@ public class StateManagement {
                     if (reader != null) reader.close();
                 }
                 catch(IOException e){
-                    throw new IllegalStateException("state.txt could not be closed after loading", e);
+                    readerDisposalError = e;
                 }
+            }
+
+            if(readerDisposalError != null){
+                throw new IllegalStateException("state.txt could not be closed after loading", readerDisposalError);
             }
 
             //regardless of what was requested, if last run was a failed full we must error correct the raw cache.
@@ -195,12 +203,12 @@ public class StateManagement {
             }
             return new State(previousRunCount, previousUserCount, previousObjectCount, lastRunDate, runClassification, previousRunClassification);
         }
-        //if no state file load deault state - corresponds to initial run of number 0
+        //if no state file load default state - corresponds to initial run of number 0
         return new State();
     }
 
     public boolean manageStateForCompleteRun(State state, int userCount, int objectCount){
-        //we don't update the date in teh file if we are repreocessing as the data in the raw cache has not been altered..
+        //we don't update the date in the file if we are reprocessing as the data in the raw cache has not been altered..
         Date dateToWrite = state.getRunClassification() == RunClassification.REPROCESSING ? state.getLastRunDate() : state.getCurrentRunStartedAt();
         return writeStateFile(state.getCurrentRunCount(), userCount, objectCount, dateToWrite, null);
     }
@@ -217,6 +225,7 @@ public class StateManagement {
                 break;
         }
         //only worth re-writing the state file if there is a message to write as otherwise the state file should be identical to the existing file.
+        //noinspection SimplifiableIfStatement
         if(errorMessage != null) {
             return writeStateFile(state.getPreviousRunCount(), state.getPreviousUserCount(), state.getPreviousObjectCount(), state.getLastRunDate(), errorMessage);
         }
@@ -224,7 +233,7 @@ public class StateManagement {
     }
 
     private boolean writeStateFile(int runCount, int userCount, int objectCount, Date runDate, String errorMessage){
-//if completed successfully manage state file..
+        //if completed successfully manage state file..
         //TODO: worry about how to handle failures that mean the state file is not updated after the diff phase.
         boolean stateFileManagementErrorDetected = false;
         //manage state file
@@ -256,7 +265,7 @@ public class StateManagement {
         }
 
         if(stateFileManagementErrorDetected){
-            log.error("FATAL ERROR MANAGING STATE FILE - STATE MAY BE IRRETREIVABLY CORRUPT");
+            log.error("FATAL ERROR MANAGING STATE FILE - STATE MAY BE IRRETRIEVABLY CORRUPT");
         }
 
         //return true if successful and false if not.

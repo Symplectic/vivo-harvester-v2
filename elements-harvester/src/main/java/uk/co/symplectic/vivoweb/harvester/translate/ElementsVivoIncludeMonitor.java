@@ -9,6 +9,7 @@
 package uk.co.symplectic.vivoweb.harvester.translate;
 
 import org.apache.commons.lang.NullArgumentException;
+import uk.co.symplectic.vivoweb.harvester.model.ElementsItemType;
 import uk.co.symplectic.vivoweb.harvester.store.*;
 import uk.co.symplectic.vivoweb.harvester.utils.ElementsItemCollection;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
@@ -18,6 +19,23 @@ import uk.co.symplectic.vivoweb.harvester.model.ElementsRelationshipInfo;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+
+/**
+ * Class that inspects RAW_RELATIONSHIP data. If the relationship inspected is:
+ * 1) a link between two "non-user" objects both of which are of a category being included in Vivo (includedCategories)
+ * 2) a link to between a user, who is in the set of users being sent to Vivo (includedUsers) and an object that is of
+ *    a category being included in Vivo (includedCategories).
+ *
+ *    **And** there is an RDF translated representation of the relationship.
+ *
+ * Then both the relationship, and the pair of related items are added to the set of ElementsItemIds
+ * to be included in VIVO (includedItems).
+ *
+ * This ensures that only items that are linked to included users by relevant relationships are included in Vivo.
+ *
+ * This class is implemented as a ElementsStoredResourceObserverAdapter, but this is not really necessary.
+ * It is mostly an artifact of history.
+ */
 
 public class ElementsVivoIncludeMonitor extends IElementsStoredItemObserver.ElementsStoredResourceObserverAdapter {
 
@@ -64,6 +82,7 @@ public class ElementsVivoIncludeMonitor extends IElementsStoredItemObserver.Elem
 
         //is the main translation of relationship empty?
         BasicElementsStoredItem translatedRel = rdfStore.retrieveItem(info.getItemId(), StorableResourceType.TRANSLATED_RELATIONSHIP);
+        //noinspection ConstantConditions
         includeRelationship = includeRelationship && translatedRel != null;
 
         //optimise for early jump out wherever possible.
@@ -81,7 +100,10 @@ public class ElementsVivoIncludeMonitor extends IElementsStoredItemObserver.Elem
                 List<ElementsItemId.ObjectId> nonUserIds = info.getNonUserIds();
                 if (!nonUserIds.isEmpty()) {
                     for (ElementsItemId.ObjectId nonUserId : nonUserIds) {
-                        includeRelationship = includeRelationship && includedCategories.contains(nonUserId.getItemSubType());
+                        ElementsItemType.SubType itemSubType = nonUserId.getItemSubType();
+                        if(itemSubType instanceof ElementsObjectCategory){
+                            includeRelationship = includeRelationship && includedCategories.contains(itemSubType);
+                        }
                     }
                 }
 

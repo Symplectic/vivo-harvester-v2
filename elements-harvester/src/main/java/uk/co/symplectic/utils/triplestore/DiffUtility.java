@@ -10,7 +10,6 @@
 package uk.co.symplectic.utils.triplestore;
 
 import com.hp.hpl.jena.rdf.model.Model;
-import com.hp.hpl.jena.rdf.model.ModelFactory;
 
 /**
  * Simple static class offering a single method to diff two TDB triple stores (basic jena functionality) and output the diff to
@@ -19,10 +18,10 @@ import com.hp.hpl.jena.rdf.model.ModelFactory;
 public class DiffUtility {
         static public void diff(TDBConnect input1, TDBConnect input2, ModelOutput... outputs) {
         if(outputs.length == 0) throw new IllegalArgumentException("outputs must not be empty when performing a triple store diff");
-        Model diffModel = ModelFactory.createDefaultModel();
+        //Model diffModel = ModelFactory.createDefaultModel();
         Model minuendModel = input1.getJenaModel();
         Model subtrahendModel = input2.getJenaModel();
-        diffModel = minuendModel.difference(subtrahendModel);
+        Model diffModel = minuendModel.difference(subtrahendModel);
         for(ModelOutput anOutput : outputs){ anOutput.output(diffModel); }
     }
 }

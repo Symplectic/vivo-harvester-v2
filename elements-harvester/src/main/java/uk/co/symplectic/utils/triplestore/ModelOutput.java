@@ -12,8 +12,8 @@ package uk.co.symplectic.utils.triplestore;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.RDFWriter;
 import org.apache.commons.lang.NullArgumentException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+//import org.slf4j.Logger;
+//import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -22,12 +22,12 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 
 /**
- * Class to represent the destination of a Jena Model being "outputted" somewherem, either to t File (FileOutput) or
+ * Class to represent the destination of a Jena Model being "outputted" somewhere, either to a File (FileOutput) or
  * to a TDB triple store (TripleStoreOutput).
  */
 public abstract class ModelOutput {
 
-    private static final Logger log = LoggerFactory.getLogger(ModelOutput.class);
+    //private static final Logger log = LoggerFactory.getLogger(ModelOutput.class);
 
     abstract public void output(Model modelToOutput);
 
@@ -42,6 +42,7 @@ public abstract class ModelOutput {
             this(outputFile, default_language);
         }
 
+        @SuppressWarnings("WeakerAccess")
         public FileOutput(File outputFile, String language) {
             if (outputFile == null) throw new NullArgumentException("outputFile");
             if (language == null) throw new NullArgumentException("language");
@@ -52,6 +53,7 @@ public abstract class ModelOutput {
         private void ensureParentDirIsPresent() {
             File parentFile = outputFile.getParentFile();
             if (parentFile != null && !parentFile.exists()) {
+                //noinspection ResultOfMethodCallIgnored
                 parentFile.mkdirs();
             }
         }
@@ -68,7 +70,7 @@ public abstract class ModelOutput {
             OutputStreamWriter osw = null;
             try {
                 try {
-                    osw = new OutputStreamWriter(new FileOutputStream(outputFile), (Charset) Charset.availableCharsets().get("UTF-8"));
+                    osw = new OutputStreamWriter(new FileOutputStream(outputFile), Charset.availableCharsets().get("UTF-8"));
                     fasterWriter.write(modelToOutput, osw, "");
                     //log.info(MessageFormat.format("{0} data was exported to {1}", language, outputFile.getPath()));
                 } finally {
@@ -83,6 +85,7 @@ public abstract class ModelOutput {
         }
     }
 
+    @SuppressWarnings("unused")
     public static class TripleStoreOutput extends ModelOutput {
         private final TDBConnect outputStore;
 

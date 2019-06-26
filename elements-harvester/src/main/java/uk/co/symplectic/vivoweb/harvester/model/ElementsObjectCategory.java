@@ -8,6 +8,14 @@
  */
 package uk.co.symplectic.vivoweb.harvester.model;
 
+/**
+ * Subclass of ElementsItemType.SubType that represent specific Elements Categories of Objects
+ * (i.e. subclasses of ElementsItemType.OBJECT). The private constructor and static instance fields ensure the
+ * known categories are registered in the ElementsItemType "known" sub types and are therefore available via
+ * ElementsItemType.getSubType, and are always the same object (for comparison purposes etc).
+ */
+
+@SuppressWarnings("unused")
 public class ElementsObjectCategory extends ElementsItemType.SubType {
 
     public static final ElementsObjectCategory ACTIVITY          = new ElementsObjectCategory("activity", "activities");

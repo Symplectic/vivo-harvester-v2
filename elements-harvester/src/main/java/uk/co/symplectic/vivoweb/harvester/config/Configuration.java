@@ -9,8 +9,6 @@
 package uk.co.symplectic.vivoweb.harvester.config;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.text.StrBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import uk.co.symplectic.elements.api.ElementsAPIVersion;
 import uk.co.symplectic.utils.ImageUtils;
 import uk.co.symplectic.utils.configuration.ConfigKey;
@@ -21,7 +19,6 @@ import uk.co.symplectic.vivoweb.harvester.utils.GroupMatcher;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.text.MessageFormat;
 import java.util.*;
 
@@ -81,7 +78,7 @@ public class Configuration {
 
         private ConfigKey ARG_EXCISE_GROUPS = new ConfigKey("exciseGroups");
         private ConfigKey ARG_EXCISE_GROUP_REGEXES = new ConfigKey("exciseGroupRegexes");
-        private ConfigKey ARG_EXCISE_CHILD_GROUPS = new ConfigKey("exiseChildGroupsOf");
+        private ConfigKey ARG_EXCISE_CHILD_GROUPS = new ConfigKey("exciseChildGroupsOf");
         private ConfigKey ARG_EXCISE_CHILD_GROUPS_REGEXES = new ConfigKey("exciseChildGroupRegexes");
 
         private ConfigKey ARG_PARAMS_USER_GROUPS = new ConfigKey("paramUserGroups");
@@ -111,7 +108,7 @@ public class Configuration {
         private ConfigKey ARG_ALLOWED_USER_CHANGE_FRACTION = new ConfigKey("allowedUserChangeFraction", "0.2"); //TODO: review this default
         private ConfigKey ARG_ALLOWED_NON_USER_CHANGE_FRACTION= new ConfigKey("allowedNonUserChangeFraction", "0.3"); //TODO: review this default
 
-        //isntance fields for storage of values parsed from the Properties
+        //instance fields for storage of values parsed from the Properties
         private int maxThreadsResource = -1;
         private int maxThreadsXsl = -1;
 
@@ -179,10 +176,11 @@ public class Configuration {
         /**
          * Custom parsing utility function to extract a set of ElementsObjectCategory objects from a ConfigKey
          * ("," delimited set of string values e.g. publications, activities, etc.
-         * @param configKey
-         * @param tolerateNull
-         * @return
+         * @param configKey The Key to be parsed.
+         * @param tolerateNull whether parsing no value is acceptable.
+         * @return whether parsing no value is acceptable.
          */
+        @SuppressWarnings("SameParameterValue")
         private List<ElementsObjectCategory> getCategories(ConfigKey configKey, boolean tolerateNull) {
             String key = configKey.getName();
             List<ElementsObjectCategory> categories = new ArrayList<ElementsObjectCategory>();
@@ -203,8 +201,8 @@ public class Configuration {
 
         /**
          * Custom parsing utility function to extract an ElementsAPIVersion object from the named configKey
-         * @param configKey
-         * @return
+         * @param configKey The Key to be parsed.
+         * @return the parsed ElementsAPIVersion value (can legitimately be null)
          */
         private ElementsAPIVersion getApiVersion(ConfigKey configKey) {
             String key = configKey.getName();
@@ -221,8 +219,8 @@ public class Configuration {
 
         /**
          * Custom parsing utility function to extract an ImageUtils.PhotoType object from the named configKey
-         * @param configKey
-         * @return
+         * @param configKey The Key to be parsed.
+         * @return the parsed PhotoType enum value. (cannot be null)
          */
         private ImageUtils.PhotoType getImageType(ConfigKey configKey) {
             String key = configKey.getName();
@@ -242,7 +240,7 @@ public class Configuration {
             }
 
             if(imageType == null){
-                configErrors.add(MessageFormat.format("Invalid value provided for argument {0} : {1} (must be a valid elements photo type : \"original\", \"photo\", \"thummbnail\" or \"none\")", key, value));
+                configErrors.add(MessageFormat.format("Invalid value provided for argument {0} : {1} (must be a valid elements photo type : \"original\", \"photo\", \"thumbnail\" or \"none\")", key, value));
             }
 
             return imageType;
@@ -268,9 +266,9 @@ public class Configuration {
         }
 
         /**
-         * Custom parsing utility function to extract an EligibilityFilter object from a specific hard coded set of
-         * configKeys
-         * @return
+         * Custom parsing utility function to extract an EligibilityFilter object from a specific hard coded set of keys
+         * (ARG_ELIGIBILITY_TYPE, ARG_ELIGIBILITY_NAME, ARG_ELIGIBILITY_INCLUDE_VALUE, ARG_ELIGIBILITY_EXCLUDE_VALUE)
+         * @return the parsed EligibilityFilter object constructed from the keys (can legitimately be null)
          */
         private EligibilityFilter getEligibilityScheme() {
 
@@ -295,10 +293,10 @@ public class Configuration {
                     if (lowerCaseSchemeType.equals("generic-field"))
                         return new EligibilityFilter.GenericFieldFilter(schemeName, includeValue, excludeValue, academicsOnly, currentStaffOnly, publicStaffOnly);
 
-                    configErrors.add(MessageFormat.format("\"{0}\" is not a valid elligibility type, valid values are label-scheme and generic-field", schemeType));
+                    configErrors.add(MessageFormat.format("\"{0}\" is not a valid eligibility type, valid values are label-scheme and generic-field", schemeType));
                 }
                 catch(Exception e){
-                    configErrors.add(MessageFormat.format("Error instantiating Elligibility filter : {0}", e.getMessage()));
+                    configErrors.add(MessageFormat.format("Error instantiating Eligibility filter : {0}", e.getMessage()));
                 }
             }
             return null;
@@ -308,7 +306,7 @@ public class Configuration {
          * Custom parsing utility function to extract any property values with a specific naming convention
          * (starting with "xsl-param-") as parameters to be passed to the XSLT translation layer.
          * configKeys
-         * @return
+         * @return a Map<String, String> of xsl parameter name-value pairs.
          */
         private Map<String, String> getXslParameters(){
             String xslPrefix = "xsl-param-";
@@ -324,7 +322,7 @@ public class Configuration {
 
         /**
          * main parse function that uses the parsing utility functions to extract data from the Properties object passed
-         * in the constructor and populate the appropraite instance fields.
+         * in the constructor and populate the appropriate instance fields.
          * Note the parsing utility functions will populate the "error-list" if there are problems here.
          */
         void parse(){
@@ -391,7 +389,7 @@ public class Configuration {
     }
 
     /**
-     * Any errors encounted during parsing of the properties file.
+     * Any errors encountered during parsing of the properties file.
      */
     private static List<String> configErrors = new ArrayList<String>();
 
@@ -484,7 +482,7 @@ public class Configuration {
         return values.categoriesToHarvest;
     }
 
-    public static EligibilityFilter getElligibilityFilter(){ return values.eligibilityFilter; }
+    public static EligibilityFilter getEligibilityFilter(){ return values.eligibilityFilter; }
 
     public static Map<String, String> getXslParameters(){ return values.xslParameters; }
 
@@ -555,6 +553,7 @@ public class Configuration {
     /**
      *Has the system being successfully configured?
      */
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public static boolean isConfigured() {
         return configErrors.size() == 0;
     }
@@ -566,7 +565,7 @@ public class Configuration {
 
     /**
      * Get a "usage" report for printing to the command line.
-     * @return
+     * @return a String representing how the application is configured, and any config parsing errors.
      */
     public static String getUsage() {
         StrBuilder builder = new StrBuilder();
@@ -591,12 +590,12 @@ public class Configuration {
 
     /**
      * main methods called to initialise the Configuration class, passing in the filename of the .properties file to parse.
-     * @param propertiesFileName
-     * @throws IOException
-     * @throws ConfigParser.UsageException
+     * @param propertiesFileName the name of the properties file from which config should be parsed
+     * @throws IOException if cannot access the requested properties file
+     * @throws ConfigParser.UsageException if file cannot be parsed into config without errors
      */
+    @SuppressWarnings("RedundantThrows")
     public static void parse(String propertiesFileName) throws IOException, ConfigParser.UsageException {
-        InputStream stream = null;
         try {
             Properties props = ConfigParser.getPropsFromFile(propertiesFileName);
             values = new Parser(props, configErrors);

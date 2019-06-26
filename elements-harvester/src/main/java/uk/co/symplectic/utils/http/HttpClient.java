@@ -47,12 +47,13 @@ import java.util.List;
 
 /**
  * Simple HTTPClient class based on apache's http components and core.
- * Usage pattern is to instantiate a new object against a particular url (potentially with authentication creds.
+ * Usage pattern is to instantiate a new object against a particular url (potentially with authentication credentials.
  * The instance then exposes methods to execute get and post requests, which return an APIResponse object.
  *
  * Class has static components that allow you to configure the behaviour of the instances that are generated and ensure
  * consistency across instances (e.g. ensuring that requests aren't too frequent, etc).
  */
+@SuppressWarnings({"WeakerAccess", "unused"})
 public class HttpClient {
 
     private static final Logger log = LoggerFactory.getLogger(HttpClient.class);
@@ -66,14 +67,14 @@ public class HttpClient {
     //placeholder for the defaultRequestConfig object used by the underlying apache libraries.
     private static RequestConfig defaultRequestConfig;
 
-    //placeholder for the PoolingHttpClientConnectionManager used by the underlying apaceh libraries.
+    //placeholder for the PoolingHttpClientConnectionManager used by the underlying apache libraries.
     private static PoolingHttpClientConnectionManager connectionManager;
 
     //default minimum time between requests  = 1 quarter second
     private static int intervalInMSecs = 250;
     /**
      * Setter method to configure the minimum delay between successive requests made by HttpClient instances.
-     * @param millis
+     * @param millis the value to use in milliseconds.
      */
     public static synchronized void setRequestDelay(int millis) {
         intervalInMSecs = millis;
@@ -83,10 +84,10 @@ public class HttpClient {
     private static Date lastRequest = null;
 
 
-    /**
-     * Static constructor
-     * ensures that connectionManager is set up with a default max connection pool of 20
-     * and that the defaultRequestConfig is set up with the default timeouts values.
+    /*
+      Static constructor
+      ensures that connectionManager is set up with a default max connection pool of 20
+      and that the defaultRequestConfig is set up with the default timeouts values.
      */
     static{
         connectionManager = new PoolingHttpClientConnectionManager();
@@ -96,9 +97,9 @@ public class HttpClient {
 
 
     /**
-     * setter method to configure the socket timeout for all client instances
+     * Setter method to configure the socket timeout for all client instances
      * (alters the underlying static defaultRequestConfig)
-     * @param millis
+     * @param millis the value to use in milliseconds.
      */
     public static synchronized void setSocketTimeout(int millis) {
         defaultRequestConfig = RequestConfig.copy(defaultRequestConfig).setSocketTimeout(millis).build();
@@ -162,8 +163,8 @@ public class HttpClient {
 
     /**
      * Constructor for an HTTPClient instance, requiring no credentials (e.g plain HTTP)
-     * @param url
-     * @throws URISyntaxException
+     * @param url String representing the URL to which GET/POST requests will be sent.
+     * @throws URISyntaxException if the supplied URL is not valid.
      */
     public HttpClient(String url) throws URISyntaxException {
         this(url, null, null);
@@ -171,10 +172,10 @@ public class HttpClient {
 
     /**
      * Constructor for an HTTPClient instance
-     * @param url String representing the URL to be GETted or POSTted
-     * @param username creds for accessing the URL
-     * @param password creds for accessing the URL
-     * @throws URISyntaxException
+     * @param url String representing the URL to which GET/POST requests will be sent.
+     * @param username credentials for accessing the URL
+     * @param password credentials for accessing the URL
+     * @throws URISyntaxException if the supplied URL is not valid.
      */
     public HttpClient(String url, String username, String password) throws URISyntaxException {
         this(new ValidatedUrl(url), username, password);
@@ -182,10 +183,9 @@ public class HttpClient {
 
     /**
      * Constructor for an HTTPClient instance
-     * @param url ValidatedUrl representing the URL to be GETted or POSTted
-     * @param username creds for accessing the URL
-     * @param password creds for accessing the URL
-     * @throws URISyntaxException
+     * @param url A "ValidatedUrl" representing the URL to which GET/POST requests will be sent.
+     * @param username credentials for accessing the URL
+     * @param password credentials for accessing the URL
      */
     public HttpClient(ValidatedUrl url, String username, String password) {
         if(url == null) throw new NullArgumentException("url");
@@ -266,16 +266,16 @@ public class HttpClient {
                 lastError = io;
             }
         }
-
-        throw lastError;
+        if(lastError != null) throw lastError;
+        throw new IOException(MessageFormat.format("Unexpected error performing executeGetRequest against {0}", getUrl()));
     }
 
     /**
      * Method to execute a post request against the URL specified in this instance's constructor
      * passing in the passed in nameValuePairs as a multipart form.
-     * @param nameValuePairs
-     * @return and APIResponse object representing the reponse.
-     * @throws IOException
+     * @param nameValuePairs nameValue pairs representing the form data to submit.
+     * @return an APIResponse object representing the response.
+     * @throws IOException thrown if errors occur.
      */
     public ApiResponse executePost(List<NameValuePair> nameValuePairs) throws IOException {
         //note we deliberately don't close these to keep the connection manager alive - this is a bit hacky...

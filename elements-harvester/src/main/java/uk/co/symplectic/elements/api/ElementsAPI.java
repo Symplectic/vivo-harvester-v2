@@ -28,7 +28,6 @@ import java.net.URISyntaxException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -36,6 +35,7 @@ import java.util.List;
  * represents an Elements API and exposes the ability to execute queries or fetch resources.
  * Contains a few static classes that represent how queries should be processed.
  */
+@SuppressWarnings("WeakerAccess")
 public class ElementsAPI {
 
     /**
@@ -87,7 +87,7 @@ public class ElementsAPI {
          * fetch all pages of queries, fetch 25 results per page for "full" detail queries, fetch 100 results per page for
          * "ref" detail queries.
          */
-        public static ProcessingDefaults DEFAULTS = new ProcessingDefaults(true, 25, 100);
+        private static ProcessingDefaults DEFAULTS = new ProcessingDefaults(true, 25, 100);
 
         private final ProcessingOptions fullDetailOptions;
         private final ProcessingOptions refDetailOptions;
@@ -110,9 +110,9 @@ public class ElementsAPI {
          * @param query the query being run
          * @param overrideOptions any "override" options that have been supplied
          *                        appropriate defaults will be returned if this is null
-         * @return
+         * @return ProcessingOptions : the options actually in use
          */
-        public ProcessingOptions getProcessingOptions(ElementsFeedQuery query, ProcessingOptions overrideOptions){
+        ProcessingOptions getProcessingOptions(ElementsFeedQuery query, ProcessingOptions overrideOptions){
             if(overrideOptions != null) return overrideOptions;
             //otherwise
             return query.getFullDetails() ? fullDetailOptions : refDetailOptions;
@@ -141,9 +141,8 @@ public class ElementsAPI {
 
     /**
      * The APIResponseFilter class represents a Filter that will be used to parse the xml documents retrieved from the
-     * Elements API when a query is being executed.
-     * It is a simple wrapper for an XMLEventProcessor.EventFilter that supports the concept of being valid for
-     * certain APIVersions.
+     * Elements API when a query is being executed. It is a simple wrapper for an XMLEventProcessor.EventFilter
+     * that supports the concept of being valid only for certain APIVersions.
      */
     public static class APIResponseFilter{
         private final XMLEventProcessor.EventFilter filter;
@@ -159,11 +158,11 @@ public class ElementsAPI {
             if(this.supportedVersions.size() == 0) throw new IllegalArgumentException("Must supply at least one supported ElementsAPIVersion");
         }
 
-        public boolean supports(ElementsAPIVersion version){
+        boolean supports(ElementsAPIVersion version){
             return supportedVersions.contains(version);
         }
 
-        public XMLEventProcessor.EventFilter getEventFilter() { return filter; }
+        XMLEventProcessor.EventFilter getEventFilter() { return filter; }
     }
 
     /**
@@ -179,7 +178,9 @@ public class ElementsAPI {
 
     //TODO: move to processing defaults?
     private final boolean rewriteMismatchedURLs;
+    @SuppressWarnings("FieldCanBeLocal")
     private int maxRetries = 5;
+    @SuppressWarnings("FieldCanBeLocal")
     private int retryDelayMillis = 500;
 
     private final ProcessingDefaults defaults;
@@ -188,8 +189,8 @@ public class ElementsAPI {
 
     /**
      * Chained constructor - to ease creation of a default ElementsAPI
-     * @param version
-     * @param url
+     * @param version the version of the API being contacted, can legitimately be null - version will be extracted
+     * @param url the base url of the API being contacted
      */
     public ElementsAPI(ElementsAPIVersion version, String url){
         this(version, url, null, null, false, null);
@@ -197,14 +198,14 @@ public class ElementsAPI {
 
     /**
      * Main constructor for the ElementsAPI class
-     * @param version the version of the API being contacted
+     * @param version the version of the API being contacted - can legitimately be null - version will be extracted
      * @param url the base url of the API being contacted
      * @param username user credentials for the API being contacted
      * @param password user credentials for the API being contacted
      * @param rewriteMismatchedURLs whether the
      * @param defaults the ProcessingDefaults to be used
      *                 the "default" ProcessingDefaults of processing all pages at 25 and 100 items per page for full and
-     *                 ref detail queries respectivelt will be used if @defaults is null.
+     *                 ref detail queries respectively will be used if @defaults is null.
      */
     public ElementsAPI(ElementsAPIVersion version, String url, String username, String password, boolean rewriteMismatchedURLs, ProcessingDefaults defaults) {
 
@@ -232,10 +233,10 @@ public class ElementsAPI {
         this.rewriteMismatchedURLs = rewriteMismatchedURLs;
         this.defaults = defaults == null ? ProcessingDefaults.DEFAULTS : defaults;
 
-        ElementsAPIVersion extractedVersion = TryToExtractVersion();
+        ElementsAPIVersion extractedVersion = tryToExtractVersion();
 
         if(extractedVersion == null){
-            String errorMessage = "Could not extract a valid API version from the ElementsAPI's \"my-account\" resource on construction";
+            String errorMessage = "Could not extract a valid API version from the Elements API's \"my-account\" resource on construction";
             log.error(errorMessage);
             throw new IllegalStateException(errorMessage);
         }
@@ -253,7 +254,7 @@ public class ElementsAPI {
     public ElementsAPIVersion getVersion(){ return this.version; }
 
     //Should call at end of construction to ensure client is as set up as can be without the version.
-    private ElementsAPIVersion TryToExtractVersion(){
+    private ElementsAPIVersion tryToExtractVersion(){
         ElementsAPIVersion.VersionExtractingFilter filter = new ElementsAPIVersion.VersionExtractingFilter();
         List<XMLEventProcessor.EventFilter> filters = new ArrayList<XMLEventProcessor.EventFilter>();
         filters.add(filter);
@@ -304,6 +305,7 @@ public class ElementsAPI {
      *                        the appropriate ProcessingDefaults will be used if @overrideOptions is null.
      * @param filters a set of APIResponseFilters that will be used to parse the XML responses from the API.
      */
+
     public void executeQuery(ElementsFeedQuery feedQuery, ProcessingOptions overrideOptions, APIResponseFilter... filters) {
         List<XMLEventProcessor.EventFilter> eventFilters = new ArrayList<XMLEventProcessor.EventFilter>();
         for(APIResponseFilter filter : filters){
@@ -341,7 +343,6 @@ public class ElementsAPI {
             }
             pagination = executeInternalQuery(currentQuery, eventFilters);
 
-            //todo: make traced logs end up in a sensible place.
             queryCounter++;
             if (queryCounter % 40 == 0) {
                 log.trace(MessageFormat.format("{0} queries processed: network-time: {1}, processing-time: {2}", queryCounter, ElementsAPI.timeSpentInNetwork, ElementsAPI.timeSpentInProcessing));
@@ -350,17 +351,18 @@ public class ElementsAPI {
 
             previousQuery = currentQuery;
         }
-        log.trace(MessageFormat.format("Query completed {0} items processed in total", itemCounter.getItemCount()));
+        log.info(MessageFormat.format("Query completed {0} items processed in total", itemCounter.getItemCount()));
     }
 
 
     /**
-     * Method to fetch a specific resource from the Elememnts API and store it in the Output stream provided
+     * Method to fetch a specific resource from the Elements API and store it in the Output stream provided
      * @param resourceURL the url of the resource to be fetched.
      * @param outputStream the output stream to be populated with the fetched data.
-     * @return
+     * @return boolean indicating if the fetch was successful (actually will return true or will error out..)
      */
     //TODO : rationalise with main query call to have common usage of the underlying client with nice retry behaviour etc.
+    @SuppressWarnings("SameReturnValue")
     public boolean fetchResource(String resourceURL, OutputStream outputStream) {
         HttpClient.ApiResponse apiResponse = null;
         try {
@@ -377,15 +379,14 @@ public class ElementsAPI {
             apiResponse = apiClient.executeGetRequest();
             IOUtils.copy(apiResponse.getResponseStream(), outputStream);
         }
-        catch (IOException e) { }
-        catch (URISyntaxException e2){ }
+        catch (IOException ignored) { }
+        catch (URISyntaxException ignored){ }
         finally {
             if (apiResponse != null) {
                 try {
                     apiResponse.dispose();
-                } catch (IOException e) {
-
                 }
+                catch (IOException ignored) { }
             }
         }
         return true;
@@ -396,12 +397,13 @@ public class ElementsAPI {
      * @param url the url to be processed.
      * @param eventFilters the filters to be run against the returned XML.
      * @return an ElementsFeedPagination object representing the position of the current URL in a query of multiple pages.
-     * @throws IllegalStateException
+     * @throws IllegalStateException if errors
      */
     private ElementsFeedPagination executeInternalQuery(ValidatedUrl url, Collection<XMLEventProcessor.EventFilter> eventFilters) throws IllegalStateException {
         int retryCount = 0;
         do {
             HttpClient.ApiResponse apiResponse = null;
+            IOException responseDisposeError = null;
             try {
                 long startTime = System.currentTimeMillis();
                 HttpClient apiClient = new HttpClient(url, username, password);
@@ -434,9 +436,13 @@ public class ElementsAPI {
                     try {
                         apiResponse.dispose();
                     } catch (IOException e) {
-                        throw new IllegalStateException("IOException attempting to dispose apiResponse", e);
+                        responseDisposeError = e;
                     }
                 }
+            }
+
+            if(responseDisposeError != null){
+                throw new IllegalStateException("IOException attempting to dispose apiResponse", responseDisposeError);
             }
 
             try {
@@ -455,7 +461,7 @@ public class ElementsAPI {
      * @param response the API XML response being processed.
      * @param eventFilters the filters to be run against the XML.
      * @return an ElementsFeedPagination object representing the position of the current URL in a query of multiple pages.
-     * @throws XMLStreamException
+     * @throws XMLStreamException if XML structure is invalid.
      */
     private ElementsFeedPagination parseEventResponse(InputStream response, Collection<XMLEventProcessor.EventFilter> eventFilters) throws XMLStreamException {
         final long startTime = System.currentTimeMillis();

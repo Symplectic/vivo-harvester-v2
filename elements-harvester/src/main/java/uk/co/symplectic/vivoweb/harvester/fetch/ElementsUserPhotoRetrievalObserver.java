@@ -23,6 +23,16 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.text.MessageFormat;
 
+/**
+ * An ElementsStoreOutputItemObserver that monitors for RAW_OBJECT files being added to the store.
+ * If the file being added represents a user, and that user has an associated "photo" in Elements
+ * The observer enqueues a request in the ResourceFetchService to fetch that user's photo from Elements and place the
+ * retrieved image into the store as a RAW_USER_PHOTO.
+ *
+ * This is abstract, the actual functionality is implemented by the concrete static inner classes below
+ */
+
+@SuppressWarnings("WeakerAccess")
 public abstract class ElementsUserPhotoRetrievalObserver extends ElementsStoreOutputItemObserver {
 
     private final ImageUtils.PhotoType photoType;
@@ -41,6 +51,10 @@ public abstract class ElementsUserPhotoRetrievalObserver extends ElementsStoreOu
     }
 
 
+    /**
+     * A concrete implementation of ElementsUserPhotoRetrievalObserver that actually re-fetches the photo from the
+     * Elements API
+     */
     public static class FetchingObserver extends ElementsUserPhotoRetrievalObserver{
         //TODO: Sort out static as object behaviour here
         private final ResourceFetchService fetchService = new ResourceFetchService();
@@ -69,6 +83,11 @@ public abstract class ElementsUserPhotoRetrievalObserver extends ElementsStoreOu
 
     }
 
+    /**
+     * A concrete implementation of ElementsUserPhotoRetrievalObserver that does not contact the Elements API.
+     * If there is an existing RAW_USER_PHOTO already present in the store, it is "touched" to trigger any ItemObservers
+     * As if it was and item that had been retrieved and newly added/updated in the store
+     */
     public static class ReprocessingObserver extends ElementsUserPhotoRetrievalObserver{
 
         public ReprocessingObserver(ImageUtils.PhotoType photoType, ElementsItemFileStore objectStore){

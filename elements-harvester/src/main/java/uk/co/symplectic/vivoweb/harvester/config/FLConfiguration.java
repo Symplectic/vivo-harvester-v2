@@ -8,14 +8,11 @@
  */
 package uk.co.symplectic.vivoweb.harvester.config;
 import org.apache.commons.lang.text.StrBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import uk.co.symplectic.utils.configuration.ConfigKey;
 import uk.co.symplectic.utils.configuration.ConfigParser;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -111,6 +108,7 @@ public class FLConfiguration {
     }
 
     //Has the system being successfully configured to move forwards?
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public static boolean isConfigured() {
         return configErrors.size() == 0;
     }
@@ -140,8 +138,8 @@ public class FLConfiguration {
         return "Error generating usage string";
     }
 
+    @SuppressWarnings("RedundantThrows")
     public static void parse(String propertiesFileName) throws IOException, ConfigParser.UsageException {
-        InputStream stream = null;
         try {
             Properties props = ConfigParser.getPropsFromFile(propertiesFileName);
             values = new Parser(props, configErrors);

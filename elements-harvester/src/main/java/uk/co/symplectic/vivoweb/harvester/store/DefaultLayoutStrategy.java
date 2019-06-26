@@ -10,17 +10,23 @@ package uk.co.symplectic.vivoweb.harvester.store;
 
 import org.apache.commons.lang.StringUtils;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
-import uk.co.symplectic.vivoweb.harvester.model.ElementsItemInfo;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemType;
 
 import java.io.File;
 import java.io.FilenameFilter;
 import java.util.*;
 
+/**
+ * Class that defines the DefaultLayoutStrategy as used by the ElementsItemFileStores used in this project.
+ * Specifies where the files representing different types (StorableResourceTypes) of Elements data are placed on disk.
+ * Additionally provides search utilities to identify all files of a given Elements Type/SubType
+ */
+
+@SuppressWarnings("WeakerAccess")
 public class DefaultLayoutStrategy implements LayoutStrategy {
 
-    Map<ElementsItemType, StorableResourceType> mainResourceTypes = new HashMap<ElementsItemType, StorableResourceType>();
-    Set<StorableResourceType> resourceTypesWithOwnDirectory = new HashSet<StorableResourceType>();
+    private Map<ElementsItemType, StorableResourceType> mainResourceTypes = new HashMap<ElementsItemType, StorableResourceType>();
+    private Set<StorableResourceType> resourceTypesWithOwnDirectory = new HashSet<StorableResourceType>();
 
     public DefaultLayoutStrategy(){
         this(null, null);
@@ -55,6 +61,7 @@ public class DefaultLayoutStrategy implements LayoutStrategy {
         return filesOfType;
     }
 
+    @SuppressWarnings("ConstantConditions")
     public Collection<File> getAllExistingFilesOfType(File storeDir, StorableResourceType resourceType, ElementsItemType.SubType subType) {
         if(subType.getMainType() != resourceType.getKeyItemType()) throw new IllegalStateException("requested subtype must match resource item type");
         List<File> filesOfType = new ArrayList<File>();
@@ -103,6 +110,7 @@ public class DefaultLayoutStrategy implements LayoutStrategy {
 
         file = new File(file, categoryDescriptor);
         if (!file.exists()) {
+            //noinspection ResultOfMethodCallIgnored
             file.mkdirs();
         }
 
@@ -122,14 +130,10 @@ public class DefaultLayoutStrategy implements LayoutStrategy {
 
         file = new File(file, categoryDescriptor + "-" + resourceLabel);
         if (!file.exists()) {
+            //noinspection ResultOfMethodCallIgnored
             file.mkdirs();
         }
 
         return new File(file, id);
     }
-
-    public String getRootNodeForType(String type) {
-        return "entry";
-    }
-
 }

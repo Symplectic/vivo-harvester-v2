@@ -16,9 +16,10 @@ import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
 import java.util.*;
 
 /**
- * Query representing retrieving data about a particular category of objects from Elements
- * optionally only items modified since a particular datetime.
+ * FeedQuery class representing a query to retrieve data about a particular category of objects from Elements
+ * optionally fetching only items modified since a particular datetime.
  */
+@SuppressWarnings("FieldCanBeLocal")
 public class ElementsAPIFeedObjectQuery extends ElementsFeedQuery.DeltaCapable {
 
     // How many objects to request per API request: Default of 25 (see constructor chain) is required by 4.6 API since we request full detail for objects
@@ -27,10 +28,16 @@ public class ElementsAPIFeedObjectQuery extends ElementsFeedQuery.DeltaCapable {
     private final ElementsObjectCategory category;
     private final List<Integer> groups = new ArrayList<Integer>();
     //handle as subclasses?
-    //TODO: make this flag properly useable instead of hard coded to true..
+    //TODO: make this flag properly usable instead of hard coded to true.
     private boolean approvedObjectsOnly = true;
     private boolean explicitMembersOnly = false;
 
+    /**
+     * constructor
+     * @param category The Elements category (ElementsObjectCategory) to be queried
+     * @param fullDetails whether you want "full" or "ref" detail level data
+     * @param modifiedSince Timestamp you want to start query from
+     */
     public ElementsAPIFeedObjectQuery(ElementsObjectCategory category, boolean fullDetails, Date modifiedSince) {
         this(category, fullDetails, modifiedSince, null, false);
     }
@@ -38,13 +45,13 @@ public class ElementsAPIFeedObjectQuery extends ElementsFeedQuery.DeltaCapable {
     /**
      * protected constructor supports concept of limiting query to specific groups of users to allow for subclasses
      * that can query group membership.
-     * @param category
-     * @param fullDetails
-     * @param modifiedSince
-     * @param groupsToInclude
-     * @param explicitMembersOnly
+     * @param category The Elements category (ElementsObjectCategory) to be queried
+     * @param fullDetails whether you want "full" or "ref" detail level data
+     * @param modifiedSince Timestamp you want to start query from
+     * @param groupsToInclude OPTIONAL : restrict results to items "related" to a user in one of the provided groups
+     * @param explicitMembersOnly OPTIONAL : only consider "explicit" group memberships when processing groupsToInclude
      */
-    protected ElementsAPIFeedObjectQuery(ElementsObjectCategory category, boolean fullDetails, Date modifiedSince, Collection<Integer> groupsToInclude, boolean explicitMembersOnly) {
+    ElementsAPIFeedObjectQuery(ElementsObjectCategory category, boolean fullDetails, Date modifiedSince, Collection<Integer> groupsToInclude, boolean explicitMembersOnly) {
         super(ElementsItemType.OBJECT, fullDetails, modifiedSince);
         if(category == null) throw new NullArgumentException("category");
         this.category = category;
@@ -69,15 +76,16 @@ public class ElementsAPIFeedObjectQuery extends ElementsFeedQuery.DeltaCapable {
         return approvedObjectsOnly;
     }
 
+
     @Override
     protected Set<String> getUrlStrings(String apiBaseUrl, ElementsAPIURLBuilder builder, int perPage){
         return Collections.singleton(builder.buildObjectFeedQuery(apiBaseUrl, this, perPage));
     }
 
-    //TODO: move these into the app?
+    //TODO: move these subclasses into the app?
 
     /**
-     * Subclass of the ElementsAPIFeedObjectQuery representing querying items that have been deleted.
+     * Subclass of ElementsAPIFeedObjectQuery representing querying items that have been deleted.
      */
     public static class Deleted extends ElementsAPIFeedObjectQuery{
         public Deleted(ElementsObjectCategory category, Date deletedSince) {

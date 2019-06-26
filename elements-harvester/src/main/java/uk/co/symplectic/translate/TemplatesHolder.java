@@ -11,6 +11,11 @@ package uk.co.symplectic.translate;
 import javax.xml.transform.Templates;
 import java.io.File;
 
+/**
+ * Class to retain a thread local copy (i.e. one per thread) of the compiled "XSL templates" that represent the crosswalks.
+ * Operates effectively as a thread local singleton, ensuring we only compile the XSL once per thread.
+ */
+
 public class TemplatesHolder {
     private String xslFilename;
     private ThreadLocal<Templates> myTemplates = new ThreadLocal<Templates>();

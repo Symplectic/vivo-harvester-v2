@@ -18,6 +18,11 @@ import uk.co.symplectic.vivoweb.harvester.model.ElementsItemInfo;
 import java.util.*;
 import java.util.regex.Pattern;
 
+/**
+ * A class to handle the task of establishing if a "Group" (represented by an ElementsItemInfo) matches a particular
+ * configuration (e.g. if it matches a set of IDs or if its name matches a set of regexes..
+ */
+
 public class GroupMatcher {
     private final List<Pattern> matchingPatterns = new ArrayList<Pattern>();
     private final Set<ElementsItemId.GroupId> matchingIds = new HashSet<ElementsItemId.GroupId>();
@@ -31,14 +36,15 @@ public class GroupMatcher {
         }
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean isActive(){
-        if(matchingIds.size() > 0  || matchingPatterns.size() > 0) return true;
-        return false;
+        return matchingIds.size() > 0 || matchingPatterns.size() > 0;
     }
 
     public boolean isMatch(ElementsItemInfo itemInfo){
         if(itemInfo.isGroupInfo()) {
             ElementsGroupInfo groupInfo = itemInfo.asGroupInfo();
+            //noinspection SuspiciousMethodCalls
             if (matchingIds.contains(groupInfo.getItemId())) return true;
             for (Pattern pattern : matchingPatterns) {
                 if (pattern.matcher(groupInfo.getName()).matches()) return true;

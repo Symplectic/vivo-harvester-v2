@@ -13,6 +13,16 @@ import org.apache.commons.lang.builder.HashCodeBuilder;
 
 import java.text.MessageFormat;
 
+/**
+ * A small class to represent the "id" of an item in Elements in terms of its "type" and its "integer identifier".
+ * The ElementsItemType.SubType represents the "type" of the item:
+ *     e.g an object category (user, publication, etc), relationship, group, rel-type
+ * The "id" represents the integer identifier
+ *
+ * These items are "equatable" and sensibly handle hashcode's so can be used in sets for comparison purposes, etc.
+ * Construction requires that you use one of the static createXXXXId methods.
+ */
+
 public class ElementsItemId{
     private final int id;
 
@@ -25,9 +35,9 @@ public class ElementsItemId{
     public ElementsItemType.SubType getItemSubType() { return subType; }
     public ElementsItemType getItemType() { return subType.getMainType(); }
 
-    protected ElementsItemId(ElementsItemType.SubType subType, int id) {
+    ElementsItemId(ElementsItemType.SubType subType, int id) {
         if (subType == null) throw new NullArgumentException("subType");
-        if(!subType.isConcrete()) throw new IllegalArgumentException("subType must be a useable concrete sub type when instantiating an ItemId");
+        if(!subType.isConcrete()) throw new IllegalArgumentException("subType must be a usable concrete sub type when instantiating an ItemId");
         this.subType = subType;
         this.id = id;
     }
@@ -52,6 +62,7 @@ public class ElementsItemId{
         if(obj == this) return true;
 
         ElementsItemId objAsID = (ElementsItemId) obj;
+        //noinspection SimplifiableIfStatement
         if(!(this.getItemDescriptor().equals(objAsID.getItemDescriptor()))) return false;
         return this.getId() == (objAsID.getId());
     }

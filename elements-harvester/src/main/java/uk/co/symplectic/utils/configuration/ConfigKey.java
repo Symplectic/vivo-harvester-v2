@@ -45,8 +45,8 @@ public class ConfigKey{
     /**
      * The getValue method extracts the value associated with this ConfigKey from the passed in Properties object
      * it will return the default (if this ConfigKey has one) if the Properties file has no value for this ConfigKey.
-     * @param props
-     * @return
+     * @param props the Properties object to extract this Key's value from
+     * @return the key's value
      */
     public String getValue(Properties props){
         String value = props == null ? null : StringUtils.trimToNull(props.getProperty(name));

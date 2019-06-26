@@ -30,10 +30,9 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 
 /**
- * Static implementation of an Executor based translation service.
- *
+ * Static implementation of an Executor based translation service, which acts to translate any passed in data asynchronously.
+ * Any XML passed in for translation is eventually processed using the XSLT templates defined in the TemplatesHolder "singleton".
  * Package private, as this is not part of the public API.
- *
  * Users should access via the TranslationService() object.
  */
 final class TranslationServiceImpl {
@@ -87,10 +86,11 @@ final class TranslationServiceImpl {
     }
 
 
+    @SuppressWarnings("SameReturnValue")
     static abstract class AbstractTranslateTask implements Callable<Boolean>{
 
         private final TemplatesHolder translationTemplates;
-        //TODO: unstitch config layer?
+        //TODO: un-stitch config layer?
         private final TranslationServiceConfig config;
         private final Map<String, Object> extraParams;
 
@@ -126,6 +126,7 @@ final class TranslationServiceImpl {
             }
 
             if (xmlSource != null) {
+                IOException inputStreamCloseError = null;
                 try {
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     StreamResult outputResult = new StreamResult(baos);
@@ -186,15 +187,18 @@ final class TranslationServiceImpl {
                         }
                     } catch (IOException e) {
                         log.error(MessageFormat.format("Unable to close input stream on {0}", getInputDescription()), e);
-                        if (!tolerateIOErrors) throw e;
+                        if (!tolerateIOErrors) inputStreamCloseError = e;
                         retCode = Boolean.FALSE;
                     }
                 }
+
+                if(inputStreamCloseError != null) throw inputStreamCloseError;
+
             }
             return retCode;
         }
 
-        //TODO : remove this entirely?
+        //Is this necessary any more?
         private class TranslateTaskErrorListener implements ErrorListener {
             TranslationServiceConfig config;
 

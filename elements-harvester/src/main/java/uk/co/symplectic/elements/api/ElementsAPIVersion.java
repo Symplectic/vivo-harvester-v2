@@ -28,14 +28,18 @@ import java.util.Map;
  * will extract pagination information from any paged results returned by that version of the API.
  * To avoid concurrent requests to the API tripping over each other they need to return a "new" PaginationExtractingFilter for each request - so a factory is needed
  */
+@SuppressWarnings("unused")
 public class ElementsAPIVersion {
 
-
-    public static class VersionExtractingFilter extends XMLEventProcessor.ItemExtractingFilter<ElementsAPIVersion> {
+    /**
+     * An XMLEventProcessor.ItemExtractingFilter that can extract the "Version" from an Elements API response
+     * This is package-private as only used within the API package..
+     */
+    static class VersionExtractingFilter extends XMLEventProcessor.ItemExtractingFilter<ElementsAPIVersion> {
 
         ElementsAPIVersion workspace = null;
 
-        public VersionExtractingFilter() {
+        VersionExtractingFilter() {
             super(new XMLEventProcessor.EventFilter.DocumentLocation(new QName(ElementsAPI.atomNS, "feed"), new QName(ElementsAPI.apiNS, "schema-version")));
         }
 
@@ -88,7 +92,7 @@ public class ElementsAPIVersion {
      */
     public static final ElementsAPIVersion VERSION_4_6    = new ElementsAPIVersion("4.6", GeneralAPIv4XOr55_URLBuilder.get4XBuilder(), allVersionsPaginationFilterFactory);
     public static final ElementsAPIVersion VERSION_4_9    = new ElementsAPIVersion("4.9", GeneralAPIv4XOr55_URLBuilder.get4XBuilder(), allVersionsPaginationFilterFactory);
-    //5.5 does not use order-by as it has reliabel continuation tokens in its next page links - may, however need alteration to use affected-when
+    //5.5 does not use order-by as it has reliable continuation tokens in its next page links - may, however need alteration to use affected-when
     // to maintain consistent behaviour with v4.X systems, but this is probably not actually needed.
     public static final ElementsAPIVersion VERSION_5_5    = new ElementsAPIVersion("5.5", GeneralAPIv4XOr55_URLBuilder.get55Builder(false), allVersionsPaginationFilterFactory);
 
