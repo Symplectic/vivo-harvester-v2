@@ -9,6 +9,7 @@
   ~   Version :  ${git.branch}:${git.commit.id}
   ~ *******************************************************************************
   -->
+<!--suppress XmlUnusedNamespaceDeclaration -->
 <xsl:stylesheet version="2.0"
                 xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
                 xmlns:xs="http://www.w3.org/2001/XMLSchema"
@@ -32,6 +33,8 @@
                 >
 
     <xsl:import href="elements-to-vivo-datatypes.xsl" />
+    <xsl:import href="elements-to-vivo-datatypes-matching.xsl" />
+    <xsl:import href="elements-to-vivo-fuzzy-matching.xsl" />
 
     <!-- ======================================
          Function Library
@@ -153,7 +156,7 @@
                         </xsl:otherwise>
                     </xsl:choose>
                 </xsl:variable>
-                <xsl:variable name="requiredVerificatonStatus">
+                <xsl:variable name="requiredVerificationStatus">
                     <xsl:choose>
                         <xsl:when test="$records[$position] = 'verified-manual'">
                             <xsl:text>verified</xsl:text>
@@ -168,11 +171,11 @@
                 </xsl:variable>
 
                 <xsl:choose>
-                    <xsl:when test="$object/api:records/api:record[@source-name=$currentSourceName and ($requiredVerificatonStatus = 'any' or api:verification-status = $requiredVerificatonStatus)]" >
+                    <xsl:when test="$object/api:records/api:record[@source-name=$currentSourceName and ($requiredVerificationStatus = 'any' or api:verification-status = $requiredVerificationStatus)]" >
                         <xsl:variable name="restricted-object">
                             <api:object>
                                 <api:records>
-                                    <xsl:copy-of select= "$object/api:records/api:record[@source-name=$currentSourceName and ($requiredVerificatonStatus = 'any' or api:verification-status = $requiredVerificatonStatus)][1]" />
+                                    <xsl:copy-of select= "$object/api:records/api:record[@source-name=$currentSourceName and ($requiredVerificationStatus = 'any' or api:verification-status = $requiredVerificationStatus)][1]" />
                                 </api:records>
                             </api:object>
                         </xsl:variable>
@@ -241,36 +244,6 @@
 
     </xsl:function>
 
-    <xsl:function name="svfn:shouldConvertToHTML">
-        <xsl:param name="propertyName" as="xs:string" />
-
-        <xsl:choose>
-            <xsl:when test="$htmlProperties[@name=$propertyName]">
-                <xsl:value-of select="true()" />
-            </xsl:when>
-            <xsl:otherwise>
-                <xsl:value-of select="false()" />
-            </xsl:otherwise>
-        </xsl:choose>
-    </xsl:function>
-
-    <!-- templates to inject html line breaks if required, these need to be templates as functions end up evaluating the
- result in a value -of which strips the desired <br/> tags..-->
-
-    <!-- template to take in input containing line breaks /r/n /r or /n and turn them into html containing <br/> tags -->
-    <xsl:function name="svfn:injectHTMLLinesBreaks">
-        <xsl:param name="input" as="xs:string" />
-        <xsl:variable name="step1" select="replace($input, '&#13;&#10;', '&#10;')" />
-        <xsl:variable name="step2" select="replace($step1, '&#13;', '&#10;')" />
-        <xsl:value-of select="replace($step2, '&#10;', '&lt;br/&gt;')" />
-    </xsl:function>
-
-
-    <xsl:function name="svfn:injectHtmlAnchors">
-        <xsl:param name="input" as="xs:string" />
-        <xsl:value-of select="replace($input, '(^|\n|\s)https?://(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}(\?[-a-zA-Z0-9@:%_\+.~#?&amp;//=]*)?($|\n|\s)', '&lt;a href=&#34;$0&#34; &gt;$0&lt;/a&gt;')" />
-    </xsl:function>
-
     <!--
         svfn:makeURI
         ============
@@ -283,8 +256,8 @@
         <xsl:variable name="calculatedURISuffix" select="concat(svfn:stringToURI($prefix),svfn:stringToURI($id))" />
 
         <xsl:choose>
-            <xsl:when test="$uriAliasses[@alias=$calculatedURISuffix]">
-                <xsl:value-of select="concat($validatedBaseURI, $uriAliasses[@alias=$calculatedURISuffix][1])" />
+            <xsl:when test="$uriAliases[@alias=$calculatedURISuffix]">
+                <xsl:value-of select="concat($validatedBaseURI, $uriAliases[@alias=$calculatedURISuffix][1])" />
             </xsl:when>
             <xsl:otherwise>
                 <xsl:value-of select="concat($validatedBaseURI,$calculatedURISuffix)" />
@@ -351,10 +324,10 @@
     -->
     <xsl:function name="svfn:objectToObjectURI" as="xs:string">
         <xsl:param name="prefix" as="xs:string" />
-        <xsl:param name="objectid1" as="xs:string" />
-        <xsl:param name="objectid2" as="xs:string" />
+        <xsl:param name="objectId1" as="xs:string" />
+        <xsl:param name="objectId2" as="xs:string" />
 
-        <xsl:value-of select="svfn:makeURI($prefix,concat($objectid1,'-',$objectid2))" />
+        <xsl:value-of select="svfn:makeURI($prefix,concat($objectId1,'-',$objectId2))" />
     </xsl:function>
 
     <!--
@@ -487,7 +460,6 @@
                 <xsl:call-template name="render_rdf_object">
                     <xsl:with-param name="objectURI" select="$deptURI" />
                     <xsl:with-param name="rdfNodes">
-                        <!-- TODO Implement dictionary to determine department type -->
                         <rdf:type rdf:resource="http://vivoweb.org/ontology/core#AcademicDepartment"/>
                         <rdfs:label><xsl:value-of select="$deptName" /></rdfs:label>
                         <xsl:if test="not($instURI='')">
@@ -623,76 +595,6 @@
         </xsl:choose>
         </xsl:variable>
         <xsl:value-of select="fn:normalize-space($uri-to-use)" />
-    </xsl:function>
-
-    <!--
-        svfn:datePrecision
-        ==================
-        Determine how precise the Elements date object is
-    -->
-    <xsl:function name="svfn:datePrecision" as="xs:string">
-        <xsl:param name="date" />
-        <xsl:param name="precision" as="xs:string"/>
-        <xsl:choose>
-            <xsl:when test="$precision = ''">
-                <xsl:choose>
-                    <xsl:when test="string($date/api:day) and string($date/api:month) and string($date/api:year)">yearMonthDayPrecision</xsl:when>
-                    <xsl:when test="string($date/api:month) and string($date/api:year)">yearMonthPrecision</xsl:when>
-                    <xsl:when test="string($date/api:year)">yearPrecision</xsl:when>
-                    <xsl:otherwise>none</xsl:otherwise>
-                </xsl:choose>
-            </xsl:when>
-            <xsl:otherwise>
-                <xsl:choose>
-                    <xsl:when test="($precision = 'yearMonthDayPrecision') or ($precision = 'yearMonthPrecision') or ($precision = 'yearPrecision')">
-                        <xsl:value-of select="$precision" />
-                    </xsl:when>
-                    <xsl:otherwise>none</xsl:otherwise>
-                </xsl:choose>
-            </xsl:otherwise>
-        </xsl:choose>
-
-    </xsl:function>
-
-    <!--
-        svfn:dateYear
-        =============
-        Return the formatted year
-    -->
-    <xsl:function name="svfn:dateYear">
-        <xsl:param name="date" />
-
-        <xsl:value-of select="$date/api:year" />
-    </xsl:function>
-
-    <!--
-        svfn:dateMonth
-        ==============
-        Return the formatted month
-    -->
-    <xsl:function name="svfn:dateMonth">
-        <xsl:param name="date" />
-
-        <xsl:choose>
-            <xsl:when test="string-length($date/api:month)=1">0<xsl:value-of select="$date/api:month" /></xsl:when>
-            <xsl:when test="string-length($date/api:month)=2"><xsl:value-of select="$date/api:month" /></xsl:when>
-            <xsl:otherwise>01</xsl:otherwise>
-        </xsl:choose>
-    </xsl:function>
-
-    <!--
-        svfn:dateDay
-        ============
-        Return the formatted day
-    -->
-    <xsl:function name="svfn:dateDay">
-        <xsl:param name="date" />
-
-        <xsl:choose>
-            <xsl:when test="string-length($date/api:day)=1">0<xsl:value-of select="$date/api:day" /></xsl:when>
-            <xsl:when test="string-length($date/api:day)=2"><xsl:value-of select="$date/api:day" /></xsl:when>
-            <xsl:otherwise>01</xsl:otherwise>
-        </xsl:choose>
     </xsl:function>
 
     <!--
@@ -972,7 +874,7 @@
                         </xsl:otherwise>
                     </xsl:choose>
                 </xsl:variable>
-                <xsl:variable name="requiredVerificatonStatus">
+                <xsl:variable name="requiredVerificationStatus">
                     <xsl:choose>
                         <xsl:when test="$records[$position] = 'verified-manual'">
                             <xsl:text>verified</xsl:text>
@@ -988,17 +890,17 @@
 
                 <xsl:choose>
                     <!-- Don't use records that are restricted -->
-                    <xsl:when test="$exclusions/config:record-exclusion[text()=$currentSourceName and (text() != 'manual' or (not(@verification-status) or @verification-status = 'any' or @verification-status = $requiredVerificatonStatus))]">
+                    <xsl:when test="$exclusions/config:record-exclusion[text()=$currentSourceName and (text() != 'manual' or (not(@verification-status) or @verification-status = 'any' or @verification-status = $requiredVerificationStatus))]">
                         <xsl:copy-of select="svfn:_getRecordField($object,$fieldName,$records,$select-by,$position+1,$useUnlistedSources,$useExcludedData)" />
                     </xsl:when>
                     <!-- don't use fields that are restricted -->
-                    <xsl:when test="$exclusions/config:field-exclusions[@for-source=$currentSourceName and (text() != 'manual' or (not(@verification-status) or @verification-status = 'any' or @verification-status = $requiredVerificatonStatus))]/config:excluded-field[text()=$fieldName]">
+                    <xsl:when test="$exclusions/config:field-exclusions[@for-source=$currentSourceName and (text() != 'manual' or (not(@verification-status) or @verification-status = 'any' or @verification-status = $requiredVerificationStatus))]/config:excluded-field[text()=$fieldName]">
                         <xsl:copy-of select="svfn:_getRecordField($object,$fieldName,$records,$select-by,$position+1,$useUnlistedSources,$useExcludedData)" />
                     </xsl:when>
                     <xsl:when test="$select-by='field'">
                         <xsl:choose>
-                            <xsl:when test="$object/api:records/api:record[@source-name=$currentSourceName and ($requiredVerificatonStatus = 'any' or api:verification-status = $requiredVerificatonStatus)]/api:native/api:field[@name=$fieldName]">
-                                <xsl:copy-of select="$object/api:records/api:record[@source-name=$currentSourceName and ($requiredVerificatonStatus = 'any' or api:verification-status = $requiredVerificatonStatus)][1]/api:native/api:field[@name=$fieldName]" />
+                            <xsl:when test="$object/api:records/api:record[@source-name=$currentSourceName and ($requiredVerificationStatus = 'any' or api:verification-status = $requiredVerificationStatus)]/api:native/api:field[@name=$fieldName]">
+                                <xsl:copy-of select="$object/api:records/api:record[@source-name=$currentSourceName and ($requiredVerificationStatus = 'any' or api:verification-status = $requiredVerificationStatus)][1]/api:native/api:field[@name=$fieldName]" />
                             </xsl:when>
                             <xsl:otherwise>
                                 <xsl:copy-of select="svfn:_getRecordField($object,$fieldName,$records,$select-by,$position+1,$useUnlistedSources,$useExcludedData)" />
@@ -1007,8 +909,8 @@
                     </xsl:when>
                     <xsl:otherwise>
                         <xsl:choose>
-                            <xsl:when test="$object/api:records/api:record[@source-name=$currentSourceName and ($requiredVerificatonStatus = 'any' or api:verification-status = $requiredVerificatonStatus)]/api:native">
-                                <xsl:copy-of select="$object/api:records/api:record[@source-name=$currentSourceName and ($requiredVerificatonStatus = 'any' or api:verification-status = $requiredVerificatonStatus)][1]/api:native/api:field[@name=$fieldName]" />
+                            <xsl:when test="$object/api:records/api:record[@source-name=$currentSourceName and ($requiredVerificationStatus = 'any' or api:verification-status = $requiredVerificationStatus)]/api:native">
+                                <xsl:copy-of select="$object/api:records/api:record[@source-name=$currentSourceName and ($requiredVerificationStatus = 'any' or api:verification-status = $requiredVerificationStatus)][1]/api:native/api:field[@name=$fieldName]" />
                             </xsl:when>
                             <xsl:otherwise>
                                 <xsl:copy-of select="svfn:_getRecordField($object,$fieldName,$records,$select-by,$position+1,$useUnlistedSources,$useExcludedData)" />
@@ -1052,7 +954,7 @@
         <xsl:param name="position" as="xs:integer" />
 
         <xsl:choose>
-            <!-- we are looping through the set of records in the object, until we find somethign we like, or run out of records to consider-->
+            <!-- we are looping through the set of records in the object, until we find something we like, or run out of records to consider-->
             <xsl:when test="$object/api:records/api:record[$position]">
                 <xsl:variable name="current-record" select="$object/api:records/api:record[$position]" />
                 <xsl:choose>
@@ -1475,7 +1377,7 @@
     </xsl:template>
 
     <xsl:template name="render_empty_rdf">
-        <rdf:RDF></rdf:RDF>
+        <rdf:RDF />
     </xsl:template>
 
     <xsl:template name="_concat_nodes_if">

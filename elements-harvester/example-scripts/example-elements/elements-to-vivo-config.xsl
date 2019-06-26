@@ -31,7 +31,7 @@
 
     <xsl:param name="configFile">elements-to-vivo-config.xml</xsl:param>
     <!-- where the framework should pass in the extra data when useRawDataFiles is set to false -->
-    <xsl:param name="extraObjects"></xsl:param>
+    <xsl:param name="extraObjects" />
 
     <xsl:variable name="loaded-config" select="document($configFile)//config:main" />
 
@@ -118,10 +118,10 @@
     <xsl:variable name="label-schemes" select="$loaded-config/config:label-schemes/config:label-schemes" />
     <xsl:variable name="label-overrides" select="$loaded-config/config:label-overrides/config:label-override" />
     <xsl:variable name="htmlProperties" select="$loaded-config/config:htmlProperties/config:htmlProperty" />
-    <xsl:variable name="uriAliasses" select="$loaded-config/config:uriAliasses/config:uri" />
+    <xsl:variable name="uriAliases" select="$loaded-config/config:uriAliases/config:uri" />
 
 
-    <!-- posibly migrate to xml? -->
+    <!-- possibly migrate to xml? -->
     <xsl:variable name="contextPropertyLookup">
         <context-lookups>
             <context-lookup type-uri="http://vivoweb.org/ontology/core#Authorship" uriFragment="authorship" contextToUser="vivo:relates" contextToObject="vivo:relates" objectToContext="vivo:relatedBy" userToContext="vivo:relatedBy" />

@@ -493,4 +493,8 @@
         <xsl:value-of select="svfn:userLabel($user)" />
     </xsl:function>
 
+    <!-- template to "write nothing" for custom additions calls unless explicitly overridden anywhere -->
+    <!-- currently only called into from elements-to-vivo-user.xsl but could be used more widely -->
+    <xsl:template match="api:object[@category='user']" mode="customAdditions" />
+
 </xsl:stylesheet>

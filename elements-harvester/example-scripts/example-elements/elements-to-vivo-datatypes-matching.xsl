@@ -88,7 +88,7 @@
         <xsl:variable name="any-record" select="normalize-space($records) = ''" />
         <xsl:variable name="record-sources" select="fn:tokenize($records, ',')" />
 
-        <!-- look at making more controlable -->
+        <!-- look at making more controllable -->
         <xsl:choose>
             <xsl:when test="$object/api:records/api:record[$any-record or @source-name=$record-sources]/api:native/api:field[@name = $fieldName and svfn:_fieldMatchesValue(., $valueToCompare)]">
                 <xsl:value-of select="true()" />
@@ -108,7 +108,7 @@
         <xsl:variable name="any-record" select="normalize-space($records) = ''" />
         <xsl:variable name="record-sources" select="fn:tokenize($records, ',')" />
 
-        <!-- look at making more controlable -->
+        <!-- look at making more controllable -->
         <xsl:choose>
             <xsl:when test="$object/api:records/api:record[$any-record or @source-name=$record-sources]/api:native/api:field[@name = $fieldName and svfn:_fieldLikeValue(., $valueToCompare)]">
                 <xsl:value-of select="true()" />
@@ -183,7 +183,7 @@
         <xsl:param name="object" />
         <xsl:param name="condition" />
 
-        <!-- look at making more controlable -->
+        <!-- look at making more controllable -->
         <xsl:choose>
             <xsl:when test="name($condition) = 'config:field-matches'">
                 <xsl:value-of select="svfn:fieldMatches($object, $condition/@field, $condition/@value, $condition/@in-records)" />

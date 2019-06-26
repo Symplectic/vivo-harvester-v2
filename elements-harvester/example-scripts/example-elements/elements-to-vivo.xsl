@@ -76,10 +76,4 @@
         </xsl:call-template>
     </xsl:template>
 
-    <!-- template to "write nothing" for custom additions calls unless explicitly overridden anywhere -->
-    <!-- currently only called into from elements-to-vivo-user.xsl but could be used more widely -->
-    <xsl:template match="*" mode="customAdditions" />
-
-
-
 </xsl:stylesheet>

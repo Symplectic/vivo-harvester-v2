@@ -9,6 +9,7 @@
   ~   Version :  ${git.branch}:${git.commit.id}
   ~ *******************************************************************************
   -->
+<!-- noinspection XsltUnusedDeclaration -->
 <xsl:stylesheet version="2.0"
                 xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
                 xmlns:xs="http://www.w3.org/2001/XMLSchema"
@@ -106,8 +107,8 @@
         <xsl:variable name="authorUrl" select="svfn:getRecordField(.,'author-url')" />
         <xsl:variable name="publisherUrl" select="svfn:getRecordField(.,'publisher-url')" />
         <xsl:variable name="repositoryUrl" select="(api:repository-items/api:repository-item/api:public-url)[1]" />
-        <!-- specifically try and grab out a "Web of Science" url, which may match the author URL depending on record precednece and exclusions-->
-        <!-- note do not force it with fieldorfirst as we only want to provide a WoS link if we might be showing WoS data -->
+        <!-- specifically try and grab out a "Web of Science" url, which may match the author URL depending on record precedence and exclusions-->
+        <!-- note do not force it with FieldOrFirst as we only want to provide a WoS link if we might be showing WoS data -->
         <xsl:variable name="wosUrl" select="svfn:getRecordField(.,'author-url', 'wos,wos-lite', 'field', false())" />
 
         <xsl:variable name="contactInfo" select="svfn:renderPublicationContactInfo(.)" />
@@ -241,7 +242,7 @@
         <xsl:variable name="conferenceName" select="svfn:getRecordField($object,'name-of-conference')" />
         <xsl:choose>
             <xsl:when test="$conferenceName/api:text"><xsl:copy-of select="string($conferenceName/api:text)" /></xsl:when>
-            <xsl:otherwise><xsl:copy-of select="string('')" /></xsl:otherwise>
+            <xsl:otherwise><xsl:copy-of select="''" /></xsl:otherwise>
         </xsl:choose>
     </xsl:function>
 
@@ -382,8 +383,8 @@
         <xsl:variable name="wosUrl" select="svfn:getRecordField($object,'author-url', 'wos,wos-lite', 'field', false())" />
         <xsl:variable name="rt1RepositoryUrl" select="($object/api:repository-items/api:repository-item/api:public-url)[1]" />
 
-        <!-- specifically try and grab out a "Web of Science" url, which may match the author URL depending on record precednece and exclusions-->
-        <!-- note do not force it with fieldorfirst as we only want to provide a WoS link if we might be showing WoS data -->
+        <!-- specifically try and grab out a "Web of Science" url, which may match the author URL depending on record precedence and exclusions-->
+        <!-- note do not force it with FieldOrFirst as we only want to provide a WoS link if we might be showing WoS data -->
 
         <xsl:call-template name="render_rdf_object">
             <xsl:with-param name="objectURI" select="concat(svfn:objectURI($object),'-webpages')" />
@@ -485,6 +486,11 @@
         </xsl:call-template>
 
     </xsl:function>
+
+    <!-- template to "write nothing" for custom additions calls unless explicitly overridden somewhere -->
+    <!-- currently only called into from elements-to-vivo-object-publication and elements-to-vivo-object-user.xsl -->
+    <!-- but could be used more widely -->
+    <xsl:template match="api:object[@category='publication']" mode="customAdditions" />
 
 </xsl:stylesheet>
 

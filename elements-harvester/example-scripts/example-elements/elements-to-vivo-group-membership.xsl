@@ -33,12 +33,13 @@
 
 
     <!-- Import XSLT files that are used -->
+    <xsl:import href="elements-to-vivo-utils.xsl" />
     <xsl:import href="elements-to-vivo-fuzzy-matching.xsl" />
 
     <!-- declare parameter containing the list of groups for a user being processed passed in from framework-->
     <xsl:param name="userGroups" select="/.."/>
 
-    <!-- template to supress all output except users -->
+    <!-- template to suppress all output except users -->
     <xsl:template match="api:object | api:relationship" mode="userGroupMembershipProcessing" />
 
     <!-- template to process group membership for users -->
@@ -51,11 +52,6 @@
         <xsl:variable name="requiredDiff" select="0.95" />
 
         <xsl:for-each select="svfn:getNodeOrLoad($userGroups)/usersGroups/group">
-        <!--<xsl:for-each select="$userGroups/usersGroups/group">-->
-
-            <xsl:variable name="positionTitle">
-                <xsl:text>Member</xsl:text>
-            </xsl:variable>
 
             <xsl:variable name="membershipURI" select="svfn:objectToObjectURI('group-user-membership-', @id, $userID)" />
             <!--<xsl:variable name="groupURI" select="svfn:makeURI('institutional-user-group-', @id)" />-->

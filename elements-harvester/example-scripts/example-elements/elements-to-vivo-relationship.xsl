@@ -50,7 +50,7 @@
         </xsl:choose>
     </xsl:template>
 
-    <!-- Default moded templates - do not output relationship, unless overridden -->
+    <!-- Default templates for the different modes - these deliberately output nothing for relationships, unless overridden -->
     <xsl:template match="api:relationship" mode="visible-relationship" />
     <xsl:template match="api:relationship" mode="invisible-relationship" />
 

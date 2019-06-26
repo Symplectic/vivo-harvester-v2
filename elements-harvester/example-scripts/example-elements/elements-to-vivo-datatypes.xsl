@@ -9,6 +9,7 @@
   ~   Version :  ${git.branch}:${git.commit.id}
   ~ *******************************************************************************
   -->
+<!-- noinspection ALL -->
 <xsl:stylesheet version="2.0"
                 xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
                 xmlns:xs="http://www.w3.org/2001/XMLSchema"
@@ -27,6 +28,8 @@
                 exclude-result-prefixes="rdf rdfs bibo vivo foaf score ufVivo vitro api symp svfn fn xs"
         >
 
+    <xsl:import href="elements-to-vivo-utils-2.xsl" />
+
     <!--
         Main XSLT file for applying Elements field type renderings
         ==========================================================
@@ -35,7 +38,7 @@
     <!--
         Convert an Elements date to a vivo:dateTime statement, with dateTimePrecision
 
-        Note, unlike the other templates that have a "renderForProprty" mode (as they are outputting a named property element,
+        Note, unlike the other templates that have a "renderForProperty" mode (as they are outputting a named property element,
         this template is rendering two specific VIVO ontology properties (for use on a particular class).
     -->
     <xsl:template match="api:date|api:start-date|api:end-date|api:effective-date|api:expiry-date">
@@ -135,7 +138,6 @@
     -->
     <xsl:template match="api:person" mode="renderElementContentForProperty">
         <xsl:param name="propertyName" />
-        
 
         <xsl:if test="preceding-sibling::*">
             <xsl:text>, </xsl:text>

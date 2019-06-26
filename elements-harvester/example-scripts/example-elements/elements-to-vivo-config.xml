@@ -155,7 +155,7 @@
     </config:journal-precedences>
 
     <!--
-        For any labels targetting subject-areas (default) or research-areas, as well as having the schemes defined below, you must add data to vocabularySource.n3 in vivo/home/rdf/abox/filegraph
+        For any labels targeting subject-areas (default) or research-areas, as well as having the schemes defined below, you must add data to vocabularySource.n3 in vivo/home/rdf/abox/filegraph
 
         For example for Mesh, ScienceMetrix and For label schemes you need to add this (note how the "defined-by" attribute from the label-schemes defs below is being used).
 
@@ -685,7 +685,7 @@
         <config:country-type name="Zaire" uri="http://aims.fao.org/aos/geopolitical.owl#Zaire" />
         <config:country-type name="Zambia" uri="http://aims.fao.org/aos/geopolitical.owl#Zambia" />
         <config:country-type name="Zimbabwe" uri="http://aims.fao.org/aos/geopolitical.owl#Zimbabwe" />
-        <!-- aliasses -->
+        <!-- aliases -->
         <config:country-type name="Bolivia" uri="http://aims.fao.org/aos/geopolitical.owl#Bolivia" />
         <config:country-type name="Cabo Verde" uri="http://aims.fao.org/aos/geopolitical.owl#Cape_Verde" />
         <config:country-type name="Democratic People's Republic of Korea (North Korea)" uri="http://aims.fao.org/aos/geopolitical.owl#Democratic_People_s_Republic_of_Korea_the" />
@@ -795,9 +795,9 @@
      This capability exists to allow you to create more "friendly" URIs for a small subset of the data if this is necessary
      Take care not to introduce URI re-use (i.e. different objects using the same URI) when using this capability.
      -->
-    <config:uriAliasses>
+    <config:uriAliases>
         <!-- the line below will mean the the URI ending /dwh will be replaced with /banana -->
         <!--<config:uri alias="dwh">banana</config:uri>-->
-    </config:uriAliasses>
+    </config:uriAliases>
 
 </config:main>
