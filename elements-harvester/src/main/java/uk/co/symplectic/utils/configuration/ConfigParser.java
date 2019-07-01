@@ -68,7 +68,7 @@ public abstract class ConfigParser {
         int count = 0;
         for(ConfigKey key : ConfigKey.keys){
             if(count > 0 ) configuredValuesBuilder.append(", ");
-            configuredValuesBuilder.append(MessageFormat.format("{0}:{1}", key.getName(), key.getValue(props)));
+            configuredValuesBuilder.append(key.getValue(props).toShortString());
             count++;
         }
         return configuredValuesBuilder.toString();
@@ -83,9 +83,9 @@ public abstract class ConfigParser {
      * @return The parsed List of String values List<String>.
      */
     protected List<String> getStrings(ConfigKey configKey, boolean tolerateNull) {
-        String key = configKey.getName();
         List<String> detectedValues = new ArrayList<String>();
-        String value = configKey.getValue(props);
+        ConfigValue confValue = configKey.getValue(props);
+        String value = confValue.getReadValue();
         if (!StringUtils.isEmpty(value)) {
             for (String splitValue : value.split("\\s*,\\s*")) {
                 String trimmedSplitValue = StringUtils.trimToNull(splitValue);
@@ -95,7 +95,7 @@ public abstract class ConfigParser {
         }
 
         if (!tolerateNull && detectedValues.size() == 0) {
-            configErrors.add(MessageFormat.format("Invalid value provided within argument {0} : {1} (must supply at least one string value)", key, value));
+            configErrors.add(MessageFormat.format("Invalid value provided within argument {0} (must supply at least one string value)", confValue));
         }
         return detectedValues;
     }
@@ -108,9 +108,10 @@ public abstract class ConfigParser {
      * @return The parsed List of String values as a List<String>.
      */
     protected List<String> getStringsFromCSVFragment(ConfigKey configKey, boolean tolerateNull) {
-        String key = configKey.getName();
+
         List<String> detectedValues = new ArrayList<String>();
-        String value = configKey.getValue(props);
+        ConfigValue confValue = configKey.getValue(props);
+        String value = confValue.getReadValue();
         if (!StringUtils.isEmpty(value)) {
             try {
                 CSVParser parser = CSVParser.parse(value, CSVFormat.RFC4180.withIgnoreSurroundingSpaces(true));
@@ -124,13 +125,13 @@ public abstract class ConfigParser {
                 }
             }
             catch(IOException e){
-                configErrors.add(MessageFormat.format("Invalid value provided for argument {0} : {1} (could not be parsed as a CSV fragment)", key, value));
+                configErrors.add(MessageFormat.format("Invalid value provided for argument {0} (could not be parsed as a CSV fragment)", confValue));
                 return detectedValues;
             }
         }
 
         if (!tolerateNull && detectedValues.size() == 0) {
-            configErrors.add(MessageFormat.format("Invalid value provided within argument {0} : {1} (must supply at least one string value)", key, value));
+            configErrors.add(MessageFormat.format("Invalid value provided within argument {0} (must supply at least one string value)", confValue));
         }
         return detectedValues;
     }
@@ -143,19 +144,19 @@ public abstract class ConfigParser {
      */
     protected List<Integer> getIntegers(ConfigKey configKey, boolean tolerateNull) {
         List<Integer> integers = new ArrayList<Integer>();
-        String key = configKey.getName();
-        String value = configKey.getValue(props);
+        ConfigValue confValue = configKey.getValue(props);
+        String value = confValue.getReadValue();
         if (!StringUtils.isEmpty(value)) {
             for (String intString : value.split("\\s*,\\s*")) {
                 try {
                     int anInt = Integer.parseInt(intString);
                     integers.add(anInt);
                 } catch (NumberFormatException e) {
-                    configErrors.add(MessageFormat.format("Invalid value ({0}) provided within argument {1} : {2} (every value must represent a valid integer)", intString, key, value));
+                    configErrors.add(MessageFormat.format("Invalid value ({0}) provided within argument {1} (every value must represent a valid integer)", intString, confValue));
                 }
             }
         } else if (!tolerateNull) {
-            configErrors.add(MessageFormat.format("Invalid value provided within argument {0} : {1} (must supply at least one integer)", key, value));
+            configErrors.add(MessageFormat.format("Invalid value provided within argument {0} (must supply at least one integer)", confValue));
         }
         return integers;
     }
@@ -167,15 +168,15 @@ public abstract class ConfigParser {
      * @return the parsed boolean.
      */
     protected boolean getBoolean(ConfigKey configKey) {
-        String key = configKey.getName();
-        String value = configKey.getValue(props);
+        ConfigValue confValue = configKey.getValue(props);
+        String value = confValue.getReadValue();
 
         if ("false".equalsIgnoreCase(value)) {
             return false;
         } else if ("true".equalsIgnoreCase(value)) {
             return true;
         } else {
-            configErrors.add(MessageFormat.format("Invalid value provided for argument {0} : {1} (must be \"true\" or \"false\")", key, value));
+            configErrors.add(MessageFormat.format("Invalid value provided for argument {0} (must be \"true\" or \"false\")", confValue));
             return false;
         }
     }
@@ -187,15 +188,15 @@ public abstract class ConfigParser {
      * @return the parsed int.
      */
     protected int getInt(ConfigKey configKey) {
-        String key = configKey.getName();
-        String value = configKey.getValue(props);
+        ConfigValue confValue = configKey.getValue(props);
+        String value = confValue.getReadValue();
         try {
             if (value != null) {
                 return Integer.parseInt(value, 10);
 
             }
         } catch (NumberFormatException nfe) {
-            configErrors.add(MessageFormat.format("Invalid value provided for argument {0} : {1} (must be an integer)", key, value));
+            configErrors.add(MessageFormat.format("Invalid value provided for argument {0} (must be an integer)", confValue));
         }
         return -1;
     }
@@ -221,25 +222,25 @@ public abstract class ConfigParser {
      * @return the parsed double.
      */
     protected double getDouble(ConfigKey configKey, Double minValue, Double maxValue) {
-        String key = configKey.getName();
-        String value = configKey.getValue(props);
+        ConfigValue confValue = configKey.getValue(props);
+        String value = confValue.getReadValue();
         try {
             double aDouble = Double.parseDouble(value);
             if(minValue != null && aDouble < minValue){
-                configErrors.add(MessageFormat.format("Invalid value provided for argument {0} : {1} (must be larger than {2})", key, value, minValue));
+                configErrors.add(MessageFormat.format("Invalid value provided for argument {0} (must be larger than {1})", confValue, minValue));
                 return 0;
             }
             if(maxValue != null && aDouble > maxValue){
-                configErrors.add(MessageFormat.format("Invalid value provided for argument {0} : {1} (must be less than {2})", key, value, maxValue));
+                configErrors.add(MessageFormat.format("Invalid value provided for argument {0} (must be less than {1})", confValue, maxValue));
                 return 0;
             }
             return aDouble;
 
         } catch (NumberFormatException nfe) {
-            configErrors.add(MessageFormat.format("Invalid value provided for argument {0} : {1} (must be a floating point value)", key, value));
+            configErrors.add(MessageFormat.format("Invalid value provided for argument {0} (must be a floating point value)", confValue));
         }
         catch (NullPointerException npe) {
-            configErrors.add(MessageFormat.format("Invalid value provided for argument {0} : {1} (must supply a floating point value)", key, value));
+            configErrors.add(MessageFormat.format("Invalid value provided for argument {0} (must supply a floating point value)", confValue));
         }
         return 0;
     }
@@ -251,13 +252,13 @@ public abstract class ConfigParser {
      * @return The parsed string.
      */
     protected String getString(ConfigKey configKey, boolean tolerateNull) {
-        String key = configKey.getName();
-        String value = configKey.getValue(props);
+        ConfigValue confValue = configKey.getValue(props);
+        String value = confValue.getReadValue();
 
         if (!StringUtils.isEmpty(value)) return value;
         //otherwise
         if (!tolerateNull)
-            configErrors.add(MessageFormat.format("Invalid value provided for argument {0} : {1} (must be a non empty string)", key, value));
+            configErrors.add(MessageFormat.format("Invalid value provided for argument {0} (must be a non empty string)", confValue));
         return null;
     }
 

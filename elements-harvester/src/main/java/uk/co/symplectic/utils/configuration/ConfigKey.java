@@ -11,28 +11,56 @@ package uk.co.symplectic.utils.configuration;
 
 import org.apache.commons.lang.NullArgumentException;
 import org.apache.commons.lang.StringUtils;
-import java.util.HashSet;
-import java.util.Properties;
-import java.util.Set;
+
+import java.text.MessageFormat;
+import java.util.*;
 
 /**
- * Class representing two things:
- * 1) a "key" within a Properties object that has a name and optionally a default value.
- * 2) The set of all "keys" that have been constructed (held statically)
+ * Class representing a "key" within a Properties object that has a name and optionally a default value.
  */
 public class ConfigKey{
 
-    static Set<ConfigKey> keys = new HashSet<ConfigKey>();
+    static class InvalidKeyConfiguration extends RuntimeException{
+        InvalidKeyConfiguration(String duplicateValue) {
+            super(MessageFormat.format("\"{0}\" is used by multiple ConfigKeys as a name or alias", duplicateValue));
+        }
+    }
 
-    private static synchronized void addKey(ConfigKey key) {
-        keys.add(key);
+
+    static Set<ConfigKey> keys = new HashSet<ConfigKey>();
+    private static Set<String> keyNames = new HashSet<String>();
+
+    private static synchronized void addKey(ConfigKey configKey) {
+        keys.add(configKey);
+        //check we are not adding a duplicate key name..
+        if(!keyNames.add(configKey.name)){
+            throw new InvalidKeyConfiguration(configKey.name);
+        }
     }
 
     // non static section
     private String name;
+    //private String lastReadFrom;
+    //private boolean defaulted = false;
+
+    //user set to ensure unique aliases within here, but try to preserve order too.
+    private Set<String> aliases = new LinkedHashSet<String>();
     private String defaultValue;
 
-    public String getName(){ return name; }
+    public String getName(){return name;}
+
+
+    //fluent setter to provide for easy alias configuration
+    public ConfigKey withAlias(String ... aliases) {
+        for(String alias : aliases) {
+            String potentialAlias = StringUtils.trimToNull(alias);
+            if(potentialAlias != null) this.aliases.add(potentialAlias);
+            if(!keyNames.add(potentialAlias)){
+                throw new InvalidKeyConfiguration(potentialAlias);
+            }
+        }
+        return this;
+    }
 
     public ConfigKey(String name) { this(name, null); }
     public ConfigKey(String name, String defaultValue){
@@ -48,8 +76,38 @@ public class ConfigKey{
      * @param props the Properties object to extract this Key's value from
      * @return the key's value
      */
-    public String getValue(Properties props){
-        String value = props == null ? null : StringUtils.trimToNull(props.getProperty(name));
-        return value == null ? defaultValue : value;
+    public ConfigValue getValue(Properties props) {
+        String aliasReadFrom = null;
+        String readValue = getRawValueFromProps(name, props);
+        //if we don't yet have a value - look at any aliases..
+        if (readValue == null) {
+            for (String alias : aliases) {
+                //Note alias will not be null (by construction guards)
+                readValue = getRawValueFromProps(alias, props);
+                // if we got something log the source and break out of this loop.
+                if (readValue != null) {
+                    aliasReadFrom = alias;
+                    break;
+                }
+            }
+        }
+
+        //if we still don't have a value apply the default if one is set.
+        if(readValue == null && defaultValue != null){
+            readValue = defaultValue;
+            aliasReadFrom = "default-value";
+        }
+
+        //whether readValue is still null or not we return the value..
+        return new ConfigValue(getDescriptor(aliasReadFrom), readValue);
+    }
+
+    private String getRawValueFromProps(String key, Properties props){
+        return  props == null ? null : StringUtils.trimToNull(props.getProperty(key));
+    }
+
+    private String getDescriptor(String readFrom){
+        String suffix = readFrom == null ? "" : MessageFormat.format("({0})", readFrom);
+        return MessageFormat.format("{0}{1}", name, suffix);
     }
 }

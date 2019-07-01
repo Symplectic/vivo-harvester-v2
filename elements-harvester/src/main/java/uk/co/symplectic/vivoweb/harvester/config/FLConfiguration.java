@@ -146,7 +146,7 @@ public class FLConfiguration {
             values.parse();
             //props.load(new FileInputStream("elementsfetch.properties"));
         } catch (Exception e) {
-            configErrors.add(MessageFormat.format("Could not load properties file: \"{0}\"", propertiesFileName));
+            configErrors.add(MessageFormat.format("Could not parse properties file: \"{0}\" : {1}", propertiesFileName, e.getMessage()));
         }
 
         if (!isConfigured()) throw new ConfigParser.UsageException();

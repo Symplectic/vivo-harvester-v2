@@ -24,21 +24,27 @@ import java.util.regex.Pattern;
  */
 
 public class GroupMatcher {
-    private final List<Pattern> matchingPatterns = new ArrayList<Pattern>();
+    private final List<Pattern> nameMatchingPatterns = new ArrayList<Pattern>();
+    private final List<Pattern> descriptionMatchingPatterns = new ArrayList<Pattern>();
     private final Set<ElementsItemId.GroupId> matchingIds = new HashSet<ElementsItemId.GroupId>();
 
-    public GroupMatcher(Collection<ElementsItemId.GroupId> matchIds, Set<String> matchPatterns){
+    public GroupMatcher(Collection<ElementsItemId.GroupId> matchIds, Set<String> namePatterns, Set<String> descriptionPatterns){
         if(matchIds != null && matchIds.size() > 0) this.matchingIds.addAll(matchIds);
-        if(matchPatterns != null){
-            for(String aPatternString : matchPatterns){
-                this.matchingPatterns.add(Pattern.compile(aPatternString, Pattern.CASE_INSENSITIVE));
+        if(namePatterns != null){
+            for(String aPatternString : namePatterns){
+                this.nameMatchingPatterns.add(Pattern.compile(aPatternString, Pattern.CASE_INSENSITIVE));
+            }
+        }
+        if(descriptionPatterns != null){
+            for(String aPatternString : descriptionPatterns){
+                this.descriptionMatchingPatterns.add(Pattern.compile(aPatternString, Pattern.CASE_INSENSITIVE));
             }
         }
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean isActive(){
-        return matchingIds.size() > 0 || matchingPatterns.size() > 0;
+        return matchingIds.size() > 0 || nameMatchingPatterns.size() > 0;
     }
 
     public boolean isMatch(ElementsItemInfo itemInfo){
@@ -46,8 +52,11 @@ public class GroupMatcher {
             ElementsGroupInfo groupInfo = itemInfo.asGroupInfo();
             //noinspection SuspiciousMethodCalls
             if (matchingIds.contains(groupInfo.getItemId())) return true;
-            for (Pattern pattern : matchingPatterns) {
+            for (Pattern pattern : nameMatchingPatterns) {
                 if (pattern.matcher(groupInfo.getName()).matches()) return true;
+            }
+            for (Pattern pattern : descriptionMatchingPatterns) {
+                if (pattern.matcher(groupInfo.getDescription()).matches()) return true;
             }
         }
         return false;

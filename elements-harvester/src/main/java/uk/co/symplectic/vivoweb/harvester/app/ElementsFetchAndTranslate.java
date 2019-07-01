@@ -913,7 +913,7 @@ public class ElementsFetchAndTranslate {
 
     /**
      * Method to calculate which Elements users should be included in the output sent to Vivo
-     * This is based on the configured ElligibilityFilters (current, academic, and custom generic fields/label scheme)
+     * This is based on the configured EligibilityFilters (current, academic, and custom generic fields/label scheme)
      * And secondarily on the configured user-groups to include and or exclude.
      * @param userInfoCache Cache of data about all Elements users.
      * @param groupCache The cache of information about our current understanding of user group memberships.

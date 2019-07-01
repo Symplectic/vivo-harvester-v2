@@ -13,6 +13,7 @@ import uk.co.symplectic.elements.api.ElementsAPIVersion;
 import uk.co.symplectic.utils.ImageUtils;
 import uk.co.symplectic.utils.configuration.ConfigKey;
 import uk.co.symplectic.utils.configuration.ConfigParser;
+import uk.co.symplectic.utils.configuration.ConfigValue;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectCategory;
 import uk.co.symplectic.vivoweb.harvester.utils.GroupMatcher;
@@ -66,30 +67,45 @@ public class Configuration {
 
         private ConfigKey ARG_INCLUDE_EMPTY_GROUPS = new ConfigKey("includeEmptyGroups", "true");
 
-        private ConfigKey ARG_PARAMS_GROUPS = new ConfigKey("paramGroups");
-        private ConfigKey ARG_PARAMS_GROUP_REGEXES = new ConfigKey("paramGroupRegexes");
+        private ConfigKey ARG_PARAMS_GROUPS = new ConfigKey("paramGroups").withAlias("includeGroups");
+        private ConfigKey ARG_PARAMS_GROUP_REGEXES = new ConfigKey("paramGroupRegexes").withAlias("paramGroupNameRegexes", "includeGroupRegexes", "includeGroupNameRegexes");
+        private ConfigKey ARG_PARAMS_GROUP_DESC_REGEXES = new ConfigKey("paramGroupDescriptionRegexes").withAlias("includeGroupDescriptionRegexes");
+
         private ConfigKey ARG_INCLUDE_CHILD_GROUPS = new ConfigKey("includeChildGroupsOf");
-        private ConfigKey ARG_INCLUDE_CHILD_GROUPS_REGEXES = new ConfigKey("includeChildGroupRegexes");
+        private ConfigKey ARG_INCLUDE_CHILD_GROUPS_REGEXES = new ConfigKey("includeChildGroupRegexes").withAlias("includeChildGroupNameRegexes");
+        private ConfigKey ARG_INCLUDE_CHILD_GROUPS_DESC_REGEXES = new ConfigKey("includeChildGroupDescriptionRegexes");
+
 
         private ConfigKey ARG_EXCLUDE_GROUPS = new ConfigKey("excludeGroups");
-        private ConfigKey ARG_EXCLUDE_GROUP_REGEXES = new ConfigKey("excludeGroupRegexes");
+        private ConfigKey ARG_EXCLUDE_GROUP_REGEXES = new ConfigKey("excludeGroupRegexes").withAlias("excludeGroupNameRegexes");
+        private ConfigKey ARG_EXCLUDE_GROUP_DESC_REGEXES = new ConfigKey("excludeGroupDescriptionRegexes");
+
         private ConfigKey ARG_EXCLUDE_CHILD_GROUPS = new ConfigKey("excludeChildGroupsOf");
-        private ConfigKey ARG_EXCLUDE_CHILD_GROUPS_REGEXES = new ConfigKey("excludeChildGroupRegexes");
+        private ConfigKey ARG_EXCLUDE_CHILD_GROUPS_REGEXES = new ConfigKey("excludeChildGroupRegexes").withAlias("excludeChildGroupNameRegexes");
+        private ConfigKey ARG_EXCLUDE_CHILD_GROUPS_DESC_REGEXES = new ConfigKey("excludeChildGroupDescriptionRegexes");
 
         private ConfigKey ARG_EXCISE_GROUPS = new ConfigKey("exciseGroups");
-        private ConfigKey ARG_EXCISE_GROUP_REGEXES = new ConfigKey("exciseGroupRegexes");
-        private ConfigKey ARG_EXCISE_CHILD_GROUPS = new ConfigKey("exciseChildGroupsOf");
-        private ConfigKey ARG_EXCISE_CHILD_GROUPS_REGEXES = new ConfigKey("exciseChildGroupRegexes");
+        private ConfigKey ARG_EXCISE_GROUP_REGEXES = new ConfigKey("exciseGroupRegexes").withAlias("exciseGroupNameRegexes");
+        private ConfigKey ARG_EXCISE_GROUP_DESC_REGEXES = new ConfigKey("exciseGroupDescriptionRegexes");
 
-        private ConfigKey ARG_PARAMS_USER_GROUPS = new ConfigKey("paramUserGroups");
-        private ConfigKey ARG_PARAMS_USER_GROUP_REGEXES = new ConfigKey("paramUserGroupRegexes");
+        //alias used because config key was miss-spelt at one point...
+        private ConfigKey ARG_EXCISE_CHILD_GROUPS = new ConfigKey("exciseChildGroupsOf").withAlias("exiseChildGroupsOf");
+        private ConfigKey ARG_EXCISE_CHILD_GROUPS_REGEXES = new ConfigKey("exciseChildGroupRegexes").withAlias("exciseChildGroupNameRegexes");
+        private ConfigKey ARG_EXCISE_CHILD_GROUPS_DESC_REGEXES = new ConfigKey("exciseChildGroupDescriptionRegexes");
+
+        private ConfigKey ARG_PARAMS_USER_GROUPS = new ConfigKey("paramUserGroups").withAlias("includeUserGroups");
+        private ConfigKey ARG_PARAMS_USER_GROUP_REGEXES = new ConfigKey("paramUserGroupRegexes").withAlias("paramUserGroupNameRegexes", "includeUserGroupRegexes", "includeUserGroupNameRegexes");
+        private ConfigKey ARG_PARAMS_USER_GROUP_DESC_REGEXES = new ConfigKey("paramUserGroupDescriptionRegexes").withAlias("includeUserGroupDescriptionRegexes");
+
         private ConfigKey ARG_EXCLUDE_USER_GROUPS = new ConfigKey("excludeUserGroups");
-        private ConfigKey ARG_EXCLUDE_USER_GROUP_REGEXES = new ConfigKey("excludeUserGroupRegexes");
+        private ConfigKey ARG_EXCLUDE_USER_GROUP_REGEXES = new ConfigKey("excludeUserGroupRegexes").withAlias("excludeUserGroupNameRegexes");
+        private ConfigKey ARG_EXCLUDE_USER_GROUP_DESC_REGEXES = new ConfigKey("excludeUserGroupDescriptionRegexes");
 
-        private ConfigKey ARG_ELIGIBILITY_TYPE = new ConfigKey("elligibilityFilterType");
-        private ConfigKey ARG_ELIGIBILITY_NAME = new ConfigKey("elligibilityFilterName");
-        private ConfigKey ARG_ELIGIBILITY_INCLUDE_VALUE = new ConfigKey("elligibilityFilterInclusionValue");
-        private ConfigKey ARG_ELIGIBILITY_EXCLUDE_VALUE = new ConfigKey("elligibilityFilterExclusionValue");
+        //aliases used because config keys were miss-spelt at one point...
+        private ConfigKey ARG_ELIGIBILITY_TYPE = new ConfigKey("eligibilityFilterType").withAlias("elligibilityFilterType");
+        private ConfigKey ARG_ELIGIBILITY_NAME = new ConfigKey("eligibilityFilterName").withAlias("elligibilityFilterName");
+        private ConfigKey ARG_ELIGIBILITY_INCLUDE_VALUE = new ConfigKey("eligibilityFilterInclusionValue").withAlias("elligibilityFilterInclusionValue");
+        private ConfigKey ARG_ELIGIBILITY_EXCLUDE_VALUE = new ConfigKey("eligibilityFilterExclusionValue").withAlias("elligibilityFilterExclusionValue");
 
         private ConfigKey ARG_API_FULL_DETAIL_PER_PAGE = new ConfigKey("fullDetailPerPage", "25");
         private ConfigKey ARG_API_REF_DETAIL_PER_PAGE = new ConfigKey("refDetailPerPage", "100");
@@ -182,19 +198,21 @@ public class Configuration {
          */
         @SuppressWarnings("SameParameterValue")
         private List<ElementsObjectCategory> getCategories(ConfigKey configKey, boolean tolerateNull) {
-            String key = configKey.getName();
+            ConfigValue confValue = configKey.getValue(props);
+            String value = confValue.getReadValue();
             List<ElementsObjectCategory> categories = new ArrayList<ElementsObjectCategory>();
-            String value = configKey.getValue(props);
             if (!StringUtils.isEmpty(value)) {
-                for (String category : value.split("\\s*,\\s*")) {
-                    ElementsObjectCategory cat = ElementsObjectCategory.valueOf(category);
-                    if (cat == null) {
-                        configErrors.add(MessageFormat.format("Invalid value ({0}) provided within argument {1} : {2} (every value must represent a valid Elements Category)", category, key, value));
+                for (String categoryString : value.split("\\s*,\\s*")) {
+                    try {
+                        ElementsObjectCategory cat = ElementsObjectCategory.valueOf(categoryString);
+                        categories.add(cat);
                     }
-                    categories.add(cat);
+                    catch(IndexOutOfBoundsException e){
+                        configErrors.add(MessageFormat.format("Invalid value ({0}) provided within argument {1} (every value must represent a valid Elements Category)", categoryString, confValue));
+                    }
                 }
             } else if(!tolerateNull) {
-                configErrors.add(MessageFormat.format("Invalid value provided within argument {0} : {1} (must supply at least one Elements Category)", key, value));
+                configErrors.add(MessageFormat.format("Invalid value provided within argument {0} (must supply at least one Elements Category)", confValue));
             }
             return categories;
         }
@@ -205,14 +223,14 @@ public class Configuration {
          * @return the parsed ElementsAPIVersion value (can legitimately be null)
          */
         private ElementsAPIVersion getApiVersion(ConfigKey configKey) {
-            String key = configKey.getName();
-            String value = configKey.getValue(props);
+            ConfigValue confValue = configKey.getValue(props);
+            String value = confValue.getReadValue();
             try {
                 if(value != null) {
                     return ElementsAPIVersion.parse(value);
                 }
             } catch (IllegalStateException e) {
-                configErrors.add(MessageFormat.format("Invalid value provided for argument {0} : {1} (must be a valid elements api version)", key, value));
+                configErrors.add(MessageFormat.format("Invalid value provided for argument {0} (must be a valid elements api version)", confValue));
             }
             return null;
         }
@@ -223,8 +241,8 @@ public class Configuration {
          * @return the parsed PhotoType enum value. (cannot be null)
          */
         private ImageUtils.PhotoType getImageType(ConfigKey configKey) {
-            String key = configKey.getName();
-            String value = configKey.getValue(props);
+            ConfigValue confValue = configKey.getValue(props);
+            String value = confValue.getReadValue();
 
             ImageUtils.PhotoType imageType = null;
             String testValue = StringUtils.trimToNull(value);
@@ -240,14 +258,14 @@ public class Configuration {
             }
 
             if(imageType == null){
-                configErrors.add(MessageFormat.format("Invalid value provided for argument {0} : {1} (must be a valid elements photo type : \"original\", \"photo\", \"thumbnail\" or \"none\")", key, value));
+                configErrors.add(MessageFormat.format("Invalid value provided for argument {0} (must be a valid elements photo type : \"original\", \"photo\", \"thumbnail\" or \"none\")", confValue));
             }
 
             return imageType;
         }
 
 
-        private GroupMatcher getGroupMatcher(ConfigKey groupIdsKey, ConfigKey groupRegexesKey) {
+        private GroupMatcher getGroupMatcher(ConfigKey groupIdsKey, ConfigKey nameRegexesKey, ConfigKey descRegexesKey) {
             List<ElementsItemId.GroupId> groupIds = new ArrayList<ElementsItemId.GroupId>();
             //allow null as that means exclude nothing
             if(groupIdsKey != null) {
@@ -255,14 +273,20 @@ public class Configuration {
                     groupIds.add(ElementsItemId.createGroupId(groupId));
             }
 
-            Set<String> groupRegexes = null;
-            if(groupRegexesKey != null) {
+            Set<String> groupNameRegexes = null;
+            if(nameRegexesKey != null) {
                 //allow null input as that means exclude nothing
-                groupRegexes = new HashSet<String>(getStringsFromCSVFragment(groupRegexesKey, true));
+                groupNameRegexes = new HashSet<String>(getStringsFromCSVFragment(nameRegexesKey, true));
+            }
+
+            Set<String> groupDescriptionRegexes = null;
+            if(descRegexesKey != null) {
+                //allow null input as that means exclude nothing
+                groupDescriptionRegexes = new HashSet<String>(getStringsFromCSVFragment(descRegexesKey, true));
             }
 
             //parsing of sets above will have created appropriate errors if necessary...
-            return new GroupMatcher(groupIds, groupRegexes);
+            return new GroupMatcher(groupIds, groupNameRegexes, groupDescriptionRegexes);
         }
 
         /**
@@ -293,7 +317,7 @@ public class Configuration {
                     if (lowerCaseSchemeType.equals("generic-field"))
                         return new EligibilityFilter.GenericFieldFilter(schemeName, includeValue, excludeValue, academicsOnly, currentStaffOnly, publicStaffOnly);
 
-                    configErrors.add(MessageFormat.format("\"{0}\" is not a valid eligibility type, valid values are label-scheme and generic-field", schemeType));
+                    configErrors.add(MessageFormat.format("Invalid value provided for argument {0} : \"{1}\", valid values are label-scheme and generic-field", ARG_ELIGIBILITY_TYPE.getName(), schemeType));
                 }
                 catch(Exception e){
                     configErrors.add(MessageFormat.format("Error instantiating Eligibility filter : {0}", e.getMessage()));
@@ -338,17 +362,17 @@ public class Configuration {
             values.apiSoTimeout = getInt(ARG_API_SOCKET_TIMEOUT);
             values.apiRequestDelay = getInt(ARG_API_REQUEST_DELAY);
 
-            values.groupsToHarvestMatcher = getGroupMatcher(ARG_PARAMS_GROUPS, ARG_PARAMS_GROUP_REGEXES);
-            values.groupsToIncludeChildrenOfMatcher = getGroupMatcher(ARG_INCLUDE_CHILD_GROUPS, ARG_INCLUDE_CHILD_GROUPS_REGEXES);
+            values.groupsToHarvestMatcher = getGroupMatcher(ARG_PARAMS_GROUPS, ARG_PARAMS_GROUP_REGEXES, ARG_PARAMS_GROUP_DESC_REGEXES);
+            values.groupsToIncludeChildrenOfMatcher = getGroupMatcher(ARG_INCLUDE_CHILD_GROUPS, ARG_INCLUDE_CHILD_GROUPS_REGEXES, ARG_INCLUDE_CHILD_GROUPS_DESC_REGEXES);
 
-            values.groupsToExcludeMatcher = getGroupMatcher(ARG_EXCLUDE_GROUPS, ARG_EXCLUDE_GROUP_REGEXES);
-            values.groupsToExcludeChildrenOfMatcher = getGroupMatcher(ARG_EXCLUDE_CHILD_GROUPS, ARG_EXCLUDE_CHILD_GROUPS_REGEXES);
+            values.groupsToExcludeMatcher = getGroupMatcher(ARG_EXCLUDE_GROUPS, ARG_EXCLUDE_GROUP_REGEXES, ARG_EXCLUDE_GROUP_DESC_REGEXES);
+            values.groupsToExcludeChildrenOfMatcher = getGroupMatcher(ARG_EXCLUDE_CHILD_GROUPS, ARG_EXCLUDE_CHILD_GROUPS_REGEXES, ARG_EXCLUDE_CHILD_GROUPS_DESC_REGEXES);
 
-            values.groupsToExciseMatcher = getGroupMatcher(ARG_EXCISE_GROUPS, ARG_EXCISE_GROUP_REGEXES);
-            values.groupsToExciseChildrenOfMatcher = getGroupMatcher(ARG_EXCISE_CHILD_GROUPS, ARG_EXCISE_CHILD_GROUPS_REGEXES);
+            values.groupsToExciseMatcher = getGroupMatcher(ARG_EXCISE_GROUPS, ARG_EXCISE_GROUP_REGEXES, ARG_EXCISE_GROUP_DESC_REGEXES);
+            values.groupsToExciseChildrenOfMatcher = getGroupMatcher(ARG_EXCISE_CHILD_GROUPS, ARG_EXCISE_CHILD_GROUPS_REGEXES, ARG_EXCISE_CHILD_GROUPS_DESC_REGEXES);
 
-            values.groupsOfUsersToHarvestMatcher = getGroupMatcher(ARG_PARAMS_USER_GROUPS, ARG_PARAMS_USER_GROUP_REGEXES);
-            values.groupsOfUsersToExcludeMatcher = getGroupMatcher(ARG_EXCLUDE_USER_GROUPS, ARG_EXCLUDE_USER_GROUP_REGEXES);
+            values.groupsOfUsersToHarvestMatcher = getGroupMatcher(ARG_PARAMS_USER_GROUPS, ARG_PARAMS_USER_GROUP_REGEXES, ARG_PARAMS_USER_GROUP_DESC_REGEXES);
+            values.groupsOfUsersToExcludeMatcher = getGroupMatcher(ARG_EXCLUDE_USER_GROUPS, ARG_EXCLUDE_USER_GROUP_REGEXES, ARG_EXCLUDE_USER_GROUP_DESC_REGEXES);
 
             values.categoriesToHarvest = getCategories(ARG_QUERY_CATEGORIES, false); //do not allow null for categories to query
 
@@ -602,9 +626,8 @@ public class Configuration {
             values.parse();
         }
         catch(Exception e){
-            configErrors.add(MessageFormat.format("Could not load properties file: \"{0}\"", propertiesFileName));
+            configErrors.add(MessageFormat.format("Could not parse properties file: \"{0}\" : {1}", propertiesFileName, e.getMessage()));
         }
-
         if (!isConfigured()) throw new ConfigParser.UsageException();
     }
 }
