@@ -14,7 +14,7 @@ Ensure you have installed all these modules:
 
 The exact names of these modules and the commands needed to install them will vary between distributions and versions, below are two examples
   * CENTOS7	: yum install incron gzip perl-File-Touch perl-File-ReadBackwards perl-CGI perl-XML-Tidy
-  * DEBIAN	: sudo apt install incron gzip libfile-touch-perl libfile-readbackwards-perl libcgi-pm-perl libxml-tidy-perl
+  * DEBIAN	: apt install incron gzip libfile-touch-perl libfile-readbackwards-perl libcgi-pm-perl libxml-tidy-perl
 
 Once the packages are installed ensure that incron is registered as a daemon with SystemD and that it is running:
 
