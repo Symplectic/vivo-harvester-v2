@@ -183,22 +183,31 @@
         <xsl:param name="object" />
         <xsl:param name="condition" />
 
+        <xsl:variable name="config-namespace" select="'http://www.symplectic.co.uk/vivo/namespaces/config'" />
+
         <!-- look at making more controllable -->
         <xsl:choose>
-            <xsl:when test="name($condition) = 'config:field-matches'">
-                <xsl:value-of select="svfn:fieldMatches($object, $condition/@field, $condition/@value, $condition/@in-records)" />
-            </xsl:when>
-            <xsl:when test="name($condition) = 'config:field-like'">
-                <xsl:value-of select="svfn:fieldLike($object, $condition/@field, $condition/@value, $condition/@in-records)" />
-            </xsl:when>
-            <xsl:when test="name($condition) = 'config:not'">
-                <xsl:value-of select="svfn:notCondition($object, $condition)" />
-            </xsl:when>
-            <xsl:when test="name($condition) = 'config:or'">
-                <xsl:value-of select="svfn:orCondition($object, $condition, 1)" />
-            </xsl:when>
-            <xsl:when test="name($condition) = 'config:and'">
-                <xsl:value-of select="svfn:andCondition($object, $condition, 1)" />
+            <xsl:when test="fn:string(fn:namespace-uri-from-QName(fn:resolve-QName(fn:name($condition), $condition))) = $config-namespace">
+                <xsl:choose>
+                    <xsl:when test="local-name($condition) = 'field-matches'">
+                        <xsl:value-of select="svfn:fieldMatches($object, $condition/@field, $condition/@value, $condition/@in-records)" />
+                    </xsl:when>
+                    <xsl:when test="local-name($condition) = 'field-like'">
+                        <xsl:value-of select="svfn:fieldLike($object, $condition/@field, $condition/@value, $condition/@in-records)" />
+                    </xsl:when>
+                    <xsl:when test="local-name($condition) = 'not'">
+                        <xsl:value-of select="svfn:notCondition($object, $condition)" />
+                    </xsl:when>
+                    <xsl:when test="local-name($condition) = 'or'">
+                        <xsl:value-of select="svfn:orCondition($object, $condition, 1)" />
+                    </xsl:when>
+                    <xsl:when test="local-name($condition) = 'and'">
+                        <xsl:value-of select="svfn:andCondition($object, $condition, 1)" />
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:value-of select="false()" />
+                    </xsl:otherwise>
+                </xsl:choose>
             </xsl:when>
             <xsl:otherwise>
                 <xsl:value-of select="false()" />
