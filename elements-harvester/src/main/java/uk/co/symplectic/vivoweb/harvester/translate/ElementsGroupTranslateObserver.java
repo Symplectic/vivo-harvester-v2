@@ -11,14 +11,13 @@ package uk.co.symplectic.vivoweb.harvester.translate;
 
 import org.apache.commons.lang.NullArgumentException;
 import org.w3c.dom.Document;
+import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
 import uk.co.symplectic.vivoweb.harvester.utils.ElementsGroupCollection;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsGroupInfo;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsRdfStore;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsStoredItemInfo;
-import uk.co.symplectic.vivoweb.harvester.store.StorableResourceType;
 import uk.co.symplectic.vivoweb.harvester.utils.IncludedGroups;
-
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;

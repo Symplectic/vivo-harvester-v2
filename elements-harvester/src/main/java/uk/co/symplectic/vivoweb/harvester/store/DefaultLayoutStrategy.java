@@ -55,8 +55,8 @@ public class DefaultLayoutStrategy implements LayoutStrategy {
     @Override
     public Collection<File> getAllExistingFilesOfType(File storeDir, StorableResourceType resourceType) {
         List<File> filesOfType = new ArrayList<File>();
-        for(ElementsItemType.SubType subTypes : ElementsItemType.knownSubTypes(resourceType.getKeyItemType())){
-            filesOfType.addAll(getAllExistingFilesOfType(storeDir, resourceType, subTypes));
+        for(ElementsItemType.SubType subType : resourceType.getSupportedSubTypes()){
+            filesOfType.addAll(getAllExistingFilesOfType(storeDir, resourceType, subType));
         }
         return filesOfType;
     }

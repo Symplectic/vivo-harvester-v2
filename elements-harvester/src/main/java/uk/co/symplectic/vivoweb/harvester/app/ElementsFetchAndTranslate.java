@@ -239,7 +239,7 @@ public class ElementsFetchAndTranslate {
                 //NOTE: order is absolutely vital (relationship translation scripts can rely on raw object data having been fetched)
                 if(currentRunClassification != StateManagement.RunClassification.REPROCESSING){
                     //start by creating a cache of "relationship types" that we are interested in..
-                    ElementsItemKeyedCollection.ItemRestrictor restrictToRelationshipTypes = new ElementsItemKeyedCollection.RestrictToSubTypes(ElementsItemType.AllRelationshipTypes);
+                    ElementsItemKeyedCollection.ItemRestrictor restrictToRelationshipTypes = new ElementsItemKeyedCollection.RestrictToSubTypes(ElementsItemType.GenericRelationshipType);
                     ElementsItemKeyedCollection.ItemInfo relationshipTypeCache = new ElementsItemKeyedCollection.ItemInfo(restrictToRelationshipTypes);
                     elementsFetcher.execute(new ElementsFetch.RelationshipTypesConfig(), relationshipTypeCache.getStoreWrapper());
                     Set<ElementsItemId> relationshipTypesToInclude = new HashSet<ElementsItemId>();

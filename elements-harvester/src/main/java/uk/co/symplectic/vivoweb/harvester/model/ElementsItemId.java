@@ -37,7 +37,6 @@ public class ElementsItemId{
 
     ElementsItemId(ElementsItemType.SubType subType, int id) {
         if (subType == null) throw new NullArgumentException("subType");
-        if(!subType.isConcrete()) throw new IllegalArgumentException("subType must be a usable concrete sub type when instantiating an ItemId");
         this.subType = subType;
         this.id = id;
     }
@@ -78,15 +77,15 @@ public class ElementsItemId{
     }
 
     public static class GroupId extends ElementsItemId {
-        private GroupId(int id) { super(ElementsItemType.AllGroups, id); }
+        private GroupId(int id) { super(ElementsItemType.GenericGroup, id); }
     }
 
     public static class RelationshipId extends ElementsItemId {
-        private RelationshipId(int id) { super(ElementsItemType.AllRelationships, id); }
+        private RelationshipId(int id) { super(ElementsItemType.GenericRelationship, id); }
     }
 
     public static class RelationshipTypeId extends ElementsItemId {
-        private RelationshipTypeId(int id) { super(ElementsItemType.AllRelationshipTypes, id); }
+        private RelationshipTypeId(int id) { super(ElementsItemType.GenericRelationshipType, id); }
     }
 }
 

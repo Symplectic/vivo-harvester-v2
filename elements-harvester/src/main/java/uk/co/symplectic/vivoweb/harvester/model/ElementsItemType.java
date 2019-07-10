@@ -22,7 +22,7 @@ import java.util.*;
  * The SubTypes are registered in the static dictionaries here, so all extant "sub types" are always directly comparable
  * as they are the same object...
  */
-public enum ElementsItemType {
+public enum ElementsItemType{
     OBJECT("object"),
     RELATIONSHIP("relationship"),
     RELATIONSHIP_TYPE("relationship_type"),
@@ -42,6 +42,17 @@ public enum ElementsItemType {
         if (StringUtils.trimToNull(pluralName) == null) throw new NullArgumentException("pluralName");
         this.name = name;
         this.pluralName = pluralName;
+    }
+
+    /**
+     * Method to retrieve all the "known" sub types for a particular item type.
+     * @return Collection<SubType> of all registered sub types
+     */
+    public Collection<ElementsItemType.SubType> getSubTypes(){
+        if(singularMap.containsKey(this)) {
+            return Collections.unmodifiableCollection(singularMap.get(this).values());
+        }
+        return Collections.unmodifiableCollection(new HashSet<SubType>());
     }
 
     /**
@@ -80,23 +91,11 @@ public enum ElementsItemType {
         throw new IndexOutOfBoundsException(MessageFormat.format("{0} is not a known subtype of {2}", value, type.getName()));
     }
 
-    /**
-     * Method to retrieve all the "known" sub types for a particular item type.
-     * @param type The ElementsItemType to search for sub types.
-     * @return Collection<SubType> of all registered sub types
-     */
-    public static Collection<SubType> knownSubTypes (ElementsItemType type) {
-        if(singularMap.containsKey(type)) {
-            return Collections.unmodifiableCollection(singularMap.get(type).values());
-        }
-        return Collections.unmodifiableCollection(new HashSet<SubType>());
-    }
-
     //static block to instantiate the generic subtypes encompassing all groups and all relationships
-    public static SubType AllObjects = new AggregateSubType(ElementsItemType.OBJECT, false);
-    public static SubType AllGroups = new AggregateSubType(ElementsItemType.GROUP, true);
-    public static SubType AllRelationships = new AggregateSubType(ElementsItemType.RELATIONSHIP, true);
-    public static SubType AllRelationshipTypes = new AggregateSubType(ElementsItemType.RELATIONSHIP_TYPE, true);
+    //public static SubType AllObjects = new AggregateSubType(ElementsItemType.OBJECT, false);
+    public static SubType GenericGroup = new GenericSubType(ElementsItemType.GROUP);
+    public static SubType GenericRelationship = new GenericSubType(ElementsItemType.RELATIONSHIP);
+    public static SubType GenericRelationshipType = new GenericSubType(ElementsItemType.RELATIONSHIP_TYPE);
 
     /**
      * Class representing the idea of a subtype of data (e.g. publication within object)
@@ -109,56 +108,27 @@ public enum ElementsItemType {
         private final ElementsItemType mainType;
         private final String singular;
         private final String plural;
-        private final boolean isConcrete;
 
         public ElementsItemType getMainType() { return mainType; }
         public String getSingular() { return singular; }
         public String getPlural() {
             return plural;
         }
-        public boolean isConcrete() {
-            return isConcrete;
-        }
 
-        @SuppressWarnings("SameParameterValue")
         protected SubType(ElementsItemType mainType, String singular, String plural){
-            this(mainType, singular, plural, true);
-        }
-
-        protected SubType(ElementsItemType mainType, String singular, String plural, boolean registerAsConcrete){
             if (StringUtils.trimToNull(singular) == null) throw new NullArgumentException("singular");
             if (StringUtils.trimToNull(plural) == null) throw new NullArgumentException("plural");
             this.mainType = mainType;
             this.singular = singular;
             this.plural = plural;
-            this.isConcrete = registerAsConcrete;
             //add to parent dictionaries
-            if(registerAsConcrete) addSubType(this);
-        }
-
-        //Note matches is not equals..if a matches b or b matches a then it is a match.
-        //if either side believes that it matches the other then it is a match..
-        public boolean matches(SubType other){
-            return innerMatches(other) || other.innerMatches(this);
-        }
-
-        public boolean innerMatches(SubType other){
-            return this == other;
+            addSubType(this);
         }
     }
 
-    /**
-     * Class that can represent an aggregate grouping of subtypes
-     * specifically in terms of matches behaviour..
-     */
-    private static class AggregateSubType extends SubType{
-        AggregateSubType(ElementsItemType mainType, boolean registerAsConcrete){
-            super(mainType, mainType.getName(), mainType.getPluralName(), registerAsConcrete);
-        }
-
-        @Override
-        public boolean innerMatches(SubType other){
-            return this.getMainType() == other.getMainType();
+    static class GenericSubType extends SubType{
+        GenericSubType(ElementsItemType mainType){
+            super(mainType, mainType.getName(), mainType.getPluralName());
         }
     }
 

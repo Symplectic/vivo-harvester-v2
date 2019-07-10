@@ -63,7 +63,7 @@ public class Configuration {
         private ConfigKey ARG_VIVO_IMAGE_DIR = new ConfigKey("vivoImageDir", "data/harvestedImages/");
         private ConfigKey ARG_VIVO_IMAGE_BASE_PATH = new ConfigKey("vivoImageBasePath", "/harvestedImages/");
 
-        private ConfigKey ARG_QUERY_CATEGORIES = new ConfigKey("queryObjects"); //TODO : rename this input param?
+        private ConfigKey ARG_QUERY_CATEGORIES = new ConfigKey("queryObjects");
 
         private ConfigKey ARG_INCLUDE_EMPTY_GROUPS = new ConfigKey("includeEmptyGroups", "true");
 

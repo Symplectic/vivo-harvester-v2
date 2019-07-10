@@ -18,6 +18,9 @@ package uk.co.symplectic.vivoweb.harvester.model;
 @SuppressWarnings("unused")
 public class ElementsObjectCategory extends ElementsItemType.SubType {
 
+    /*
+    These static instance fields effectively register the known SubTypes of the Object category...
+     */
     public static final ElementsObjectCategory ACTIVITY          = new ElementsObjectCategory("activity", "activities");
     public static final ElementsObjectCategory EQUIPMENT         = new ElementsObjectCategory("equipment", "equipment");
     public static final ElementsObjectCategory GRANT             = new ElementsObjectCategory("grant", "grants");
