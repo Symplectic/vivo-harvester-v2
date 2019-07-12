@@ -187,9 +187,6 @@ Similarly if your dataset is much smaller than 5Gb you may be able to reduce the
   
 The first version of the Elements-VIVO Harvester was developed by Ian Boston, and was originally available at: https://github.com/ieb/symplectic-harvester.  
   
-The second version was developed by Graham Triggs (whilst working for Symplectic), and can be found at https://github.com/Symplectic/VIVO  
+The second version was developed by Graham Triggs (whilst working for Symplectic), and can be found at https://github.com/Symplectic/VIVO. Additional thanks to Daniel Grant from Emory University for his contributions to the second version.
   
 This version was developed by Andrew Cockbill (whilst working for Symplectic).
- 
-Additional thanks to Daniel Grant from Emory University for his contribution of 4.6 API code and teaching activity XSLT via pull request.
-
