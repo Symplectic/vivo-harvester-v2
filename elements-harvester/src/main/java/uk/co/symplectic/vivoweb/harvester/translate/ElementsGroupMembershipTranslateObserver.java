@@ -101,6 +101,7 @@ public class ElementsGroupMembershipTranslateObserver extends ElementsTranslateO
     private ElementsItemId.GroupId getNearestIncludedGroupWalker(ElementsGroupInfo.GroupHierarchyWrapper group){
         //note - as long as the source group of the membership is not excised then regardless of whether we pass through excised ones
         //we still want to traverse upwards though them hierarchically to find a valid parent to re-wire membership to.
+        if(group == null) return null;
         ElementsItemId.GroupId groupId = (ElementsItemId.GroupId) group.getGroupInfo().getItemId();
         if(includedGroups.getIncludedGroups().keySet().contains(groupId)) return groupId;
         return getNearestIncludedGroupWalker(group.getParent());
