@@ -1,14 +1,18 @@
 # Default Crosswalks (VIVO 1.6+)
 
-This directory contains the default XSLT crosswalks to map from Elements API XML to VIVO compatible RDF-XML (ISF Ontology). These example crosswalks contain transformations for Elements *Users*, *Publications*, *Grants* and a small subset of *Professional* and *Teaching Activity* object types.
+This directory contains the default XSLT crosswalks to map from Elements API XML to VIVO compatible RDF-XML (ISF Ontology). 
+These example crosswalks contain transformations for Elements *Users*, *Publications*, *Grants* and a small subset 
+of *Professional* and *Teaching Activity* object types.
 In addition they contain mappings for Elements *group* and *group membership* information.
 
-***Note:** These default crosswalks  are not meant to represent a “complete” or “perfect” mapping in any way but rather a good starting point. They hopefully serve as a useful illustration/framework, as well as providing a set of tools and utilities to develop from.*
+***Note:** These default crosswalks  are not meant to represent a “complete” or “perfect” mapping in any way but rather
+ a good starting point. They hopefully serve as a useful illustration/framework, as well as providing a set of tools and
+ utilities to develop from.*
 
 ## Structure
-
 The main entry point is the file ***elements-to-vivo.xsl***. 
-Beneath this the crosswalks are broken out into multiple files containing templates/functions that handle the translation of different concepts/types of input data. the basic structure (in terms of imports/includes) is indicated below:
+Beneath this the crosswalks are broken out into multiple files containing templates/functions that handle the translation
+ of different concepts/types of input data. the basic structure (in terms of imports/includes) is indicated below:
 
   * elements-to-vivo.xsl *(Main entry point)*
     * elements-to-vivo-config.xsl
@@ -48,12 +52,45 @@ Beneath this the crosswalks are broken out into multiple files containing templa
     * elements-to-vivo-template-overrides.xsl *(Override files to allow overriding of templates/functions)*
     * elements-to-vivo-util-overrides.xsl
 
-For the most part the primary input, fed to the crosswalks by the Harvester, will be a single Elements "item" e.g an Object, A relationship, etc in the Elements API XML representation. In several cases, however, the Harvester provides additional data to inform/alter the translation via XSL parameters.
+For the most part the primary input, fed to the crosswalks by the Harvester, will be a single Elements "item" e.g an Object, 
+A relationship, etc in the Elements API XML representation. In several cases, however, the Harvester provides additional data
+to inform/alter the translation via XSL parameters.
 
-Please see xxxx for more information about how the crosswalks and the harvester interact.
+Please see the _Crosswalk Development Guide_ in the release documentation for more information about how the crosswalks
+ and the harvester interact.
+
+## Notes on "VCard" Context Objects
+When creating "context" objects (e.g. authorships/editorships/roles), these crosswalks make use of "VCard" objects
+to represent people that do not have a profile in Vivo (e.g. any co-authors of an academic paper from another institution).
+
+* (_vcard<--authorship-->publication_) **Vs** (_user<--authorship-->publication_)
+
+This is in line with what Vivo expects :
+
+  * https://wiki.duraspace.org/display/VTDA/The+W3C+vCard+ontology+in+VIVO
     
+In fact, these crosswalks deliberately create a VCard linked to the context object regardless of whether there is also 
+a link to an actual Vivo user:
+
+  * (_vcard<--authorship-->publication_) **Vs** (_user + vcard <--authorship-->publication_)
+                                         
+This is done to ensure that all authors/editors/etc are listed even if a user's relationship with a publication is marked
+as "hidden". It also allows for situations where the published name, as listed on the paper, does not match the user's 
+name as it appears on their profile.
+ 
+Unfortunately Vivo's out of the box support for "VCard" objects in context objects is not as complete as it might be,
+for example it does not list "VCard's" in "editorship" objects at all. Additionally not all aspects of Vivo cope well
+with context objects containing links to both a user object and an equivalent Vcard representation of the linked user.  
+These issues mostly relate to how various "listViewConfigs" process data:
+
+* **listViewConfig-informationResourceInEditorship.xml** does not handle "VCard" data at all. 
+* **listViewConfig-informationResourceInAuthorship.xml** will always list the user's "label" rather than the VCard name (hiding the published name if different)
+* **listViewConfig-relatedRole.xml** behaviour is buggy and inconsistent in terms of which names gets listed and which profiles get linked.
+
+These problems can be addressed in a variety of ways, one way is to customise the listViewConfigs appropriately:
+See the "example-integrations/vivo-list-view-configs" directory for some examples for Vivo v1.9.3.
+
 ## Notes on Controlled Vocabularies  
-  
 These crosswalks contain mappings for labels in the MeSH, Science Metrix and Field of Research schemes. In order to display correctly, you need to add the contents of "add-to-vocabularySource.n3" to the file
  
     <vivo>/home/rdf/abox/filegraph/vocabularySource.n3

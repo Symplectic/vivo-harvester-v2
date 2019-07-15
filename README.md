@@ -1,7 +1,7 @@
 # Symplectic Elements Harvester for VIVO  
 This is a significantly updated version of the VIVO Harvester that enables the use of Symplectic Elements as a data source for VIVO. This version of the connector is based on the earlier open source versions, and leverages a similar XSLT pipeline to perform the main translations. Nonetheless it has been significantly updated to support delta based updates from the Elements API (to reduce load on the Elements server), transfer of Elements groups and group membership information and to address various performance and process complexity issues.
 
-For more information about the design and philosophy of this project please refer to the *"Description & Overview"* pdf in the *documentation* folder.
+For more information about the design and philosophy of this project please refer to the *"Description & Overview"* pdf in the release documentation.
   
 ## Prerequisites  
 You must have the Java Development Kit and Maven 2+ installed.  
@@ -131,7 +131,7 @@ Group and Group Membership transformations are special and the harvester passes 
   * **includedParentGroup** (Group translation)
   * **userGroupMembershipProcessing** and **userGroups** (Group Membership translation)
 
-Full details of this can be found in the *"Crosswalk Development Guide"* pdf within the *documentation* folder.
+Full details of this can be found in the *"Crosswalk Development Guide"* pdf in the release documentation.
 ***Note:** the example crosswalks provide the capability for the value of these parameters to be the "path" to a file on disk which contains XML data. This makes it possible to use these parameters from an XSL Run configuration in the IDE (which types all XSL parameters as simple string values). You can actually do the same with the "extraObjects" parameter if you don't want to use the useRawDataF*
 
 #### Saxon Vs Xalan
@@ -158,7 +158,7 @@ When you are ready to move from your workstation to a server, you will need to p
 Once Maven finishes executing, a *.tar.gz* file will be created in the *target* directory.  
 ***Note:** you can run these same Maven commends (clean and package) from within your IDE if you prefer.*  
 
-For details of how to deploy the built package please refer to the *"Installation Guide"* pdf in the *documentation* folder.  
+For details of how to deploy the built package please refer to the *"Installation Guide"* pdf in the release documentation.  
 
 ## Performance Considerations  
   
