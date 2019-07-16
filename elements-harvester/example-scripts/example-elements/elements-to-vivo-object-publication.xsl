@@ -152,6 +152,8 @@
                     </xsl:choose>
                 </xsl:for-each>
                 <xsl:if test="not($useSympNS='')">
+                    <!-- Note, this is legacy code, these properties ("symp:authors" etc) have to be manually added to Vivo
+                     if you wish to make use of it -->
                     <xsl:copy-of select="svfn:renderPropertyFromField(.,'symp:authors','authors')" />
                     <xsl:copy-of select="svfn:renderPropertyFromField(.,'symp:language','language')" />
                     <xsl:copy-of select="svfn:renderPropertyFromField(.,'symp:location','location')" />
