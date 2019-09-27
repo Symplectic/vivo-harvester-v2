@@ -19,7 +19,7 @@ The "Installation Guide" contains advice on how to minimise this one of initial 
 The remainder of this readme focuses on how to set up a development environment for working with the harvester codebase.
 Aspects of this are useful if you are planning to develop or customise your XSLT crosswalks, but otherwise will primarily be of interest to developers.
 
-#Setting up a Development Environment.
+# Setting up a Development Environment.
   
 ## Prerequisites  
 You must have the Java Development Kit and Maven 2+ installed.  
