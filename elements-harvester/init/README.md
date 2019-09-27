@@ -1,4 +1,4 @@
-#Init scripts
+# Init scripts
 This folder contains scripts designed to initialise an instance of the harvester that has been deployed from a *.tar.gz install package.
 
 The folder offers two *initialise* scripts, one for Linux (*initialise.sh*) and one for Windows (*initialise.bat*).

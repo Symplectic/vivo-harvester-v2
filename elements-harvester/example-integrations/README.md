@@ -20,5 +20,5 @@ This contains a set of example list view configs to improve Vivo's handling of "
 (e.g. authorships/editorships/roles/etc). These are particularly useful if your crosswalks are based on the default set.
 
 ## Web Interface
-This provides information, and a set of CGI scripts, on how to use Apache to enable a simple "web interface" to both 
+This provides information, and a set of CGI scripts, which can be used with Apache to enable a simple "web interface", to both 
 control and monitor the harvester.

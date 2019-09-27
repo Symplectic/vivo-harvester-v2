@@ -1,7 +1,25 @@
 # Symplectic Elements Harvester for VIVO  
-This is a significantly updated version of the VIVO Harvester that enables the use of Symplectic Elements as a data source for VIVO. This version of the connector is based on the earlier open source versions, and leverages a similar XSLT pipeline to perform the main translations. Nonetheless it has been significantly updated to support delta based updates from the Elements API (to reduce load on the Elements server), transfer of Elements groups and group membership information and to address various performance and process complexity issues.
+This is a significantly updated version of the VIVO Harvester originally shared with the community in 2013 and subsequently updated in 2016.
+Since 2016, Symplectic have continued to work with the connector in support of a number of VIVO projects that used Symplectic Elements as the sole data source for VIVO. At the time of release this version of the connector is in use in at least 3 production VIVO sites (including  https://scholars.latrobe.edu.au) as well as in several other projects.  
 
-For more information about the design and philosophy of this project please refer to the *"Description & Overview"* pdf in the release documentation.
+This version of the connector is based on the earlier open source versions, and leverages a similar XSLT pipeline to perform the main translations. Nonetheless it has been significantly updated to support delta based updates from the Elements API (to reduce load on the Elements server), transfer of Elements group/group membership information and also to address various process complexity and performance issues.
+
+For more information about the design and philosophy of this project please refer to the *"Description & Overview"* pdf in the [release documentation](https://github.com/Symplectic/New_Vivo_Harvester/releases).
+
+_**Note: Symplectic is no longer actively developing/maintaining this codebase.**  
+Nonetheless if you discover any bugs/issues you feel should be corrected in this canonical version please get in touch with Symplectic directly._
+
+## Deploying From Binaries
+If you just want to make use of the harvester, you should refer to the [release documentation](https://github.com/Symplectic/New_Vivo_Harvester/releases).
+We strongly recommend you read the _"Description & Overview"_ and _"Installation Guide"_ documents in full to be sure that you understand how the harvester works and what is involved in setting it up.
+
+_**Note**: In particular, please be aware that the "Initial load" of translated data into Vivo can be very slow (potentially lasting days, depending on data volume).
+The "Installation Guide" contains advice on how to minimise this one of initial cost (e.g database configuration, temporarily disabling inferencing and indexing, etc)._ 
+
+The remainder of this readme focuses on how to set up a development environment for working with the harvester codebase.
+Aspects of this are useful if you are planning to develop or customise your XSLT crosswalks, but otherwise will primarily be of interest to developers.
+
+#Setting up a Development Environment.
   
 ## Prerequisites  
 You must have the Java Development Kit and Maven 2+ installed.  
@@ -131,7 +149,7 @@ Group and Group Membership transformations are special and the harvester passes 
   * **includedParentGroup** (Group translation)
   * **userGroupMembershipProcessing** and **userGroups** (Group Membership translation)
 
-Full details of this can be found in the *"Crosswalk Development Guide"* pdf in the release documentation.
+Full details of this can be found in the *"Crosswalk Development Guide"* pdf in the [release documentation](https://github.com/Symplectic/New_Vivo_Harvester/releases).  
 ***Note:** the example crosswalks provide the capability for the value of these parameters to be the "path" to a file on disk which contains XML data. This makes it possible to use these parameters from an XSL Run configuration in the IDE (which types all XSL parameters as simple string values). You can actually do the same with the "extraObjects" parameter if you don't want to use the useRawDataF*
 
 #### Saxon Vs Xalan
@@ -158,7 +176,7 @@ When you are ready to move from your workstation to a server, you will need to p
 Once Maven finishes executing, a *.tar.gz* file will be created in the *target* directory.  
 ***Note:** you can run these same Maven commends (clean and package) from within your IDE if you prefer.*  
 
-For details of how to deploy the built package please refer to the *"Installation Guide"* pdf in the release documentation.  
+For details of how to deploy the built package please refer to the *"Installation Guide"* pdf in the [release documentation](https://github.com/Symplectic/New_Vivo_Harvester/releases).  
 
 ## Performance Considerations  
   
