@@ -18,10 +18,9 @@ This is done to ensure that all authors/editors/etc are listed even if a user's 
 as "hidden". It also allows for situations where the published name, as listed on the paper, does not match the user's 
 name as it appears on their profile.
  
-Unfortunately Vivo's out of the box support for "VCard" objects in context objects is not as complete as it might be,
-for example it does not list "VCard's" in "editorship" objects at all. Additionally not all aspects of Vivo cope well
-with context objects containing links to both a user object and an equivalent Vcard representation of the linked user.  
-These issues mostly relate to how various "listViewConfigs" process data:
+Vivo does not offer complete out of the box support for "VCards" in context objects, as there are issues relating to how various "listViewConfigs" process VCard data.  
+For example, it does not list "VCard's" in "editorship" objects at all, nor does it cope well with context objects containing links to both a user object and an equivalent Vcard representation of the associated user.  
+
 
 * **listViewConfig-informationResourceInEditorship.xml** does not handle "VCard" data at all. 
 * **listViewConfig-informationResourceInAuthorship.xml** will always list the user's "label" rather than the VCard name 

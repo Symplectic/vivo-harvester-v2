@@ -108,7 +108,7 @@ The file *vivo-harvester-incron* in this folder contains an example of the confi
  You will need to set this up in the incrontab of the user that you wish to run the harvester using "su" and then "incrontab -e". If you are running the harvester as "root" then it is much easier to simply create a file in /etc/incron.d. Analogously to cron any files in this directory are used to set up the system "incron" configuration.
 You can simply copy over the *vivo-harvester-incron* from this folder if everything is installed at the default locations.
 
-**Once the control scripts are deployed and incron is configured you should be able to initiate harvest's from the web interface.**
+**Once the control scripts are deployed and incron is configured you should be able to initiate harvests from the web interface.**
 
 ### Non standard installation
 If you do not install the control directory in the root of your harvester installation you will need to edit:

@@ -4,7 +4,7 @@ server.
 
 ## Apache Proxy
 This does not strictly relate to the harvester, in that it provides example configuration files for setting up Apache as
-a reverse poxy in front of the Java Servlet container where you have deployed VIVO. It is relevant to the harvester though,
+a reverse proxy in front of the Java Servlet container where you have deployed VIVO. It is relevant to the harvester though,
 as having this reverse proxy configuration is essential if you wish to use the "web interface" integration, a specific 
 example configuration file is provided for this use case.
 

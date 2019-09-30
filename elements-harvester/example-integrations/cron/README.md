@@ -14,7 +14,7 @@ To set up your crontab you will need to either:
 
 The system's cron jobs are run as root, so if you want to use a different user account to run the
 harvester process you will need to use the former option. If this is the case, take care that you do not remove any
-existing scheduled in the user's crontab that may exist for other processes.
+pre-existing schedules in the user's crontab that may exist for other processes.
 
 If you are using the root user to run the harvester you can still edit the root user's crontab, but it is simpler to
 just add a file into */etc/cron.d/* (e.g. just copy the, suitably edited, *vivo-harvester-cron* file from this directory).

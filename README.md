@@ -14,7 +14,7 @@ If you just want to make use of the harvester, you should refer to the [release 
 We strongly recommend you read the _"Description & Overview"_ and _"Installation Guide"_ documents in full to be sure that you understand how the harvester works and what is involved in setting it up.
 
 _**Note**: In particular, please be aware that the "Initial load" of translated data into Vivo can be very slow (potentially lasting days, depending on data volume).
-The "Installation Guide" contains advice on how to minimise this one of initial cost (e.g database configuration, temporarily disabling inferencing and indexing, etc)._ 
+The "Installation Guide" contains advice on how to minimise this one-off initial cost (e.g database configuration, temporarily disabling inferencing and indexing, etc)._ 
 
 The remainder of this readme focuses on how to set up a development environment for working with the harvester codebase.
 Aspects of this are useful if you are planning to develop or customise your XSLT crosswalks, but otherwise will primarily be of interest to developers.
@@ -51,10 +51,13 @@ The harvester is designed to minimize the load placed on the Elements API by mak
 #### Harvest Modes
 The harvester has multiple modes it can be run in by passing arguments on the command line:  
   
-1. Default (No argument) : This mode will run a full harvest on the first run and a delta on subsequent runs  
-2. --full : Forces the harvester to perform a full re-harvest, re-fetching all the data from Elements  
-3. --skipgroups : Instructs a delta run **not** to re-process the Elements group/group membership structures. Instead the harvester relies on a cache of group membership information from the previous run.  
-4. --reprocess : Reprocesses the existing cache of raw data using the current XSLT mappings without touching the Elements API (useful when developing custom mappings).  
+1. **Default (No argument)** : This will run a delta based harvest.  
+_Unless it is the very first time the harvester has been used, in which case it will default to a "full" harvest._  
+2. **--full** : Forces the harvester to perform a full re-harvest, re-fetching all the data from Elements.  
+3. **--skipgroups** : Instructs a delta run **not** to re-process the Elements group/group membership structures.  
+_Instead the harvester relies on a cache of group membership information from the previous run, meaning group membership information will not be updated even if it has changed in Elements._  
+4. **--reprocess** : Reprocesses the existing cache of raw data using the current XSLT mappings without touching the Elements API.  
+_This is useful when developing or deploying custom crosswalk mapping files._  
   
 It is expected that these different modes will be combined to create a harvest schedule using a scheduling utility such as cron, e.g:
 
@@ -86,14 +89,14 @@ You may additionally wish to set the *Program Arguments* value, e.g:
     
     --full, --skipgroups, --reprocess, etc
   
-***Note** : The -Xms and -Xmx options configured in Step 6 relate to the amount of ram assigned to the Java VM. This typically needs to be a large amount (see the Performance Considerations section). With the configuration indicated above, the VM can consume up to 10Gb of RAM.*   
+***Note** : The -Xms and -Xmx options configured in Step 6 relate to the amount of RAM assigned to the Java VM. This typically needs to be a large amount (see the Performance Considerations section). With the configuration indicated above, the VM can consume up to 10Gb of RAM.*   
   
 You should now be able to run and/or debug the Elements harvester.  
   
 ### Configuration within the IDE
 You will need to configure the harvester. By default the harvester looks for a file named *"elementfetch.properties"* (a basic java properties file) somewhere in its classpath.
 The file in *"src/main/resources"* is what you want to use when running the harvester in the IDE.
-Alternatively you can add a file named *"developer-elementfetch.properties"* to the resources folder, and add your configuration there. The harvester will preferentially load its configuration from the *developer* file, but the build process will ignore it completely, meaning you can have you debug configuration set up without affecting the shipped defaults.
+Alternatively you can add a file named *"developer-elementfetch.properties"* to the resources folder, and add your configuration there. The harvester will preferentially load its configuration from the *developer* file, but the build process will ignore it completely, meaning you can have your debug configuration set up without affecting the shipped defaults.
 
 At a minimum you will need to configure the harvester to know how to reach the Elements API being harvested from. This will involve setting at least the *apiEndpoint* and *apiVersion* parameters. Secure APIs will additionally need the *apiUsername* and *apiPassword* parameters.  
   
@@ -150,7 +153,7 @@ Group and Group Membership transformations are special and the harvester passes 
   * **userGroupMembershipProcessing** and **userGroups** (Group Membership translation)
 
 Full details of this can be found in the *"Crosswalk Development Guide"* pdf in the [release documentation](https://github.com/Symplectic/New_Vivo_Harvester/releases).  
-***Note:** the example crosswalks provide the capability for the value of these parameters to be the "path" to a file on disk which contains XML data. This makes it possible to use these parameters from an XSL Run configuration in the IDE (which types all XSL parameters as simple string values). You can actually do the same with the "extraObjects" parameter if you don't want to use the useRawDataF*
+***Note:** the example crosswalks provide the capability for the value of these parameters to be the "path" to a file on disk which contains XML data. This makes it possible to use these parameters from an XSL Run configuration in the IDE (which types all XSL parameters as simple string values). You can actually do the same with the "extraObjects" parameter if you don't want to use the useRawDataFiles parameter*
 
 #### Saxon Vs Xalan
 If you have issues with the XSL translation failing with errors mentioning "xalan", it may be an issue where IntelliJ defaults to using the Xalan XSLT engine, which only supports XSLT 1.0. The default crosswalks require an engine that supports XSLT 2.0.
@@ -169,7 +172,7 @@ in the VM Arguments field. Additionally you should ensure you have selected "Fro
   
 ## Packaging and Deployment  
   
-When you are ready to move from your workstation to a server, you will need to package up harvester, to ready it for installation on a server. To do this you need to run 
+When you are ready to move from your workstation to a server, you will need to package up the harvester, to ready it for installation on a server. To do this you need to run 
 
     mvn clean package
   
@@ -196,7 +199,7 @@ This is particularly true during loading of the temporary triple store where, fo
 ### Memory  
   
 The harvester can be very memory intensive, this is particularly true during the diff operation where the current temporary triple store is compared to the equivalent store from the previous run.  
-During this process in both copies of the triple store can be loaded into ram. To accommodate this the default elementsfetch.sh script (used in a deployed instance to launch the harvester) ensures that the Java Virtual Machine (JVM) being used to run the process has access to up to 10 gigabytes of ram.
+During this process in both copies of the triple store can be loaded into RAM. To accommodate this the default elementsfetch.sh script (used in a deployed instance to launch the harvester) ensures that the Java Virtual Machine (JVM) being used to run the process has access to up to 10 gigabytes of RAM.
   
 If your datasets are significantly larger than 5Gb you may end up with poor performance (paging) or crashes during the diff operation (e.g. taking longer than 5-10 minutes). If this occurs you may need to increase the amount of RAM assigned to the JVM for the FetchAndTranslate operation.  
 Similarly if your dataset is much smaller than 5Gb you may be able to reduce the amount of RAM being assigned to the JVM.  
