@@ -528,6 +528,15 @@ public class ElementsFetchAndTranslate {
                 if(begunProcessing){
                     stateManager.manageStateForIncompleteRun(state);
                 }
+
+                //Ensure we close out our HTTP client and connection manager..
+                try{
+                    HttpClient.close();
+                }
+                catch(IllegalStateException e){
+                    log.error(e.getMessage(),e);
+                }
+
                 //exit with an error code.
                 System.exit(1);
             }
@@ -656,7 +665,7 @@ public class ElementsFetchAndTranslate {
                                 //This is NOT be picked up against a v5.5 API as that specifically pulls based on the real "modification date", not "affected".
                                 //The neighbouring objects have therefore not been updated this run, and we need a specific check to force the repull of the rel, to ensure the
                                 //"stub" version of the object in the raw-relationship data will create the correct URI (e.g. with the new username).
-                                if(Configuration.getApiVersion().greaterThanOrEqualTo(ElementsAPIVersion.VERSION_5_5) && objectId.getItemSubType() == ElementsObjectCategory.USER){
+                                if(elementsFetcher.getApiVersion().greaterThanOrEqualTo(ElementsAPIVersion.VERSION_5_5) && objectId.getItemSubType() == ElementsObjectCategory.USER){
                                     shouldRepull = true;
                                     break;
                                 }

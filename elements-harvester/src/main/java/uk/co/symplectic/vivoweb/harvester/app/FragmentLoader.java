@@ -192,6 +192,10 @@ public class FragmentLoader {
                             log.info(MessageFormat.format("Completed all currently available work: {0} fragments processed in total", count));
                             count = 0;
                             log.info("Going to sleep");
+
+                            //shut down any http clients we have open - they will be re-created on demand if needed.
+                            //let any failures here bubble out to bring down application.
+                            HttpClient.close();
                         }
                         isIdle = true;
                         try {
@@ -224,6 +228,15 @@ public class FragmentLoader {
 //            if (caught == null || !(caught instanceof LoggingUtils.LoggingInitialisationException)) {
 //                log.debug("FragmentLoader: End");
 //            }
+
+            //close out any open http resources, handling and logging any failures as we are shutting down anyway..
+            try{
+                HttpClient.close();
+            }
+            catch(IllegalStateException e){
+                log.error(e.getMessage(),e);
+            }
+
             if (caught != null) {
                 System.exit(1);
             }

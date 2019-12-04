@@ -482,5 +482,7 @@ public class ElementsFetch {
             }
         }
     }
+
+    public ElementsAPIVersion getApiVersion(){ return elementsAPI.getVersion(); }
 }
 

@@ -23,6 +23,7 @@ import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
@@ -35,6 +36,7 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.protocol.HttpContext;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,14 +68,24 @@ public class HttpClient {
     private static final int defaultSoTimeout = 5 * 60 * 1000; // 5 minutes, in milliseconds
     private static final int defaultConnectionTimeout = 30000; // 30 seconds
 
-    //placeholder for the defaultRequestConfig object used by the underlying apache libraries.
-    private static RequestConfig defaultRequestConfig;
+    //placeholder for whether we want to ignore SSL errors in this application.
+    private static boolean ignoreSslErrors = false;
 
-    //placeholder for the PoolingHttpClientConnectionManager used by the underlying apache libraries.
-    private static PoolingHttpClientConnectionManager connectionManager;
+    //placeholder for the currentRequestConfig object to represent custom SoTimeout etc...
+    private static RequestConfig currentRequestConfig;
+
+    //placeholder for the PoolingHttpClientConnectionManager used by the current apache client.
+    private static PoolingHttpClientConnectionManager cachedConnectionManager;
+
+    //internal placeholder field for the current underlying Apache client that is in use across any and all threads.
+    private static CloseableHttpClient client;
 
     //default minimum time between requests  = 1 quarter second
     private static int intervalInMSecs = 250;
+
+    //internal variable tracked to ensure that requests aren't too frequent.
+    private static Date lastRequest = null;
+
     /**
      * Setter method to configure the minimum delay between successive requests made by HttpClient instances.
      * @param millis the value to use in milliseconds.
@@ -82,29 +94,48 @@ public class HttpClient {
         intervalInMSecs = millis;
     }
 
-    //internal variable tracked to ensure that requests aren't too frequent.
-    private static Date lastRequest = null;
 
-
-    /*
-      Static constructor
-      ensures that connectionManager is set up with a default max connection pool of 20
-      and that the defaultRequestConfig is set up with the default timeouts values.
+    /**
+     * Method to close any currently open low level resources (i.e. Apache clients/connection managers etc)
+     * Can be called at any time as new clients will be regenerated on demand.
+     * Typically should only be called on application exit or when going quiescent.
      */
-    static{
-        connectionManager = new PoolingHttpClientConnectionManager();
-        connectionManager.setMaxTotal(20);
-        defaultRequestConfig = RequestConfig.custom().setConnectTimeout(defaultConnectionTimeout).setSocketTimeout(defaultSoTimeout).build();
+    public synchronized static void close(){
+        try {
+            if(client != null || cachedConnectionManager != null){
+                log.info("Closing existing Apache client resources");
+                if (client != null){
+                    client.close();
+                    client = null;
+                }
+                if (cachedConnectionManager != null){
+                    cachedConnectionManager.close();
+                    cachedConnectionManager = null;
+                }
+                log.info("Closed existing Apache client resources");
+            }
+        }
+        catch(IOException e) {
+            log.error("IO error closing down underlying apache HTTP client resources", e);
+            throw new IllegalStateException("Error closing old HTTP client", e);
+        }
     }
-
 
     /**
      * Setter method to configure the socket timeout for all client instances
-     * (alters the underlying static defaultRequestConfig)
+     * (alters the underlying static currentRequestConfig which is loaded into HttpContext for each request if non null).
      * @param millis the value to use in milliseconds.
      */
     public static synchronized void setSocketTimeout(int millis) {
-        defaultRequestConfig = RequestConfig.copy(defaultRequestConfig).setSocketTimeout(millis).build();
+        currentRequestConfig = RequestConfig.custom().setConnectTimeout(defaultConnectionTimeout).setSocketTimeout(millis).build();
+    }
+
+    /**
+     * Getter for the currentRequestConfig (can be null if not altered from defaults).
+     * @return RequestConfig object or null.
+     */
+    public static RequestConfig getCurrentRequestConfig(){
+        return currentRequestConfig;
     }
 
     /**
@@ -112,28 +143,13 @@ public class HttpClient {
      * (alters the underlying static connectionManager)
      */
     public static synchronized void ignoreSslErrors() {
-        try {
-            SSLContextBuilder builder = new SSLContextBuilder();
-            builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
-            SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
-                builder.build(), new NoopHostnameVerifier());
-
-            Registry<ConnectionSocketFactory> socketFactoryRegistry =
-                    RegistryBuilder.<ConnectionSocketFactory> create()
-                            .register("https", sslsf)
-                            .register("http", new PlainConnectionSocketFactory()).build();
-
-            connectionManager = new PoolingHttpClientConnectionManager(socketFactoryRegistry);
-            connectionManager.setMaxTotal(20);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new IllegalStateException(e);
-        }
+        ignoreSslErrors = true;
+        //close any existing clients to force regeneration of the client..
+        close();
     }
 
-    private static synchronized PoolingHttpClientConnectionManager getConnectionManager(){return connectionManager;}
-    private static synchronized RequestConfig getDefaultRequestConfig(){return defaultRequestConfig;}
+//    private static synchronized PoolingHttpClientConnectionManager getConnectionManager(){return connectionManager;}
+//    private static synchronized RequestConfig getDefaultRequestConfig(){return defaultRequestConfig;}
 
     /**
      * Delay method - instances ensures that requests are not sent too frequently to the Elements API,
@@ -152,6 +168,65 @@ public class HttpClient {
         } finally {
             lastRequest = new Date();
         }
+    }
+
+    /**
+     * Code to generate a new PoolingHttpClientConnectionManager taking account of current configured state
+     * in terms of whether we want to ignore SSL errors or not.
+     * sets allowed amount of connections to default of 20 in all cases.
+     * @return a PoolingHttpClientConnectionManager
+     */
+    private static synchronized PoolingHttpClientConnectionManager generateConnectionManager(){
+        PoolingHttpClientConnectionManager connectionManager;
+        if(ignoreSslErrors){
+            try {
+                SSLContextBuilder builder = new SSLContextBuilder();
+                builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
+                SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
+                        builder.build(), new NoopHostnameVerifier());
+
+                Registry<ConnectionSocketFactory> socketFactoryRegistry =
+                        RegistryBuilder.<ConnectionSocketFactory>create()
+                                .register("https", sslsf)
+                                .register("http", new PlainConnectionSocketFactory()).build();
+                connectionManager = new PoolingHttpClientConnectionManager(socketFactoryRegistry);
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw new IllegalStateException(e);
+            }
+        }
+        else {
+            connectionManager = new PoolingHttpClientConnectionManager();
+        }
+
+        connectionManager.setMaxTotal(20);
+        return connectionManager;
+    }
+
+    /**
+     * Code to regenerate the low level resources (Apache connectionManager and client) based on current defaults
+     * Note: custom socket timeout is not handled here - it is handled by using the currentRequestConfig
+     * in the HttpContext whenever a method is executed on the client
+     *
+     * This is called whenever the underlying client is null - ensuring we always regenerate if needed.
+     */
+    private static synchronized void regenerateDefaultClient(){
+        close();
+        cachedConnectionManager = generateConnectionManager();
+        RequestConfig defaultRequestConfig = RequestConfig.custom().setConnectTimeout(defaultConnectionTimeout).setSocketTimeout(defaultSoTimeout).build();
+        client = HttpClients.custom().setConnectionManager(cachedConnectionManager).setDefaultRequestConfig(defaultRequestConfig).build();
+        log.info("Created new Apache client resources");
+    }
+
+
+    /**
+     * Getter for the current low level Apache Http Client
+     * Will regenerate based on current defaults if the underlying client is currently null (e.g. because of a call to close()).
+     * @return
+     */
+    private static synchronized CloseableHttpClient getApacheClient(){
+        if(client == null) regenerateDefaultClient();
+        return client;
     }
 
     //HTTPClient Instance fields (credentials, url, etc)
@@ -203,17 +278,19 @@ public class HttpClient {
         }
     }
 
-    private CloseableHttpClient getNewApacheClient(){
-        // Prepare the HttpClient
-        CredentialsProvider credsProvider = new BasicCredentialsProvider();
+    private HttpContext getApacheContext(){
+        HttpClientContext context = HttpClientContext.create();
+
+        // Prepare the HttpContext
         if (getUsername() != null){
+            CredentialsProvider credsProvider = new BasicCredentialsProvider();
             credsProvider.setCredentials(new AuthScope(AuthScope.ANY_HOST, AuthScope.ANY_PORT), new UsernamePasswordCredentials(getUsername(), getPassword()));
+            context.setCredentialsProvider(credsProvider);
         }
+        if(currentRequestConfig != null) context.setRequestConfig(currentRequestConfig);
 
-        return HttpClients.custom().setDefaultCredentialsProvider(credsProvider)
-                .setConnectionManager(getConnectionManager()).setDefaultRequestConfig(getDefaultRequestConfig()).build();
+        return context;
     }
-
 
     /**
      * Method to execute a get request against the URL specified in this instance's constructor
@@ -221,16 +298,14 @@ public class HttpClient {
      * @throws IOException Failure reading the request stream
      */
     public ApiResponse executeGetRequest() throws IOException {
-
-        //note we deliberately don't close these to keep the connection manager alive - this is a bit hacky...
-        CloseableHttpClient httpclient  = getNewApacheClient();
+        CloseableHttpClient httpclient  = getApacheClient();
 
         // Ensure we do not send request too frequently
         regulateRequestFrequency();
 
         // Issue get request
         HttpGet getMethod = new HttpGet(getUrl());
-        CloseableHttpResponse response = httpclient.execute(getMethod);
+        CloseableHttpResponse response = httpclient.execute(getMethod, getApacheContext());
 
         ApiResponse responseToReturn = new ApiResponse(response);
 
@@ -239,13 +314,14 @@ public class HttpClient {
 
         log.info(MessageFormat.format("GET {0} : {1}", getUrl(), responseCode));
 
-        if(responseCode != HttpStatus.SC_OK){
+            if (responseCode != HttpStatus.SC_OK) {
             String codeDescription = EnglishReasonPhraseCatalog.INSTANCE.getReason(responseCode, null);
             String message = MessageFormat.format("Invalid Http response code received: {0} ({1})", responseCode, codeDescription);
             responseToReturn.dispose();
             throw new InvalidResponseException(message, responseCode);
         }
-        return new ApiResponse(response);
+            return responseToReturn;
+
     }
 
     /**
@@ -280,8 +356,7 @@ public class HttpClient {
      * @throws IOException thrown if errors occur.
      */
     public ApiResponse executePost(List<NameValuePair> nameValuePairs) throws IOException {
-        //note we deliberately don't close these to keep the connection manager alive - this is a bit hacky...
-        CloseableHttpClient httpclient  = getNewApacheClient();
+        CloseableHttpClient httpclient  = getApacheClient();
 
         // Ensure we do not send request too frequently
         regulateRequestFrequency();
@@ -290,7 +365,7 @@ public class HttpClient {
         HttpPost post = new HttpPost(getUrl());
         post.setEntity(new UrlEncodedFormEntity(nameValuePairs, "UTF-8"));
 
-        CloseableHttpResponse response = httpclient.execute(post);
+        CloseableHttpResponse response = httpclient.execute(post, getApacheContext());
 
         ApiResponse responseToReturn = new ApiResponse(response);
         ///convert non 200 responses into exceptions.

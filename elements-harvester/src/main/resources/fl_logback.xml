@@ -31,7 +31,7 @@
   </appender>
 
   <!--<appender name="AllAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">-->
-    <!--<File>logs/${harvester-task:-harvester}.log</File>-->
+    <!--<File>logs/${harvester-task:-fragment-loader}.log</File>-->
     <!--<encoder>-->
       <!--<pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5p [%c{1}] %m%n</pattern>-->
     <!--</encoder>-->
@@ -49,7 +49,7 @@
 
   <!-- Uncomment to log all API requests -->
   <!--<appender name="ApiCallAppender" class="ch.qos.logback.core.FileAppender">-->
-    <!--<File>logs/${harvester-task:-harvester}-api-calls.${bySecond}.log</File>-->
+    <!--<File>logs/${harvester-task:-fragment-loader}-api-calls.log</File>-->
     <!--<encoder>-->
       <!--<pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5p [%c{1}] %m%n</pattern>-->
     <!--</encoder>-->
@@ -60,7 +60,7 @@
 
   <!-- Uncomment to allow for individual log files for each tool - ->
   <appender name="ClassAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <File>logs/${harvester-task:-harvester}.${process-task:-all}.log</File>
+    <File>logs/${harvester-task:-fragment-loader}.${process-task:-all}.log</File>
     <encoder>
       <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5p [%c{1}] %m%n</pattern>
     </encoder>
