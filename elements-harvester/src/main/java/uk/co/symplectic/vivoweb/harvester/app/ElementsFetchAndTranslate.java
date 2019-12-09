@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
+import uk.co.symplectic.translate.TranslationDocumentProvider;
 import uk.co.symplectic.utils.LoggingUtils;
 import uk.co.symplectic.utils.configuration.ConfigParser;
 import uk.co.symplectic.utils.triplestore.*;
@@ -61,6 +62,7 @@ public class ElementsFetchAndTranslate {
     final private static String subtractionsFileName = "subtractions.n3";
     final private static String fragmentsDirName = "fragments";
     final private static String groupCacheFileName = "group-membership-cache.xml";
+    final private static String groupListFileName = "current-group-list.xml";
 
     /**
      * Main entry method for ElementsFetchAndTranslate
@@ -186,7 +188,6 @@ public class ElementsFetchAndTranslate {
 
             int includedUserCount = 0;
             int includedObjectCount = 0;
-
             if(updateLocalTDB) {
                 //Set up the services that will be used to do asynchronous work
                 //TODO: move these elsewhere, or remove entirely?
@@ -215,10 +216,40 @@ public class ElementsFetchAndTranslate {
                 File processedImageDir = ElementsFetchAndTranslate.getDirectoryFromPath(Configuration.getVivoImageDir());
                 //String vivoBaseURI = Configuration.getBaseURI();
 
+                //get group information needed for wiring up translation observers,
+                //First query the groups, to create a document of group name to id to use throughout translations.
+                ElementsGroupCollection groupCache;
+                boolean groupCacheIsNew = false;
+                if(currentRunClassification == StateManagement.RunClassification.REPROCESSING || (skipGroups && currentRunClassification == StateManagement.RunClassification.DELTA)) {
+                    groupCache = loadGroupCacheFromExistingData(objectStore);
+                }
+                else{
+                    groupCache = new ElementsGroupCollection();
+                    elementsFetcher.execute(new ElementsFetch.GroupConfig(), groupCache.getStoreWrapper());
+                    groupCache.constructHierarchy();
+                    groupCacheIsNew = true;
+                }
+                final File groupListFile = createGroupListDocument(groupCache);
+                TranslationDocumentProvider groupListDocument = new TranslationDocumentProvider(){
+                    @Override
+                    public Document getDocument() {
+                        try {
+                            DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+                            DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+                            Document doc = docBuilder.parse(groupListFile);
+                            return doc;
+                        }
+                        catch (Exception e) {
+                            throw new IllegalStateException(e);
+                        }
+                    }
+                };
+
+
                 //Hook item observers to the object store so that translations happen for any objects and relationships that arrive in that store
                 //translations are configured to output to the rdfStore;
-                objectStore.addItemObserver(new ElementsObjectTranslateObserver(rdfStore, xslFilename));
-                objectStore.addItemObserver(new ElementsRelationshipTranslateObserver(objectStore, rdfStore, xslFilename, relationshipTypesNeedingObjectsForTranslation));
+                objectStore.addItemObserver(new ElementsObjectTranslateObserver(rdfStore, xslFilename, groupListDocument));
+                objectStore.addItemObserver(new ElementsRelationshipTranslateObserver(objectStore, rdfStore, xslFilename, groupListDocument, relationshipTypesNeedingObjectsForTranslation));
 
                 //TODO: work out how to marshall user photos into a web accessible area in a sensible manner based on included user set...
                 //Hook a photo retrieval observer onto the rdf store so that photos will be fetched and dropped in the object store for any translated users.
@@ -234,8 +265,7 @@ public class ElementsFetchAndTranslate {
                 objectStore.addItemObserver(new ElementsUserPhotoRdfGeneratingObserver(rdfStore, xslFilename, processedImageDir, Configuration.getVivoImageBasePath()));
 
 
-                //we are about to start doing things that affect out caches..
-
+                //we are about to start doing things that affect our caches..
 
                 //Now we have wired up all our store observers perform the main fetches
                 //NOTE: order is absolutely vital (relationship translation scripts can rely on raw object data having been fetched)
@@ -281,17 +311,11 @@ public class ElementsFetchAndTranslate {
                     userInfoCache.put(userItem.getItemInfo().getItemId(), userItem.getItemInfo());
                 }
 
-                //Now query the groups, post processing to build a group hierarchy containing users.
-                ElementsGroupCollection groupCache;
-                if(currentRunClassification == StateManagement.RunClassification.REPROCESSING || (skipGroups && currentRunClassification == StateManagement.RunClassification.DELTA)) {
-                    groupCache = createGroupCache(objectStore, userInfoCache.keySet());
-                }
-                else{
-                    groupCache = new ElementsGroupCollection();
-                    elementsFetcher.execute(new ElementsFetch.GroupConfig(), groupCache.getStoreWrapper());
-                    groupCache.constructHierarchy();
+                if(groupCacheIsNew) {
                     groupCache.populateUserMembership(elementsFetcher, userInfoCache.keySet());
                     createGroupMembershipDocument(groupCache);
+                } else {
+                    loadGroupMembershipsFromExistingData(groupCache, userInfoCache.keySet());
                 }
 
                 //work out the included users
@@ -304,7 +328,7 @@ public class ElementsFetchAndTranslate {
                 groupCache.createCanonicalNames(includedGroups.getIncludedGroups().keySet());
 
                 //Wire up the group translation observer...(needs group cache to work out members Ids and included users to get the user info of those members)
-                objectStore.addItemObserver(new ElementsGroupTranslateObserver(rdfStore, xslFilename, groupCache, includedGroups));
+                objectStore.addItemObserver(new ElementsGroupTranslateObserver(rdfStore, xslFilename, groupListDocument, groupCache, includedGroups));
 
                 if(currentRunClassification == StateManagement.RunClassification.REPROCESSING || (skipGroups && currentRunClassification == StateManagement.RunClassification.DELTA)) {
                     reprocessCachedItems(objectStore, StorableResourceType.RAW_GROUP);
@@ -329,7 +353,7 @@ public class ElementsFetchAndTranslate {
                 objectStore.removeItemObserver(photoRetrievalObserver);
 
                 ElementsGroupMembershipTranslateObserver groupMembershipTranslateObserver =
-                        new ElementsGroupMembershipTranslateObserver(rdfStore, xslFilename, groupCache, includedGroups);
+                        new ElementsGroupMembershipTranslateObserver(rdfStore, xslFilename, groupListDocument, groupCache, includedGroups);
                 //cleardown the group memberships
                 rdfStore.cleardown(StorableResourceType.TRANSLATED_USER_GROUP_MEMBERSHIP);
                 //and recalculate them for the included users.
@@ -723,10 +747,9 @@ public class ElementsFetchAndTranslate {
      * was created will not have the correct group memberships until a non group-skipping update is completed.
      * Any New users will simply appear as members of the top level "organisation" group if it is transferred to Vivo.
      * @param objectStore the local cache of raw data.
-     * @param systemUsers Set of ElementsItemId's representing all the users in the source Elements system.
      * @return ElementsGroupCollection
      */
-    private static ElementsGroupCollection createGroupCache(ElementsItemFileStore objectStore, Set<ElementsItemId> systemUsers){
+    private static ElementsGroupCollection loadGroupCacheFromExistingData(ElementsItemFileStore objectStore){
         try {
             log.info("Recreating Groups information from cache");
             StorableResourceType type = StorableResourceType.RAW_GROUP;
@@ -742,6 +765,16 @@ public class ElementsFetchAndTranslate {
             }
 
             groupCache.constructHierarchy();
+            return groupCache;
+        }
+        catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private static ElementsGroupCollection loadGroupMembershipsFromExistingData(ElementsGroupCollection groupCache, Set<ElementsItemId> systemUsers){
+        try {
+            log.info("Recreating Groups membership information from cache");
 
             DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
@@ -765,13 +798,13 @@ public class ElementsFetchAndTranslate {
                 }
             }
             groupCache.populateUserMembership(groupUserMap, systemUsers);
-
             return groupCache;
         }
         catch (Exception e) {
             throw new IllegalStateException(e);
         }
     }
+
 
     /**
      * Helper method to write out an XML file cache representing the harvester's current understanding of
@@ -785,10 +818,10 @@ public class ElementsFetchAndTranslate {
             Document doc = docBuilder.newDocument();
             Element rootElement = doc.createElement("groups");
             doc.appendChild(rootElement);
-            for(ElementsGroupInfo.GroupHierarchyWrapper group : groupCache.values()){
+            for (ElementsGroupInfo.GroupHierarchyWrapper group : groupCache.values()) {
                 Element groupElement = doc.createElement("group");
                 groupElement.setAttribute("id", Integer.toString(group.getGroupInfo().getItemId().getId()));
-                for(ElementsItemId user : group.getExplicitUsers()) {
+                for (ElementsItemId user : group.getExplicitUsers()) {
                     Element userElement = doc.createElement("user");
                     userElement.setTextContent(Integer.toString(user.getId()));
                     groupElement.appendChild(userElement);
@@ -802,12 +835,37 @@ public class ElementsFetchAndTranslate {
                 DOMSource source = new DOMSource(doc);
                 StreamResult result = new StreamResult(new File(Configuration.getOtherOutputDir(), groupCacheFileName));
                 transformer.transform(source, result);
-            }
-            catch(Exception e){
+            } catch (Exception e) {
                 throw new IllegalStateException(e);
             }
+        } catch (ParserConfigurationException pce) {
+            throw new IllegalStateException(pce);
         }
-        catch (ParserConfigurationException pce) {
+    }
+
+
+    private static File createGroupListDocument(ElementsGroupCollection groupCache){
+        try {
+            DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+            Document doc = docBuilder.newDocument();
+            Element rootElement = doc.createElement("groups");
+            doc.appendChild(rootElement);
+            ElementsGroupInfo.GroupHierarchyWrapper orgGroup = groupCache.GetTopLevel();
+            Element groupDesc = orgGroup.getXMLElementDescriptor(doc, true);
+            rootElement.appendChild(groupDesc);
+            try {
+                TransformerFactory tFactory = TransformerFactory.newInstance();
+                Transformer transformer = tFactory.newTransformer();
+                DOMSource source = new DOMSource(doc);
+                File outputFile = new File(Configuration.getOtherOutputDir(), groupListFileName);
+                StreamResult result = new StreamResult(outputFile);
+                transformer.transform(source, result);
+                return outputFile;
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            }
+        } catch (ParserConfigurationException pce) {
             throw new IllegalStateException(pce);
         }
     }

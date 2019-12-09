@@ -38,7 +38,7 @@ public class TranslationServiceConfig {
 
     Map<String, Object> getXslParameters(){ return Collections.unmodifiableMap(xslParameters); }
 
-    public void addXslParameter(String key, String value){ xslParameters.put(key, value); }
+    public void addXslParameter(String key, Object value){ xslParameters.put(key, value); }
 
     public boolean getTolerateIndividualIOErrors() {
         return tolerateIndividualIOErrors;

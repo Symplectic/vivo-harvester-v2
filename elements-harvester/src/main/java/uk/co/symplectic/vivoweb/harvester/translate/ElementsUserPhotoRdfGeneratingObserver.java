@@ -62,7 +62,7 @@ public class ElementsUserPhotoRdfGeneratingObserver extends ElementsTranslateObs
     private final String vivoImageBasePath;
 
     public ElementsUserPhotoRdfGeneratingObserver(ElementsRdfStore rdfStore, String xslFilename, File processedImageDir, String vivoImageBasePath){
-        super(rdfStore, xslFilename, StorableResourceType.RAW_USER_PHOTO, StorableResourceType.TRANSLATED_USER_PHOTO_DESCRIPTION);
+        super(rdfStore, xslFilename, null, StorableResourceType.RAW_USER_PHOTO, StorableResourceType.TRANSLATED_USER_PHOTO_DESCRIPTION);
 
         if(processedImageDir == null) throw new NullArgumentException("processedImageDir");
         if(StringUtils.trimToNull(vivoImageBasePath) == null) throw new IllegalArgumentException("vivoImageBasePath must not be null or empty");

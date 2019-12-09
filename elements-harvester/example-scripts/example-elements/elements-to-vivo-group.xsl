@@ -54,7 +54,7 @@
             </xsl:choose>
         </xsl:variable>
 
-        <xsl:variable name="groupType" select="svfn:getOrganizationType(api:name, $defaultGroupType)" />
+        <xsl:variable name="groupType" select="svfn:inferGroupType(api:name, $defaultGroupType)" />
         <!--<xsl:variable name="groupType" select="$defaultGroupType" />-->
 
         <!-- render triples to describe this group -->
@@ -78,5 +78,18 @@
 
         <!--todo: should the parent group have its children set too? are inferred - rightly or wrongly...-->
     </xsl:template>
+
+    <xsl:function name="svfn:inferGroupType">
+        <xsl:param name="groupName" as="xs:string" />
+        <xsl:param name="defaultType" as="xs:string" />
+        <xsl:value-of select="svfn:inferOrganizationType($groupName, $defaultType)" />
+
+        <!-- if you want to have groups run through the name matching logic...-->
+        <!--<xsl:variable name="overridesToConsider">-->
+            <!--<xsl:sequence select="$organization-overrides/config:org-unit" />-->
+        <!--</xsl:variable>-->
+        <!--<xsl:value-of select="svfn:getOrganizationType($groupName, $overridesToConsider, $defaultType)" />-->
+    </xsl:function>
+
 </xsl:stylesheet>
 

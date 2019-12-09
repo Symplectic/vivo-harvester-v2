@@ -34,8 +34,10 @@
     <!-- Match Elements objects of category 'grant' -->
     <xsl:template match="api:object[@category='grant']">
         <xsl:variable name="grantURI"><xsl:value-of select="svfn:objectURI(.)" /></xsl:variable>
-        <xsl:variable name="funderName" select="svfn:getRecordField(.,'funder-name')" />
-        <xsl:variable name="funderURI"><xsl:if test="$funderName/api:text"><xsl:value-of select="svfn:makeURI('funder-',$funderName/api:text)" /></xsl:if></xsl:variable>
+        <xsl:variable name="funderNameField" select="svfn:getRecordField(.,'funder-name')" />
+        <!-- funders will not be groups -->
+        <xsl:variable name="funderInfo" select="svfn:getOrgInfoFromName($funderNameField/api:text, $organization-overrides, false())" />
+        <xsl:variable name="funderURI"><xsl:if test="$funderInfo/@name"><xsl:value-of select="svfn:makeURI('funder-',$funderInfo/@name)" /></xsl:if></xsl:variable>
 
         <!-- render datetime interval to intermediate variable, retrieve uri for reference purposes and then render variable contents-->
         <xsl:variable name="startDate" select="svfn:getRecordField(.,'start-date')" />
@@ -59,22 +61,26 @@
                 <xsl:if test="$dateInterval/*">
                     <vivo:dateTimeInterval rdf:resource="{$dateIntervalURI}" />
                 </xsl:if>
-                <xsl:if test="$funderName/*">
+                <xsl:if test="$funderInfo">
                     <vivo:assignedBy rdf:resource="{$funderURI}" />
                 </xsl:if>
             </xsl:with-param>
         </xsl:call-template>
 
-        <xsl:if test="$funderName/*">
+        <xsl:if test="$funderInfo">
+            <xsl:variable name="funderType">
+                <xsl:choose>
+                    <xsl:when test="$funderInfo/config:org-unit/@type"><xsl:value-of select="$funderInfo/config:org-unit/@type" /></xsl:when>
+                    <xsl:otherwise><xsl:value-of select="svfn:inferOrganizationType($funderInfo/@name, 'http://vivoweb.org/ontology/core#FundingOrganization')" /></xsl:otherwise>
+                </xsl:choose>
+            </xsl:variable>
+
             <xsl:call-template name="render_rdf_object">
                 <xsl:with-param name="objectURI" select="$funderURI" />
                 <xsl:with-param name="rdfNodes">
-                    <rdf:type rdf:resource="{svfn:getOrganizationType($funderName,'http://vivoweb.org/ontology/core#FundingOrganization')}"/>
+                    <rdf:type rdf:resource="{$funderType}"/>
                     <!-- rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Thing"/ -->
-                    <xsl:apply-templates select="$funderName" mode="renderForProperty">
-                        <xsl:with-param name="propertyName">rdfs:label</xsl:with-param>
-                        <xsl:with-param name="fieldName">funder-name</xsl:with-param>
-                    </xsl:apply-templates>
+                    <rdfs:label><xsl:value-of select="$funderInfo/@name"/></rdfs:label>
                     <vivo:assigns rdf:resource="{$grantURI}"/>
                 </xsl:with-param>
             </xsl:call-template>

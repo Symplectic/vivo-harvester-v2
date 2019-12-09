@@ -14,6 +14,7 @@ package uk.co.symplectic.vivoweb.harvester.translate;
 import org.apache.commons.lang.NullArgumentException;
 import org.apache.commons.lang.StringUtils;
 import uk.co.symplectic.translate.TemplatesHolder;
+import uk.co.symplectic.translate.TranslationDocumentProvider;
 import uk.co.symplectic.translate.TranslationService;
 import uk.co.symplectic.vivoweb.harvester.config.Configuration;
 import uk.co.symplectic.vivoweb.harvester.store.*;
@@ -39,7 +40,7 @@ abstract class ElementsTranslateObserver extends ElementsStoreOutputItemObserver
     private final TranslationService translationService = new TranslationService();
     private TemplatesHolder templatesHolder = null;
 
-    ElementsTranslateObserver(ElementsRdfStore rdfStore, String xslFilename, StorableResourceType inputType, StorableResourceType outputType) {
+    ElementsTranslateObserver(ElementsRdfStore rdfStore, String xslFilename, TranslationDocumentProvider groupListDocument, StorableResourceType inputType, StorableResourceType outputType) {
         //todo: can't reference translationService before super has been called... need to move tolerateIOErrors somewhere better..
         super(rdfStore, inputType, outputType, false);
         if(StringUtils.trimToNull(xslFilename) == null) throw new NullArgumentException("xslFilename");
@@ -47,6 +48,9 @@ abstract class ElementsTranslateObserver extends ElementsStoreOutputItemObserver
         templatesHolder = new TemplatesHolder(xslFilename);
         //TODO : migrate these Configuration access bits somehow?
         translationService.getConfig().setIgnoreFileNotFound(true);
+        if(groupListDocument != null){
+            translationService.getConfig().addXslParameter("elementsGroupList", groupListDocument);
+        }
         //translationService.getConfig().addXslParameter("baseURI", Configuration.getBaseURI());
         Map<String, String> params = Configuration.getXslParameters();
         for(String paramName : params.keySet()){

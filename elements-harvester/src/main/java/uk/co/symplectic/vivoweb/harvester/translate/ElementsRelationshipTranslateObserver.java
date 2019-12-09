@@ -46,8 +46,9 @@ public class ElementsRelationshipTranslateObserver extends ElementsTranslateObse
     private final ElementsItemFileStore rawDataStore;
     private final Set<String> relationshipTypesNeedingObjectsForTranslation;
 
-    public ElementsRelationshipTranslateObserver(ElementsItemFileStore rawDataStore, ElementsRdfStore rdfStore, String xslFilename, Set<String> relationshipTypesNeedingObjectsForTranslation){
-        super(rdfStore, xslFilename, StorableResourceType.RAW_RELATIONSHIP, StorableResourceType.TRANSLATED_RELATIONSHIP);
+    public ElementsRelationshipTranslateObserver(ElementsItemFileStore rawDataStore, ElementsRdfStore rdfStore, String xslFilename,
+                                                 TranslationDocumentProvider groupListDocument, Set<String> relationshipTypesNeedingObjectsForTranslation){
+        super(rdfStore, xslFilename, groupListDocument, StorableResourceType.RAW_RELATIONSHIP, StorableResourceType.TRANSLATED_RELATIONSHIP);
         if(rawDataStore == null) throw new NullArgumentException("rawDataStore");
         this.rawDataStore = rawDataStore;
         if(relationshipTypesNeedingObjectsForTranslation != null && ! relationshipTypesNeedingObjectsForTranslation.isEmpty()){

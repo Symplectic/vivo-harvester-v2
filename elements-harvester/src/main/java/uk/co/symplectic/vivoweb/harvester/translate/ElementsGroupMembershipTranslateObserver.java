@@ -13,6 +13,7 @@ package uk.co.symplectic.vivoweb.harvester.translate;
 import org.apache.commons.lang.NullArgumentException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import uk.co.symplectic.translate.TranslationDocumentProvider;
 import uk.co.symplectic.vivoweb.harvester.utils.ElementsGroupCollection;
 import uk.co.symplectic.vivoweb.harvester.model.*;
 import uk.co.symplectic.vivoweb.harvester.store.*;
@@ -50,9 +51,9 @@ public class ElementsGroupMembershipTranslateObserver extends ElementsTranslateO
     private final ElementsGroupCollection groupCache;
     private final IncludedGroups includedGroups;
 
-    public ElementsGroupMembershipTranslateObserver(ElementsRdfStore rdfStore, String xslFilename,
+    public ElementsGroupMembershipTranslateObserver(ElementsRdfStore rdfStore, String xslFilename, TranslationDocumentProvider groupListDocument,
                                                     ElementsGroupCollection groupCache, IncludedGroups includedGroups){
-        super(rdfStore, xslFilename, StorableResourceType.RAW_OBJECT, StorableResourceType.TRANSLATED_USER_GROUP_MEMBERSHIP);
+        super(rdfStore, xslFilename, groupListDocument, StorableResourceType.RAW_OBJECT, StorableResourceType.TRANSLATED_USER_GROUP_MEMBERSHIP);
         if (groupCache == null) throw new NullArgumentException("groupCache");
         if (includedGroups == null) throw new NullArgumentException("includedGroups");
         this.groupCache = groupCache;

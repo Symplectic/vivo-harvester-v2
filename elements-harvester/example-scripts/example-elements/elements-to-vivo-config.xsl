@@ -33,6 +33,9 @@
     <!-- where the framework should pass in the extra data when useRawDataFiles is set to false -->
     <xsl:param name="extraObjects" />
 
+    <!-- where the framework can pass in a list of Elements group names and ids to assist in general translations -->
+    <xsl:param name="elementsGroupList" />
+
     <xsl:variable name="loaded-config" select="document($configFile)//config:main" />
 
     <!-- The base URI you are using for VIVO identifiers : passed in from java framework -->
@@ -110,7 +113,7 @@
     <!-- DO NOT TOUCH: Read the organization types, record and journal precedence configurations and label scheme config into variables for processing -->
     <!-- Read the publication types XML configuration file -->
     <xsl:variable name="publication-types" select="$loaded-config/config:publication-types" />
-    <xsl:variable name="organization-types" select="$loaded-config/config:organization-types" />
+    <xsl:variable name="organization-overrides" select="$loaded-config/config:organization-overrides" />
     <xsl:variable name="country-types" select="$loaded-config/config:country-types" />
     <xsl:variable name="record-precedences" select="$loaded-config/config:record-precedences/config:record-precedences" />
     <xsl:variable name="data-exclusions" select="$loaded-config/config:data-exclusions/config:data-exclusions" />
@@ -131,6 +134,25 @@
         </context-lookups>
     </xsl:variable>
 
+
+    <!-- TODO: migrate some of this to ...config.xml at some point? -->
+    <!--<xsl:variable name="spaceOrPunctuationRegex" select="'[\s\.\(\)\{\}\[\]\-_,;:@#~&lt;&gt;/\\\|&quot;'']'" />-->
+    <xsl:variable name="wordBreakRegex" select="'[\s\.,;:\-_\|]'" />
+    <xsl:variable name="extraneousPunctuation" select="'[/\\@#~&lt;&gt;\(\)\{\}\[\]''&quot;]'" />
+
+    <!-- some typically mis-spelt items from manual address entry -->
+    <xsl:variable name="address-data-entry-corrections">
+        <corrections>
+            <correction original= "Univerity" altered="University" />
+            <correction original= "Univeristy" altered="University" />
+            <correction original= "Universtiy" altered="University" />
+            <correction original= "Univerisy" altered="University" />
+            <correction original= "Univesity" altered="University" />
+            <correction original= "Universituy" altered="University" />
+            <correction original= "Univ" altered="University" />
+        </corrections>
+    </xsl:variable>
+
     <!-- testing tool for config -->
     <!--<xsl:template match="/">-->
         <!--<root>-->
@@ -146,7 +168,7 @@
             <!--<useRawDataFiles><xsl:value-of select="$useRawDataFiles" /></useRawDataFiles>-->
             <!--<recordDir><xsl:value-of select="$recordDir" /></recordDir>-->
             <!--<xsl:copy-of select="$publication-types" />-->
-            <!--<xsl:copy-of select="$organization-types" />-->
+            <!--<xsl:copy-of select="$organization-overrides" />-->
             <!--<xsl:copy-of select="$record-precedences" />-->
             <!--<xsl:copy-of select="$data-exclusions" />-->
             <!--<xsl:copy-of select="$journal-precedence" />-->

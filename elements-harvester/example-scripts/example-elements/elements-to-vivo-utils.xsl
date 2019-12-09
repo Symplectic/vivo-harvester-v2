@@ -63,25 +63,300 @@
         svfn:getOrganizationType
         ========================
         Get mapped Org type based on configuration - if no specific mapping found try to infer.
+
+        NOTE: not currently used - could however be swapped in within svfn:inferGroupType if so desired..
     -->
     <xsl:function name="svfn:getOrganizationType">
-        <xsl:param name="name" />
-        <xsl:param name="default" />
+        <xsl:param name="name" as="xs:string?"/>
+        <xsl:param name="orgOverridesToConsider" />
+        <xsl:param name="defaultType" />
+
+        <xsl:variable name="orgOverride" select="svfn:getOrganisationOverride($name, $orgOverridesToConsider)" />
+
+        <xsl:variable name="intermediateOrgName">
+            <xsl:choose>
+                <xsl:when test="$orgOverride/@name"><xsl:value-of select="$orgOverride/@name" /></xsl:when>
+                <xsl:otherwise><xsl:value-of select="$name" /></xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
 
         <xsl:choose>
-            <xsl:when test="$organization-types/config:organization-type[@name=$name]"><xsl:value-of select="($organization-types/config:organization-type[@name=$name])[1]/@type" /></xsl:when>
-            <xsl:when test="contains($name,'University')"><xsl:text>http://vivoweb.org/ontology/core#University</xsl:text></xsl:when>
-            <xsl:when test="contains($name,'College')"><xsl:text>http://vivoweb.org/ontology/core#College</xsl:text></xsl:when>
-            <xsl:when test="contains($name,'Museum')"><xsl:text>http://vivoweb.org/ontology/core#Museum</xsl:text></xsl:when>
-            <xsl:when test="contains($name,'Hospital')"><xsl:text>http://vivoweb.org/ontology/core#Hospital</xsl:text></xsl:when>
-            <xsl:when test="contains($name,'Institute')"><xsl:text>http://vivoweb.org/ontology/core#Institute</xsl:text></xsl:when>
-            <xsl:when test="contains($name,'School')"><xsl:text>http://vivoweb.org/ontology/core#School</xsl:text></xsl:when>
-            <xsl:when test="contains($name,'Association')"><xsl:text>http://vivoweb.org/ontology/core#Association</xsl:text></xsl:when>
-            <xsl:when test="contains($name,'Library')"><xsl:text>http://vivoweb.org/ontology/core#Library</xsl:text></xsl:when>
-            <xsl:when test="contains($name,'Foundation')"><xsl:text>http://vivoweb.org/ontology/core#Foundation</xsl:text></xsl:when>
-            <xsl:when test="contains($name,'Ltd')"><xsl:text>http://vivoweb.org/ontology/core#PrivateCompany</xsl:text></xsl:when>
-            <xsl:otherwise><xsl:value-of select="$default" /></xsl:otherwise>
+            <xsl:when test="$orgOverride/@type"><xsl:value-of select="$orgOverride/@type" /></xsl:when>
+            <xsl:otherwise><xsl:value-of select="svfn:inferOrganizationType($intermediateOrgName, $defaultType)" /></xsl:otherwise>
         </xsl:choose>
+    </xsl:function>
+
+
+    <!--
+       svfn:_inferOrganizationType
+       ===========================
+       Internal function to infer Vivo org type for the incoming "name" based on pre-defined rules.
+   -->
+    <xsl:function name="svfn:_inferOrganizationType">
+        <xsl:param name="name" />
+
+        <xsl:variable name="candidateTypes">
+            <candidateTypes>
+                <candidateType name="University" uri="http://vivoweb.org/ontology/core#University" />
+                <candidateType name="College" uri="http://vivoweb.org/ontology/core#College" />
+                <candidateType name="Museum" uri="http://vivoweb.org/ontology/core#Museum" />
+                <candidateType name="Hospital" uri="http://vivoweb.org/ontology/core#Hospital" />
+                <candidateType name="Institute" uri="http://vivoweb.org/ontology/core#Institute" />
+                <candidateType name="School" uri="http://vivoweb.org/ontology/core#School" />
+                <candidateType name="Association" uri="http://vivoweb.org/ontology/core#Association" />
+                <candidateType name="Library" uri="http://vivoweb.org/ontology/core#Library" />
+                <candidateType name="Foundation" uri="http://vivoweb.org/ontology/core#Foundation" />
+                <candidateType name="Ltd" uri="http://vivoweb.org/ontology/core#PrivateCompany" />
+            </candidateTypes>
+        </xsl:variable>
+
+        <xsl:choose>
+            <xsl:when test="$candidateTypes/candidateTypes/candidateType[contains($name,@name)]">
+                <xsl:copy-of select="$candidateTypes/candidateTypes/candidateType[contains($name,@name)][1]" />
+            </xsl:when>
+            <xsl:otherwise><xsl:copy-of select="/.." /></xsl:otherwise>
+        </xsl:choose>
+    </xsl:function>
+
+    <!--
+       svfn:inferOrganizationType
+       ===========================
+       Function to infer Vivo org type for the incoming "name" based on pre-defined rules.
+       Will return the passed in "defaultType" if no type can be inferred..
+   -->
+    <xsl:function name="svfn:inferOrganizationType">
+        <xsl:param name="name" />
+        <xsl:param name="defaultType" />
+
+        <xsl:variable name="inferredType" select="svfn:_inferOrganizationType($name)" />
+        <xsl:choose>
+            <xsl:when test="$inferredType/@uri"><xsl:value-of select ="$inferredType/@uri" /></xsl:when>
+            <xsl:otherwise><xsl:value-of select="$defaultType" /></xsl:otherwise>
+        </xsl:choose>
+    </xsl:function>
+
+    <!--
+        svfn:orgNameDifference
+        ======================
+        Function to inspect two strings (represnting organisation names) and analyse them for similarity.
+        This operates by stemming common "stop words" and punctuation from the incoming strings, sorting the remaining words alphabetically.
+        The number of remaining words from the two incoming strings are calculated and a numerical representation of the similarity
+        of the remaining words is calculated.
+        This information is then returned as an XML element:
+           <difference noOfSignificantWords1="#coutn1" noOfSignificantWords2="#count2">#similarityScore</difference>
+        The similarity score is calculated based on svfn:compare-strings from elements-to-vivo-fuzzy-matching.xsl
+
+        This behaviour is designed to deal with representations like "Lilliput University" and "The University of Lilliput"
+        but will no doubt introduce a certain rate of false positives, and potentially other issues.
+    -->
+    <xsl:function name="svfn:orgNameDifference">
+        <xsl:param name="orgName" as="xs:string" />
+        <xsl:param name="comparisonName" as="xs:string" />
+
+        <xsl:variable name="stopWords">
+            <stop-words>
+                <stop-word>the</stop-word>
+                <stop-word>and</stop-word>
+                <stop-word>a</stop-word>
+                <stop-word>or</stop-word>
+                <stop-word>of</stop-word>
+                <stop-word>for</stop-word>
+                <stop-word>&amp;</stop-word>
+                <stop-word>ltd</stop-word>
+            </stop-words>
+        </xsl:variable>
+
+        <!--<xsl:variable name="name1Tokens" select="(fn:tokenize(fn:lower-case(fn:normalize-space($orgName)), '[\s\.\(\),-_]'))" />-->
+        <xsl:variable name="name1Tokens" select="(fn:tokenize(fn:lower-case(fn:normalize-space($orgName)), $wordBreakRegex))" />
+        <xsl:variable name="name1PatternPrimer">
+            <xsl:for-each select="$name1Tokens">
+                <xsl:sort select="." />
+                <xsl:if test="not($stopWords/stop-words/stop-word[text() = current()])">
+                    <xsl:value-of select="." />
+                </xsl:if>
+                <xsl:text> </xsl:text>
+            </xsl:for-each>
+        </xsl:variable>
+        <xsl:variable name="name1PatternIntermediate" select="fn:replace($name1PatternPrimer, concat($extraneousPunctuation, '+'), '')" />
+        <xsl:variable name="name1WordCount" select="count(fn:tokenize(fn:normalize-space($name1PatternIntermediate), ' '))" />
+        <xsl:variable name="name1Pattern" select="fn:replace($name1PatternIntermediate, ' ', '')" />
+
+        <!--<xsl:variable name="name2Tokens" select="fn:tokenize(fn:lower-case(fn:normalize-space($comparisonName)), '[\s\.\(\),-_]')" />-->
+        <xsl:variable name="name2Tokens" select="fn:tokenize(fn:lower-case(fn:normalize-space($comparisonName)), $wordBreakRegex)" />
+        <xsl:variable name="name2PatternPrimer">
+            <xsl:for-each select="$name2Tokens">
+                <xsl:sort select="." />
+                <xsl:if test="not($stopWords/stop-words/stop-word[text() = current()])">
+                    <xsl:value-of select="." />
+                </xsl:if>
+                <xsl:text> </xsl:text>
+            </xsl:for-each>
+        </xsl:variable>
+        <xsl:variable name="name2PatternIntermediate" select="fn:replace($name2PatternPrimer, concat($extraneousPunctuation, '+'), '')" />
+        <xsl:variable name="name2WordCount" select="count(fn:tokenize(fn:normalize-space($name2PatternIntermediate), ' '))" />
+        <xsl:variable name="name2Pattern" select="fn:replace($name2PatternIntermediate, ' ', '')" />
+
+        <!--<xsl:value-of select="svfn:compare-strings($name1Pattern, $name2Pattern)" />-->
+        <difference noOfSignificantWords1="{$name1WordCount}" noOfSignificantWords2="{$name2WordCount}"><xsl:value-of select="svfn:compare-strings($name1Pattern, $name2Pattern)" /></difference>
+    </xsl:function>
+
+
+    <!--
+        svfn:isNameDifferenceCloseEnough
+        ======================
+        Helper function to decide if a name "difference"(as defined by svfn:orgNameDifference) should be considered close enough
+        to be treated as a match. "fuzzyMatchLoose" and "fuzzyMatchTight" parameters are the barriers applied depending on
+        whether the compared words contained the same number of "meaningful" words or not...
+        Note: This could be adapted to instead use a mathematical function based on the difference in the number of words..
+    -->
+    <xsl:function name="svfn:isNameDifferenceCloseEnough" as="xs:boolean">
+        <xsl:param name="difference" />
+        <xsl:param name="fuzzyMatchLoose" as="xs:float" />
+        <xsl:param name="fuzzyMatchTight" as="xs:float"/>
+
+        <xsl:choose>
+            <xsl:when test="$difference/@noOfSignificantWords1 = $difference/noOfSignificantWords2">
+                <xsl:value-of select="$difference/text() &gt;= $fuzzyMatchLoose" />
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:value-of select="$difference/text() &gt;= $fuzzyMatchTight" />
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:function>
+
+    <!--
+        svfn:compareOrgNames
+        ====================
+        Function to compare two strings representing organisation names and decide if they should be treated as a "match"
+        Operates in two stages:
+        1) Are the raw names, as presented close enough to be thought of as a match
+        2) If one name contains a word that can be used to infer the "type" of the organisation, but the other does not..
+           Tack the inferred "type" from one onto the other and see if that is a close enough match
+
+        This behaviour is designed to deal with representations like "Lilliput University" and "Lilliput",
+        but will no doubt introduce a certain rate of false positives, and potentially other issues.
+    -->
+    <xsl:function name="svfn:compareOrgNames" as="xs:boolean">
+        <xsl:param name="orgName" as="xs:string" />
+        <xsl:param name="comparisonName" as="xs:string" />
+
+        <xsl:variable name="fuzzyMatchLoose" select="0.8" />
+        <xsl:variable name="fuzzyMatchTight" select="0.95" />
+
+        <xsl:variable name="result1" select="svfn:orgNameDifference($orgName, $comparisonName)" />
+        <xsl:choose>
+            <xsl:when test="svfn:isNameDifferenceCloseEnough($result1, $fuzzyMatchLoose, $fuzzyMatchTight)">
+                <xsl:value-of  select="true()" />
+            </xsl:when>
+            <xsl:otherwise>
+                <!-- deliberately use internal "svfn:_inferOrganizationType" so that we get nothing back if no inference can be made -->
+                <xsl:variable name="orgInferredType" select="svfn:_inferOrganizationType($orgName)" />
+                <xsl:variable name="compInferredType" select="svfn:_inferOrganizationType($comparisonName)" />
+                <xsl:choose>
+                    <xsl:when test="$orgInferredType and not($compInferredType)">
+                        <xsl:variable name="result2" select="svfn:orgNameDifference($orgName, concat($comparisonName, ' ', $orgInferredType/@name))" />
+                        <xsl:value-of select="svfn:isNameDifferenceCloseEnough($result2, $fuzzyMatchLoose, $fuzzyMatchTight)" />
+                    </xsl:when>
+                    <xsl:when test="$compInferredType and not($orgInferredType)">
+                        <xsl:variable name="result3" select="svfn:orgNameDifference(concat($orgName, ' ', $compInferredType/@name), $comparisonName)" />
+                        <xsl:value-of select="svfn:isNameDifferenceCloseEnough($result3, $fuzzyMatchLoose, $fuzzyMatchTight)" />
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:value-of  select="false()" />
+                    </xsl:otherwise>
+                </xsl:choose>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:function>
+
+    <!--
+        svfn:getOrganisationOverride
+        =======================
+        Function to analyse the incoming "orgName" argument and compare it to the org-unit configuration settings in "orgOverridesToConsider"
+        Will always return the full XML description of the matching org-unit if one is found - or an empty sequence if no match is found.
+        Matching occurs in three stages with later stages only attempted if earlier ones fail:
+        1) Exact match between "orgName" and a unit's "name" (case insensitive)
+        2) Exact ma of one of a unit's "alias" child elements (case insensitive)
+        3) Fuzzy match to the "orgName" as long as there are no matches between "orgName and the value of the values of any child "non-match" elements (case insensitive)
+        The fuzzy matching occurs according to the logic within svfn:compareOrgNames
+    -->
+    <xsl:function name="svfn:getOrganisationOverride">
+        <xsl:param name="orgName" as="xs:string?"/>
+        <xsl:param name="orgOverridesToConsider" />
+
+        <xsl:choose>
+            <!-- if there is an override with the same name (case insensitive match) then use that -->
+            <xsl:when test="$orgOverridesToConsider/config:org-unit[fn:lower-case(@name) = fn:lower-case($orgName)]">
+                <xsl:copy-of select="$orgOverridesToConsider/config:org-unit[fn:lower-case(@name) = fn:lower-case($orgName)][1]" />
+            </xsl:when>
+            <!-- if there is an override with an alias (case insensitive match) then use that -->
+            <xsl:when test="$orgOverridesToConsider/config:org-unit[config:alias/fn:lower-case(text()) = fn:lower-case($orgName)]">
+                <xsl:copy-of select="$orgOverridesToConsider/config:org-unit[config:alias/fn:lower-case(text()) = fn:lower-case($orgName)][1]" />
+            </xsl:when>
+            <xsl:when test="$orgOverridesToConsider/config:org-unit[count(config:non-match[fn:lower-case(text()) = fn:lower-case($orgName)]) = 0 and svfn:compareOrgNames(@name, $orgName)]">
+                <xsl:copy-of select="$orgOverridesToConsider/config:org-unit[count(config:non-match[fn:lower-case(text()) = fn:lower-case($orgName)]) = 0 and svfn:compareOrgNames(@name, $orgName)][1]" />
+            </xsl:when>
+        </xsl:choose>
+
+    </xsl:function>
+
+    <!--
+        svfn:getOrgInfoFromName
+        =======================
+        Function to analyse the incoming "name" argument and compare it to the org-unit configuration settings in "orgOverridesToConsider"
+        Will always return an "org-info" elements with a "name" attribute containing the "resolved" name after any matching has occurred.
+        (Note: matching defined by behaviour of "getOrganisationOverride")...
+        If the resolved name also matches to an Elements "group" it will also report matched-group-name and matched-group-id attributes
+        (Note : this is only attempted if "matchToGroups" is true)...
+        If a matching "org-unit" was discovered in config, it's XML description will be returned (in full) within the org-info element.
+        Note: if the incoming "name" is empty - this will ultimately return an empty sequence..
+    -->
+    <xsl:function name="svfn:getOrgInfoFromName">
+        <xsl:param name="name" as="xs:string?" />
+        <xsl:param name="orgOverridesToConsider" />
+        <xsl:param name="matchToGroups" as="xs:boolean" />
+
+        <xsl:variable name="groupsToMatchAgainst" select="svfn:getNodeOrLoad($elementsGroupList)"/>
+
+        <xsl:if test="$name">
+            <xsl:variable name="orgOverride" select="svfn:getOrganisationOverride($name, $orgOverridesToConsider)" />
+
+            <xsl:variable name="intermediateOrgName">
+                <xsl:choose>
+                    <xsl:when test="$orgOverride/@name"><xsl:value-of select="$orgOverride/@name" /></xsl:when>
+                    <xsl:otherwise><xsl:value-of select="$name" /></xsl:otherwise>
+                </xsl:choose>
+            </xsl:variable>
+
+            <xsl:variable name="matchedGroup">
+                <xsl:choose>
+                    <xsl:when test="$matchToGroups and $groupsToMatchAgainst/descendant::group">
+                        <xsl:choose>
+                            <xsl:when test="$groupsToMatchAgainst/descendant::group[fn:lower-case(@name) = fn:lower-case($intermediateOrgName)]">
+                                <xsl:sequence select="$groupsToMatchAgainst/descendant::group[fn:lower-case(@name) = fn:lower-case($intermediateOrgName)][1]" />
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <!--<xsl:sequence select="$groupsToMatchAgainst/descendant::group[svfn:compare-strings(@name, $intermediateOrgName) > 0.95][1]" />-->
+                                <xsl:sequence select="$groupsToMatchAgainst/descendant::group[svfn:orgNameDifference(@name, $intermediateOrgName) > 0.95][1]" />
+                            </xsl:otherwise>
+                        </xsl:choose>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:sequence select="/.." />
+                    </xsl:otherwise>
+                </xsl:choose>
+            </xsl:variable>
+
+            <xsl:if test="normalize-space($intermediateOrgName) != ''">
+                <orgInfo name="{$intermediateOrgName}">
+                    <xsl:if test="$matchedGroup/group/@id">
+                        <xsl:attribute name="matched-group-name" select="$matchedGroup/group/@name" />
+                        <xsl:attribute name="matched-group-id" select="$matchedGroup/group/@id" />
+                    </xsl:if>
+                    <xsl:copy-of select="$orgOverride" />
+                </orgInfo>
+            </xsl:if>
+        </xsl:if>
     </xsl:function>
 
     <!-- Get publication type statements from the XML configuration (for the type supplied as a parameter) -->
@@ -412,27 +687,73 @@
 
 
     <!--
-    svfn:organisationObjects
-    ====================
-    Create objects representing an an institution and any sub organisation if present from an api:address or api:institution object
-    following the default defined in $includeDept about whether to create intermediate "department" level Vivo organization objects based on address sub-organisations.
+        _applyCorrections
+        ======================
+        Recursive template used to apply a set of corrections to the passed in "stringToCorrect" based on the data in "correctionsToApply"
+        The "correctionsToApply" should be provided as a "corrections" XML element like this:
+         <corrections>
+            <correction original= "Univerity" altered="University" />
+            <correction original= "Univeristy" altered="University" />
+        </corrections>
     -->
-    <xsl:function name="svfn:organisationObjects">
-        <xsl:param name="address" />
-        <xsl:copy-of select="svfn:organisationObjects($address, $includeDept)" />
+    <xsl:template name="_applyCorrections">
+        <xsl:param name="stringToCorrect" as="xs:string"/>
+        <xsl:param name="correctionsToApply" />
+        <xsl:param name="position" as="xs:integer" select="1"/>
+
+        <xsl:variable name="noOfCorrections" select="count($correctionsToApply/corrections/correction)" />
+
+        <xsl:choose>
+            <xsl:when test="$position &lt;= $noOfCorrections">
+                <xsl:variable name="correction" select="$correctionsToApply/corrections/correction[$position]" />
+                <xsl:variable name="partiallyCorrectedString" select="fn:replace($stringToCorrect, fn:concat('(^|',$wordBreakRegex,')',$correction/@original, '($|',$wordBreakRegex,')'), fn:concat('$1', $correction/@altered,'$2'))" />
+
+                <xsl:call-template name="_applyCorrections">
+                    <xsl:with-param name="stringToCorrect" select="$partiallyCorrectedString" />
+                    <xsl:with-param name="correctionsToApply" select="$correctionsToApply" />
+                    <xsl:with-param name="position" select="$position + 1" />
+                </xsl:call-template>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:value-of select="$stringToCorrect" />
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:template>
+
+
+    <!--
+        svfn:applyAddressDataEntryCorrections
+        =====================================
+        Applies a set of corrections to the incoming "stringToCorrect" that are meant to be relevant to manually entered
+        address data...the current set are defined in the variable "address-data-entry-corrections" in ...-config.xsl
+    -->
+    <xsl:function name="svfn:applyAddressDataEntryCorrections">
+        <xsl:param name="stringToCorrect" as="xs:string"/>
+
+        <xsl:call-template name="_applyCorrections">
+            <xsl:with-param name="stringToCorrect" select="$stringToCorrect" />
+            <xsl:with-param name="correctionsToApply" select="$address-data-entry-corrections" />
+        </xsl:call-template>
     </xsl:function>
 
     <!--
-        svfn:organisationObjects
-        ====================
-        Create objects representing an an institution and any sub organisation if present from an api:address or api:institution object
+        svfn:extractDeptNameFromAddress
+        ===============================
+        Function to define how to extract department name information, for later use in matching, from an Elements address
     -->
-    <xsl:function name="svfn:organisationObjects">
+    <xsl:function name="svfn:extractDeptNameFromAddress">
         <xsl:param name="address" />
-        <xsl:param name="createDepartment" as="xs:boolean" />
+        <xsl:value-of select="$address/api:line[@type='suborganisation']" />
+    </xsl:function>
 
-        <xsl:variable name="deptName"><xsl:value-of select="$address/api:line[@type='suborganisation']" /></xsl:variable>
-        <xsl:variable name="instName">
+    <!--
+        svfn:extractInstNameFromAddress
+        ===============================
+        Function to define how to extract institution name information, for later use in matching, from an Elements address
+    -->
+    <xsl:function name="svfn:extractInstNameFromAddress">
+        <xsl:param name="address" />
+        <xsl:variable name="intermediateInstName">
             <xsl:choose>
                 <xsl:when test="$address/api:line[@type='organisation']">
                     <xsl:value-of select="$address/api:line[@type='organisation']" />
@@ -443,47 +764,269 @@
             </xsl:choose>
         </xsl:variable>
 
-        <xsl:variable name="deptURI">
-            <xsl:choose>
-                <xsl:when test="not($deptName='') and not($instName='')"><xsl:value-of select="svfn:makeURI('dept-',concat(fn:substring($deptName,1,100),'-',fn:substring($instName,1,50)))" /></xsl:when>
-                <xsl:when test="not($deptName='')"><xsl:value-of select="svfn:makeURI('dept-',fn:substring($deptName,1,150))" /></xsl:when>
-            </xsl:choose>
-        </xsl:variable>
-        <xsl:variable name="instURI" >
-            <xsl:choose>
-                <xsl:when test="not($instName='')"><xsl:value-of select="svfn:makeURI('institution-',$instName)" /></xsl:when>
-            </xsl:choose>
-        </xsl:variable>
-
-        <xsl:if test="$createDepartment">
-            <xsl:if test="not($deptURI = '')">
-                <xsl:call-template name="render_rdf_object">
-                    <xsl:with-param name="objectURI" select="$deptURI" />
-                    <xsl:with-param name="rdfNodes">
-                        <rdf:type rdf:resource="http://vivoweb.org/ontology/core#AcademicDepartment"/>
-                        <rdfs:label><xsl:value-of select="$deptName" /></rdfs:label>
-                        <xsl:if test="not($instURI='')">
-                            <obo:BFO_0000050 rdf:resource="{$instURI}" />
-                        </xsl:if>
-                    </xsl:with-param>
-                </xsl:call-template>
-            </xsl:if>
-        </xsl:if>
-
-        <xsl:if test="not($instURI='')">
-            <xsl:call-template name="render_rdf_object">
-                <xsl:with-param name="objectURI" select="$instURI" />
-                <xsl:with-param name="rdfNodes">
-                    <rdf:type rdf:resource="{svfn:getOrganizationType($instName,'http://vivoweb.org/ontology/core#University')}" />
-                    <rdfs:label><xsl:value-of select="$instName" /></rdfs:label>
-                    <xsl:if test="not($deptURI='') and $createDepartment">
-                        <obo:BFO_0000051 rdf:resource="{$deptURI}" />
-                    </xsl:if>
-                </xsl:with-param>
-            </xsl:call-template>
-        </xsl:if>
+        <xsl:value-of select="svfn:applyAddressDataEntryCorrections($intermediateInstName)" />
     </xsl:function>
 
+    <!--
+        svfn:extractCountryCodeFromAddress
+        ==================================
+        Function to define how to extract country iso code information, for later use in matching, from an Elements address
+    -->
+    <xsl:function name="svfn:extractCountryCodeFromAddress">
+        <xsl:param name="address" />
+        <xsl:value-of select="fn:normalize-space($address/@iso-country-code)" />
+    </xsl:function>
+
+
+    <!--
+        svfn:getOrgInfosFromAddress
+        ===========================
+        NEEDS REWORK? - LIKELY COULD BE COMBINED WITH svfn:organisationObjects
+
+        Function to take an incoming Elements address field and match/compare it to the configured org-units and return information about
+        the org-info's that are in this address.
+
+        Operates by extracting institution and department name information and country-code info from the address (using the extract functions above.
+        The country-code info (if present) is used to restrict the set of configured org-units to compare against..
+        svfn:getOrgInfoFromName is then used to get an orgInfo from the instName and deptName.
+        (matching to the configured org-units and Elements groups happens here)
+        Note: for deptName the set of potential org-units is restricted to the child org-units of the matched org-info of the instName.
+
+        The function always returns an orgInfos element like this:
+         <orgInfos deptName="#extractedDeptName" instName="#extractedInstName" country-code="#extractedCountryCode">
+            ...see below...
+         </orgInfos>
+         Note: the attributes of the top level function relate to the raw extracted data from the address - nothing to do with comparison or matching.
+
+        For the content:
+        If all the available data (noting that deptName may not always exist) has an org-Info and they are all matched to an Elements group.
+            The code will perform some checks:
+                that the group representing the institution is a "valid" institution level group
+                that the deptGroup is a child of the instGroup, etc.
+            If these pass then a "fullMatch" child element is returned containing the "org-info" of the item matched to the lower level Elements group.
+            (Here we expect the translation of the group hierarchy from Elements to handle what the "parent" of the matched group should be in Vivo).
+        If not all the available data has matched to an Elements group (noting that dept should never do so unless the inst has)
+            The system will return a child element for each available piece of data:
+                 "matchedDept" for the dept.
+                 "matchedInst" for the inst.
+            both of which simply contain a copy of the relevant "org-info".
+            Note: group matching information is always stripped from the "org-info" in this case apart from in the case where
+            the instName has matched to a "valid" institutional level group.
+
+        Note: By default only the top level "Organisation" Elements group is considered to be a valid target for matching to an institution.
+        but this can be influenced by configuring "home-institutes" in the config...
+    -->
+    <xsl:function name="svfn:getOrgInfosFromAddress">
+        <xsl:param name="address" />
+        <xsl:param name="tryMatchDepartment" as="xs:boolean" />
+
+        <xsl:variable name="countryCode" select="svfn:extractCountryCodeFromAddress($address)" />
+        <xsl:variable name="deptName" select="svfn:extractDeptNameFromAddress($address)" />
+        <xsl:variable name="instName" select="svfn:extractInstNameFromAddress($address)" />
+
+        <xsl:variable name="overridesToConsider">
+            <xsl:choose>
+                <xsl:when test="not($countryCode) or $countryCode = ''">
+                    <xsl:sequence select="$organization-overrides/config:org-unit" />
+                </xsl:when>
+                <xsl:otherwise>
+                    <!-- order here is so that any that any that actually match the incoming country code from the address will be earlier in the list -->
+                    <xsl:sequence select="$organization-overrides/config:org-unit[fn:lower-case(@iso-code) = fn:lower-case($countryCode)]" />
+                    <xsl:sequence select="$organization-overrides/config:org-unit[not(@iso-code)]" />
+                </xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
+
+        <xsl:variable name="instInfo" select="svfn:getOrgInfoFromName($instName, $overridesToConsider, true())" />
+        <!-- for the department we only consider the org-units defined as department-overrides within the matched inst -->
+        <xsl:variable name="deptInfo" select="svfn:getOrgInfoFromName($deptName, $instInfo/config:org-unit/config:department-overrides, true())" />
+
+        <xsl:variable name="groupsAllowedToMatchToInst">
+            <ids>
+                <id>1</id>
+            </ids>
+        </xsl:variable>
+
+        <!--<xsl:variable name="homeInstitutes" select="$organization-overrides/config:org-unit[@home-institute = 'true']" />-->
+
+        <!-- we only allow matching to the inst group if either it is in the list above, or if there is a matching org-unit flagged as a "home-institute" -->
+        <!-- TODO: should this instead just look at the orgInfo in the match to see if it itself is a home-institute -->
+        <xsl:variable name="matchedInstIsValid" select="($groupsAllowedToMatchToInst/ids/id[text() = $instInfo/@matched-group-id]) or $organization-overrides/config:org-unit[@home-institute = 'true' and @name = $instInfo/@matched-group-name]" />
+        <xsl:variable name="matchedDeptIsValid" select="$matchedInstIsValid and $tryMatchDepartment and $deptInfo/@matched-group-id" />
+
+        <xsl:variable name="groupsToMatchAgainst" select="svfn:getNodeOrLoad($elementsGroupList)"/>
+        <xsl:variable name="validParentChild" select = "($instInfo/@matched-group-id = $deptInfo/@matched-group-id) or ($groupsToMatchAgainst/descendant::group[@id = $instInfo/@matched-group-id]/descendant::group[@id = $deptInfo/@matched-group-id])" />
+
+        <!--<xsl:variable name="deptIsChildOfInst" select="$matchedInstIsValid and $deptInfo/@matched-group-id" />-->
+
+        <orgInfos deptName="{$deptName}" instName="{$instName}" country-code="{$countryCode}">
+            <xsl:choose>
+                <xsl:when test="$matchedInstIsValid and $matchedDeptIsValid and $validParentChild">
+                    <fullMatch level="dept"><xsl:copy-of select="$deptInfo" /></fullMatch>
+                </xsl:when>
+                <xsl:when test="$matchedInstIsValid and ( not($tryMatchDepartment) or not($deptInfo) )">
+                    <fullMatch level="inst"><xsl:copy-of select="$instInfo" /></fullMatch>
+                </xsl:when>
+                <xsl:otherwise>
+                    <!-- dept is definitely not to be treated as matched -->
+                    <xsl:if test="$tryMatchDepartment">
+                        <matchedDept>
+                            <xsl:if test="$deptInfo/@name">
+                                <orgInfo name="{$deptInfo/@name}" >
+                                    <xsl:sequence select="$deptInfo/config:org-unit" />
+                                </orgInfo>
+                            </xsl:if>
+                        </matchedDept>
+                    </xsl:if>
+                    <matchedInst>
+                        <xsl:choose>
+                            <xsl:when test="$matchedInstIsValid">
+                                <xsl:copy-of select="$instInfo" />
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <xsl:if test="$instInfo/@name">
+                                    <orgInfo name="{$instInfo/@name}">
+                                        <xsl:sequence select="$instInfo/config:org-unit" />
+                                    </orgInfo>
+                                </xsl:if>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                    </matchedInst>
+                </xsl:otherwise>
+            </xsl:choose>
+        </orgInfos>
+    </xsl:function>
+
+
+    <!--
+        svfn:organisationObjects
+        ========================
+        Create objects representing an an institution and any sub organisation if present from an api:address or api:institution object
+        allows you to individually specify if you also want the "department" level address information to be turned into an org object
+
+        Uses svfn:getOrgInfosFromAddress internally to get information about the org-infos after comparison and matching to the configured
+        "org-units". Generates up to two "rdf:description" objects based on this matching, 1 for the department (if present) and 1 for the institution.
+        Depending on the output of svfn:getOrgInfosFromAddress either of these may be a very sparse description referencing simply the relevant URI for
+        the Elements group that has been inferred as a good match.
+
+        If both the dept and inst are represented here, the dept is always listed first, this is important for the correct operation of
+        svfn:organisationObjectsMainURI
+    -->
+    <xsl:function name="svfn:organisationObjects">
+        <xsl:param name="address" />
+        <xsl:param name="createDepartment" as="xs:boolean" />
+
+        <xsl:variable name="userGroupMatch" select="svfn:getOrgInfosFromAddress($address, $createDepartment)" />
+
+        <xsl:choose>
+            <xsl:when test="$userGroupMatch/fullMatch">
+                <xsl:variable name="groupURI" select="svfn:groupURI($userGroupMatch/fullMatch/orgInfo/@matched-group-id, $userGroupMatch/fullMatch/orgInfo/@matched-group-name)" />
+                <rdf:Description rdf:about="{$groupURI}" />
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:variable name="extractedDeptName" select="$userGroupMatch/@deptName" />
+                <xsl:variable name="extractedInstName" select="$userGroupMatch/@instName" />
+                <xsl:variable name="countryCode" select="$userGroupMatch/@country-code" />
+                <xsl:variable name="countryUri" select="fn:normalize-space($country-types/config:country-type[$countryCode and $countryCode != '' and fn:lower-case(@iso-code) = fn:lower-case($countryCode)][1]/@uri)" />
+
+                <xsl:variable name="deptInfo" select="$userGroupMatch/matchedDept/orgInfo" />
+                <xsl:variable name="instInfo" select="$userGroupMatch/matchedInst/orgInfo" />
+
+                <xsl:variable name="deptURI">
+                    <xsl:choose>
+                        <xsl:when test="($deptInfo and not($deptInfo/@name='')) and ($instInfo and not($instInfo/@name = ''))"><xsl:value-of select="svfn:makeURI('dept-',concat(fn:substring($deptInfo/@name,1,100),'-',fn:substring($instInfo/@name,1,50)))" /></xsl:when>
+                        <xsl:when test="$deptInfo and not($deptInfo/@name='')"><xsl:value-of select="svfn:makeURI('dept-', fn:concat(fn:substring($deptInfo/@name,1,150), ' '))" /></xsl:when>
+                    </xsl:choose>
+                </xsl:variable>
+
+                <xsl:variable name="instURI" >
+                    <xsl:choose>
+                        <xsl:when test="$instInfo/@matched-group-id"><xsl:value-of select="svfn:groupURI($instInfo/@matched-group-id,$instInfo/@matched-group-name)" /></xsl:when>
+                        <xsl:when test="$instInfo and not($instInfo/@name='')"><xsl:value-of select="svfn:makeURI('institution-',fn:concat($instInfo/@name, ' '))" /></xsl:when>
+                    </xsl:choose>
+                </xsl:variable>
+
+                <xsl:if test="not($deptURI = '')">
+                    <xsl:variable name="deptType">
+                        <xsl:choose>
+                            <xsl:when test="$deptInfo/config:org-unit/@type"><xsl:value-of select="$deptInfo/config:org-unit/@type" /></xsl:when>
+                            <xsl:otherwise><xsl:value-of select="'http://vivoweb.org/ontology/core#AcademicDepartment'" /></xsl:otherwise>
+                        </xsl:choose>
+                    </xsl:variable>
+
+                    <xsl:call-template name="render_rdf_object">
+                        <xsl:with-param name="objectURI" select="$deptURI" />
+                        <xsl:with-param name="rdfNodes">
+                            <!-- TODO Implement dictionary to determine department type -->
+                            <rdf:type rdf:resource="{$deptType}"/>
+                            <rdfs:label><xsl:value-of select="$deptInfo/@name" /></rdfs:label>
+                            <xsl:if test="not($instURI='')">
+                                <obo:BFO_0000050 rdf:resource="{$instURI}" />
+                            </xsl:if>
+                            <xsl:element namespace="{$validatedLocalOntologyURI}" name="raw-organisation-name">
+                                <xsl:value-of select="$extractedDeptName" />
+                            </xsl:element>
+                        </xsl:with-param>
+                    </xsl:call-template>
+                </xsl:if>
+
+                <xsl:if test="not($instURI='')">
+                    <xsl:choose>
+                        <xsl:when test="$instInfo/@matched-group-id">
+                            <rdf:Description rdf:about="{$instURI}" />
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:variable name="instType">
+                                <xsl:choose>
+                                    <xsl:when test="$instInfo/config:org-unit/@type"><xsl:value-of select="$instInfo/config:org-unit/@type" /></xsl:when>
+                                    <xsl:otherwise><xsl:value-of select="svfn:inferOrganizationType($instInfo/@name, 'http://vivoweb.org/ontology/core#University')" /></xsl:otherwise>
+                                </xsl:choose>
+                            </xsl:variable>
+
+                            <xsl:call-template name="render_rdf_object">
+                                <xsl:with-param name="objectURI" select="$instURI" />
+                                <xsl:with-param name="rdfNodes">
+                                    <rdf:type rdf:resource="{$instType}" />
+                                    <rdfs:label><xsl:value-of select="$instInfo/@name" /></rdfs:label>
+                                    <xsl:if test="not($deptURI='') and $createDepartment">
+                                        <obo:BFO_0000051 rdf:resource="{$deptURI}" />
+                                    </xsl:if>
+                                    <xsl:if test="$countryUri and $countryUri != ''">
+                                        <vivo:GeographicLocation><xsl:value-of select="$countryUri" /></vivo:GeographicLocation>
+                                    </xsl:if>
+                                    <xsl:element namespace="{$validatedLocalOntologyURI}" name="raw-organisation-name">
+                                        <xsl:value-of select="$extractedInstName" />
+                                    </xsl:element>
+                                </xsl:with-param>
+                            </xsl:call-template>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:if>
+
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:function>
+
+    <!--
+        svfn:organisationObjects
+        ========================
+        Overloaded version of the main svfn:organisationObjects function (above) to default whether to try and match department level
+        information based on the config variable $includeDept.
+    -->
+    <xsl:function name="svfn:organisationObjects">
+        <xsl:param name="address" />
+        <xsl:copy-of select="svfn:organisationObjects($address, $includeDept)" />
+    </xsl:function>
+
+
+    <!--
+        svfn:organisationObjectsMainURI
+        ===============================
+        Function to retrieve the URI of the first "organisation" object in a sequence  ir rdf-descriptions
+        (as potentially generated by "svfn:organisationObjects" above)..
+        will adapt if passed a sequence or a single address in different contexts.
+        will return an empty string if no appropraite item with an "rdf:about" attribute it detected.
+    -->
     <xsl:function name="svfn:organisationObjectsMainURI" as="xs:string">
         <xsl:param name="orgObjects" />
         <xsl:variable name="uri-to-use">

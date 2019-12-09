@@ -10,6 +10,7 @@
  */
 package uk.co.symplectic.vivoweb.harvester.translate;
 
+import uk.co.symplectic.translate.TranslationDocumentProvider;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsItemId;
 import uk.co.symplectic.vivoweb.harvester.model.ElementsObjectInfo;
 import uk.co.symplectic.vivoweb.harvester.store.ElementsRdfStore;
@@ -24,8 +25,8 @@ import java.text.MessageFormat;
  */
 
 public class ElementsObjectTranslateObserver extends ElementsTranslateObserver{
-    public ElementsObjectTranslateObserver(ElementsRdfStore rdfStore, String xslFilename){
-        super(rdfStore, xslFilename, StorableResourceType.RAW_OBJECT, StorableResourceType.TRANSLATED_OBJECT);
+    public ElementsObjectTranslateObserver(ElementsRdfStore rdfStore, String xslFilename, TranslationDocumentProvider groupListDocument){
+        super(rdfStore, xslFilename, groupListDocument, StorableResourceType.RAW_OBJECT, StorableResourceType.TRANSLATED_OBJECT);
     }
 
     @Override

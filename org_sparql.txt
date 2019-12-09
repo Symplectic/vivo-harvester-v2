@@ -1,0 +1,100 @@
+PREFIX rdf:      <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs:     <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd:      <http://www.w3.org/2001/XMLSchema#>
+PREFIX owl:      <http://www.w3.org/2002/07/owl#>
+PREFIX swrl:     <http://www.w3.org/2003/11/swrl#>
+PREFIX swrlb:    <http://www.w3.org/2003/11/swrlb#>
+PREFIX vitro:    <http://vitro.mannlib.cornell.edu/ns/vitro/0.7#>
+PREFIX bibo:     <http://purl.org/ontology/bibo/>
+PREFIX c4o:      <http://purl.org/spar/c4o/>
+PREFIX cito:     <http://purl.org/spar/cito/>
+PREFIX event:    <http://purl.org/NET/c4dm/event.owl#>
+PREFIX fabio:    <http://purl.org/spar/fabio/>
+PREFIX foaf:     <http://xmlns.com/foaf/0.1/>
+PREFIX geo:      <http://aims.fao.org/aos/geopolitical.owl#>
+PREFIX obo:      <http://purl.obolibrary.org/obo/>
+PREFIX ocrer:    <http://purl.org/net/OCRe/research.owl#>
+PREFIX ocresd:   <http://purl.org/net/OCRe/study_design.owl#>
+PREFIX skos:     <http://www.w3.org/2004/02/skos/core#>
+PREFIX vcard:    <http://www.w3.org/2006/vcard/ns#>
+PREFIX vitro-public: <http://vitro.mannlib.cornell.edu/ns/vitro/public#>
+PREFIX vivo:     <http://vivoweb.org/ontology/core#>
+PREFIX scires:   <http://vivoweb.org/ontology/scientific-research#>
+
+#
+# Query to retrieve non "group" organisations, their names and how many "links" they have to other things in Vivo
+#
+
+CONSTRUCT {
+    ?geoLocation vivo:org-name ?orgName .
+  	?geoLocation vivo:count ?totalCount .
+}
+WHERE {  
+  #SELECT ?geoLocation ?relCount ?assignCount ?contCount ?participationCount (?finalrc + ?finalac + ?finalcc + ?finalpc as ?totalCount)
+  SELECT ?geoLocation ?orgName (?finalrc + ?finalac + ?finalcc + ?finalpc as ?totalCount)
+	WHERE {
+	
+#####################################################################################################################		
+#				Update this to match your Vivo system's internal class to exclude "group" organisations				#
+#####################################################################################################################	
+
+		BIND(<http://vivo.mydomain.edu/ontology/local#InternalClass> as ?internalClass)
+		
+#####################################################################################################################
+
+		?geoLocation rdf:type foaf:Organization.
+		?geoLocation rdfs:label ?orgName .
+		
+		OPTIONAL {
+			SELECT ?geoLocation (count(distinct ?related) as ?relCount)
+			WHERE {
+				?geoLocation rdf:type foaf:Organization.
+				?geoLocation vivo:relatedBy ?related
+				Filter( NOT Exists {?geoLocation a ?internalClass} )
+				Filter( NOT Exists {?geoLocation obo:BFO_0000050 ?parentOrg } )
+			}
+			GROUP BY ?geoLocation  
+		}
+		BIND(IF(BOUND(?relCount), ?relCount, 0) as ?finalrc)
+		
+		OPTIONAL {
+			SELECT ?geoLocation (count(distinct ?assigns) as ?assignCount)
+			WHERE {
+				?geoLocation rdf:type foaf:Organization.
+				?geoLocation vivo:assigns ?assigns
+				Filter( NOT Exists {?geoLocation a ?internalClass} )
+				Filter( NOT Exists {?geoLocation obo:BFO_0000050 ?parentOrg } )
+			}
+			GROUP BY ?geoLocation  
+		}
+		BIND(IF(BOUND(?assignCount), ?assignCount, 0) as ?finalac)
+		
+		OPTIONAL {
+			SELECT ?geoLocation (count(distinct ?contrib) as ?contCount)
+			WHERE {
+				?geoLocation rdf:type foaf:Organization.
+				?geoLocation vivo:contributingRole ?contrib
+				Filter( NOT Exists {?geoLocation a ?internalClass} )
+				Filter( NOT Exists {?geoLocation obo:BFO_0000050 ?parentOrg } )
+			}
+			GROUP BY ?geoLocation  
+		}
+		BIND(IF(BOUND(?contCount), ?contCount, 0) as ?finalcc)
+		
+		OPTIONAL {
+			SELECT ?geoLocation (count(distinct ?partic) as ?participationCount)
+			WHERE {
+				?geoLocation rdf:type foaf:Organization.
+				?geoLocation obo:RO_0000056 ?partic
+				Filter( NOT Exists {?geoLocation a ?internalClass} )
+				Filter( NOT Exists {?geoLocation obo:BFO_0000050 ?parentOrg } )
+			}
+			GROUP BY ?geoLocation  
+		}
+		BIND(IF(BOUND(?participationCount), ?participationCount, 0) as ?finalpc)
+
+		Filter( NOT Exists {?geoLocation a ?internalClass} )
+		Filter( NOT Exists {?geoLocation obo:BFO_0000050 ?parentOrg } )
+		#Filter (bound(?participationCount))
+	}
+}

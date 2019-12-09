@@ -311,8 +311,15 @@
 
 
     <!--
-        A place to map organization names to rdf types. Recognized types in Vivo are:
+        A place to map overrides for specific organisations,
+        Allows you to
+            Specify the canonical name, and aliasses
+            Specify if this is the "home-institution" data will then be used to process Elements groups..
+            Specify department-canonical-names and alisses.
+            Specify the preferred "RDF type" for any org-unit (inst or dept)
+            Specify the "country" of an org-unit via iso-code attribute to allow for disambiguation
 
+    Recognized org types in Vivo are:
     http://vivoweb.org/ontology/core#AcademicDepartment
     http://vivoweb.org/ontology/core#Association
     http://vivoweb.org/ontology/core#Center
@@ -342,350 +349,365 @@
     http://vivoweb.org/ontology/core#University
     http://purl.obolibrary.org/obo/ERO_0000565 (Technology Transfer Office)
     -->
-    <config:organization-types>
-        <config:organization-type name="A. N. Nesmeyanov Institute of Organoelement Compounds RAS"  type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="Albany College of Pharmacy"                                 type="http://vivoweb.org/ontology/core#College" />
-        <config:organization-type name="Alfred P. Sloan Foundation"                                 type="http://vivoweb.org/ontology/core#FundingOrganization" />
-        <config:organization-type name="American Astronomical Society"                              type="http://vivoweb.org/ontology/core#Institute" />
-        <config:organization-type name="American Institute of Physics"                              type="http://vivoweb.org/ontology/core#Consortium" />
-        <config:organization-type name="American University Observatory"                            type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="American University of Beirut"                              type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="Australian Research Council"                                type="http://vivoweb.org/ontology/core#FundingOrganization" />
-        <config:organization-type name="Bates College"                                              type="http://vivoweb.org/ontology/core#College" />
-        <config:organization-type name="Baylor University"                                          type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="BBSRC"                                                      type="http://vivoweb.org/ontology/core#FundingOrganization" />
-        <config:organization-type name="Biotech incubator Upper Austrian Research GmbH"             type="http://vivoweb.org/ontology/core#Company" />
-        <config:organization-type name="Birkbeck College"                                           type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="Boston Museum of Science"                                   type="http://vivoweb.org/ontology/core#Museum" />
-        <config:organization-type name="Boston University"                                          type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="Brown University"                                           type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="Brigham and Women's Hospital"                               type="http://vivoweb.org/ontology/core#Hospital" />
-        <config:organization-type name="California Institute of Technology"                         type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="CalTech"                                                    type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="Cambridge University"                                       type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="Cerulean Pharma"                                            type="http://vivoweb.org/ontology/core#Company" />
-        <config:organization-type name="Children's Hospital Medical Center"                         type="http://vivoweb.org/ontology/core#Hospital" />
-        <config:organization-type name="Clare College, Cambridge"                                   type="http://vivoweb.org/ontology/core#College" />
-        <config:organization-type name="Cornell University"                                         type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="Creighton University"                                       type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="Deshpande Center for Technological Innovation"              type="http://vivoweb.org/ontology/core#ResearchOrganization" />
-        <config:organization-type name="Digital Science"                                            type="http://vivoweb.org/ontology/core#Company" />
-        <config:organization-type name="Ecole Normale Superieure, Paris"                            type="http://vivoweb.org/ontology/core#ResearchOrganization" />
-        <config:organization-type name="Eli Lilly &amp; Co"                                         type="http://vivoweb.org/ontology/core#Company" />
-        <config:organization-type name="EPSRC"                                                      type="http://vivoweb.org/ontology/core#FundingOrganization" />
-        <config:organization-type name="FBC Ltd. Chesterford Park"                                  type="http://vivoweb.org/ontology/core#Company" />
-        <config:organization-type name="Griffith University"                                        type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="Harvard Medical School"                                     type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="Harvard Medical School, Brigham &amp; Women's Hospital"     type="http://vivoweb.org/ontology/core#Hospital" />
-        <config:organization-type name="Harvard Stem Cell Institute"                                type="http://vivoweb.org/ontology/core#Institute" />
-        <config:organization-type name="Harvard University"                                         type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="Heidelberg University"                                      type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="Howard Hughes Medical Institute"                            type="http://vivoweb.org/ontology/core#Institute" />
-        <config:organization-type name="Imperial College London"                                    type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="Indiana University-Purdue University"                       type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="Institute of Chemical Research of Catalonia"                type="http://vivoweb.org/ontology/core#School" />
-        <config:organization-type name="Institute of Organic Chemistry, PAS"                        type="http://vivoweb.org/ontology/core#Institute" />
-        <config:organization-type name="Johannes Gutenberg Universitaet"                            type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="John Templeton Foundation"                                  type="http://vivoweb.org/ontology/core#Institute" />
-        <config:organization-type name="Johns Hopkins"                                              type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="Johns Hopkins University"                                   type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="Kanel Foundation"                                           type="http://vivoweb.org/ontology/core#Foundation" />
-        <config:organization-type name="Library of Congress"                                        type="http://vivoweb.org/ontology/core#Institute" />
-        <config:organization-type name="Louisiana State University System"                          type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="Marquette University"                                       type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="Massachusetts Institute of Technology"                      type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="Massgeneral Hospital for Children"                          type="http://vivoweb.org/ontology/core#Hospital" />
-        <config:organization-type name="McGill University"                                          type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="MIT"                                                        type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="Momenta Pharmaceuticals"                                    type="http://vivoweb.org/ontology/core#Company" />
-        <config:organization-type name="Moscow Chemical Lyceum"                                     type="http://vivoweb.org/ontology/core#School" />
-        <config:organization-type name="National Cancer Institute"                                  type="http://vivoweb.org/ontology/core#FundingOrganization" />
-        <config:organization-type name="National Center For Complimentary &amp; Alternative Medicine"  type="http://vivoweb.org/ontology/core#FundingOrganization" />
-        <config:organization-type name="National Health &amp; Medical Research Council"             type="http://vivoweb.org/ontology/core#FundingOrganization" />
-        <config:organization-type name="National Heart, Lung, And Blood Institute"                  type="http://vivoweb.org/ontology/core#FundingOrganization" />
-        <config:organization-type name="National Institute Of Allergy And Infectious Diseases"      type="http://vivoweb.org/ontology/core#FundingOrganization" />
-        <config:organization-type name="National Institute Of Biomedical Imaging And Bioengineering"  type="http://vivoweb.org/ontology/core#FundingOrganization" />
-        <config:organization-type name="National Institute Of Dental &amp; Craniofacial Research"   type="http://vivoweb.org/ontology/core#FundingOrganization" />
-        <config:organization-type name="National Institute Of General Medical Sciences"             type="http://vivoweb.org/ontology/core#FundingOrganization" />
-        <config:organization-type name="National Institute of Health"                               type="http://vivoweb.org/ontology/core#FundingOrganization" />
-        <config:organization-type name="National Science Foundation"                                type="http://vivoweb.org/ontology/core#FundingOrganization" />
-        <config:organization-type name="NATO"                                                       type="http://vivoweb.org/ontology/core#FundingOrganization" />
-        <config:organization-type name="NERC"                                                       type="http://vivoweb.org/ontology/core#FundingOrganization" />
-        <config:organization-type name="Newcastle University"                                       type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="Nottingham Trent University"                                type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="NSF"                                                        type="http://vivoweb.org/ontology/core#FundingOrganization" />
-        <config:organization-type name="Oxford University"                                          type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="Paisley College"                                            type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="Princeton"                                                  type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="Royal Institution"                                          type="http://vivoweb.org/ontology/core#Institute" />
-        <config:organization-type name="Santa Fe Institute"                                         type="http://vivoweb.org/ontology/core#Institute" />
-        <config:organization-type name="Rensselaer Polytechnic Institute"                           type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="Santa Fe Institute"                                         type="http://vivoweb.org/ontology/core#Institute" />
-        <config:organization-type name="Silicon Valley Community Foundation"                        type="http://vivoweb.org/ontology/core#FundingOrganization" />
-        <config:organization-type name="Soreq NRC"                                                  type="http://vivoweb.org/ontology/core#Institute" />
-        <config:organization-type name="St John's College, Cambridge"                               type="http://vivoweb.org/ontology/core#College" />
-        <config:organization-type name="St. Catharine's College, Cambridge"                         type="http://vivoweb.org/ontology/core#College" />
-        <config:organization-type name="Symplectic"                                                 type="http://vivoweb.org/ontology/core#Company" />
-        <config:organization-type name="Symplectic Ltd"                                             type="http://vivoweb.org/ontology/core#Company" />
-        <config:organization-type name="Tel Aviv University"                                        type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="The Group School, Cambridge"                                type="http://vivoweb.org/ontology/core#School" />
-        <config:organization-type name="The Hebrew University of Jerusalem"                         type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="The Institute for Advanced Study"                           type="http://vivoweb.org/ontology/core#Institute" />
-        <config:organization-type name="The University of Chicago"                                  type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="The University of Michigan"                                 type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="UC Berkeley"                                                type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="UC Davis"                                                   type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="UCL"                                                        type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="UMR"                                                        type="http://vivoweb.org/ontology/core#FundingOrganization" />
-        <config:organization-type name="University College London"                                  type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="University of Bristol"                                      type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="University of California"                                   type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="University of California at Berkeley"                       type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="University of California at Davis"                          type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="University of Cambridge"                                    type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="University of Cambridge, Churchill College"                 type="http://vivoweb.org/ontology/core#College" />
-        <config:organization-type name="University of Chicago"                                      type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="University of East Anglia"                                  type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="University of Edinburgh"                                    type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="University of Hawaii Institute for Astronomy"               type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="University of Illinois at Urbana-Champaign"                 type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="University of Manchester Institute of Science and Technology"  type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="University of Minnesota"                                    type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="University of Missouri-Rolla"                               type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="University of New Mexico"                                   type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="University of North Carolina"                               type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="University of Paris VII"                                    type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="University of Pennsylvania"                                 type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="University of Rochester"                                    type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="University of Science and Technology of China"              type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="University of Southampton"                                  type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="University of Sussex"                                       type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="University of Toronto"                                      type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="University of Vienna"                                       type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="University of Western Australia"                            type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="University of Wisconsin - Madison"                          type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="US National Committee for the International Astronomical Union"  type="http://vivoweb.org/ontology/core#GovernmentAgency" />
-        <config:organization-type name="US-Israel Binational Science Foundation"                    type="http://vivoweb.org/ontology/core#FundingOrganization" />
-        <config:organization-type name="Vassar College"                                             type="http://vivoweb.org/ontology/core#College" />
-        <config:organization-type name="Virginia Polytechnic Institute and State University"        type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="Visterra"                                                   type="http://vivoweb.org/ontology/core#Company" />
-        <config:organization-type name="Washington University in St. Louis"                         type="http://vivoweb.org/ontology/core#University" />
-        <config:organization-type name="Wellesley College"                                          type="http://vivoweb.org/ontology/core#College" />
-        <config:organization-type name="Yale University"                                            type="http://vivoweb.org/ontology/core#University" />
-    </config:organization-types>
+    <config:organization-overrides>
+        <!-- Example usage -->
+        <!--<config:org-unit name="Lilliput University" home-institute="true" />-->
+
+        <!--<config:org-unit name="Newcastle University" type="http://vivoweb.org/ontology/core#University" iso-code="GB">-->
+        <!--e.g. alias for known mis-spelling-->
+        <!--<config:alias>Newcstle University</config:alias>-->
+        <!--<config:department-overrides>-->
+            <!--<config:org-unit name="History Department" type="http://vivoweb.org/ontology/core#AcademicDepartment">-->
+                <!--<config:alias>Historical Sciences</config:alias>-->
+            <!--</config:org-unit>-->
+        <!--</config:department-overrides>-->
+        <!--</config:org-unit>-->
+
+        <config:org-unit name="A. N. Nesmeyanov Institute of Organoelement Compounds RAS"  type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="Albany College of Pharmacy"                                 type="http://vivoweb.org/ontology/core#College" />
+        <config:org-unit name="Alfred P. Sloan Foundation"                                 type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:org-unit name="American Astronomical Society"                              type="http://vivoweb.org/ontology/core#Institute" />
+        <config:org-unit name="American Institute of Physics"                              type="http://vivoweb.org/ontology/core#Consortium" />
+        <config:org-unit name="American University Observatory"                            type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="American University of Beirut"                              type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="Australian Research Council"                                type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:org-unit name="Bates College"                                              type="http://vivoweb.org/ontology/core#College" />
+        <config:org-unit name="Baylor University"                                          type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="BBSRC"                                                      type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:org-unit name="Biotech incubator Upper Austrian Research GmbH"             type="http://vivoweb.org/ontology/core#Company" />
+        <config:org-unit name="Birkbeck College"                                           type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="Boston Museum of Science"                                   type="http://vivoweb.org/ontology/core#Museum" />
+        <config:org-unit name="Boston University"                                          type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="Brown University"                                           type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="Brigham and Women's Hospital"                               type="http://vivoweb.org/ontology/core#Hospital" />
+        <config:org-unit name="California Institute of Technology"                         type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="CalTech"                                                    type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="Cambridge University"                                       type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="Cerulean Pharma"                                            type="http://vivoweb.org/ontology/core#Company" />
+        <config:org-unit name="Children's Hospital Medical Center"                         type="http://vivoweb.org/ontology/core#Hospital" />
+        <config:org-unit name="Clare College, Cambridge"                                   type="http://vivoweb.org/ontology/core#College" />
+        <config:org-unit name="Cornell University"                                         type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="Creighton University"                                       type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="Deshpande Center for Technological Innovation"              type="http://vivoweb.org/ontology/core#ResearchOrganization" />
+        <config:org-unit name="Digital Science"                                            type="http://vivoweb.org/ontology/core#Company" home-institute="true">
+            <config:alias>Digital Science (United Kingdom)</config:alias>
+        </config:org-unit>
+        <config:org-unit name="Ecole Normale Superieure, Paris"                            type="http://vivoweb.org/ontology/core#ResearchOrganization" />
+        <config:org-unit name="Eli Lilly &amp; Co"                                         type="http://vivoweb.org/ontology/core#Company" />
+        <config:org-unit name="EPSRC"                                                      type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:org-unit name="FBC Ltd. Chesterford Park"                                  type="http://vivoweb.org/ontology/core#Company" />
+        <config:org-unit name="Griffith University"                                        type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="Harvard Medical School"                                     type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="Harvard Medical School, Brigham &amp; Women's Hospital"     type="http://vivoweb.org/ontology/core#Hospital" />
+        <config:org-unit name="Harvard Stem Cell Institute"                                type="http://vivoweb.org/ontology/core#Institute" />
+        <config:org-unit name="Harvard University"                                         type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="Heidelberg University"                                      type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="Howard Hughes Medical Institute"                            type="http://vivoweb.org/ontology/core#Institute" />
+        <config:org-unit name="Imperial College London"                                    type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="Indiana University-Purdue University"                       type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="Institute of Chemical Research of Catalonia"                type="http://vivoweb.org/ontology/core#School" />
+        <config:org-unit name="Institute of Organic Chemistry, PAS"                        type="http://vivoweb.org/ontology/core#Institute" />
+        <config:org-unit name="Johannes Gutenberg Universitaet"                            type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="John Templeton Foundation"                                  type="http://vivoweb.org/ontology/core#Institute" />
+        <config:org-unit name="Johns Hopkins"                                              type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="Johns Hopkins University"                                   type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="Kanel Foundation"                                           type="http://vivoweb.org/ontology/core#Foundation" />
+        <config:org-unit name="Library of Congress"                                        type="http://vivoweb.org/ontology/core#Institute" />
+        <config:org-unit name="Louisiana State University System"                          type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="Marquette University"                                       type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="Massachusetts Institute of Technology"                      type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="Massgeneral Hospital for Children"                          type="http://vivoweb.org/ontology/core#Hospital" />
+        <config:org-unit name="McGill University"                                          type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="MIT"                                                        type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="Momenta Pharmaceuticals"                                    type="http://vivoweb.org/ontology/core#Company" />
+        <config:org-unit name="Moscow Chemical Lyceum"                                     type="http://vivoweb.org/ontology/core#School" />
+        <config:org-unit name="National Cancer Institute"                                  type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:org-unit name="National Center For Complimentary &amp; Alternative Medicine"  type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:org-unit name="National Health &amp; Medical Research Council"             type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:org-unit name="National Heart, Lung, And Blood Institute"                  type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:org-unit name="National Institute Of Allergy And Infectious Diseases"      type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:org-unit name="National Institute Of Biomedical Imaging And Bioengineering"  type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:org-unit name="National Institute Of Dental &amp; Craniofacial Research"   type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:org-unit name="National Institute Of General Medical Sciences"             type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:org-unit name="National Institute of Health"                               type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:org-unit name="National Science Foundation"                                type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:org-unit name="NATO"                                                       type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:org-unit name="NERC"                                                       type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:org-unit name="Newcastle University"                                       type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="Nottingham Trent University"                                type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="NSF"                                                        type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:org-unit name="Oxford University"                                          type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="Paisley College"                                            type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="Princeton"                                                  type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="Royal Institution"                                          type="http://vivoweb.org/ontology/core#Institute" />
+        <config:org-unit name="Santa Fe Institute"                                         type="http://vivoweb.org/ontology/core#Institute" />
+        <config:org-unit name="Rensselaer Polytechnic Institute"                           type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="Santa Fe Institute"                                         type="http://vivoweb.org/ontology/core#Institute" />
+        <config:org-unit name="Silicon Valley Community Foundation"                        type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:org-unit name="Soreq NRC"                                                  type="http://vivoweb.org/ontology/core#Institute" />
+        <config:org-unit name="St John's College, Cambridge"                               type="http://vivoweb.org/ontology/core#College" />
+        <config:org-unit name="St. Catharine's College, Cambridge"                         type="http://vivoweb.org/ontology/core#College" />
+        <config:org-unit name="Symplectic"                                                 type="http://vivoweb.org/ontology/core#Company" home-institute="true" />
+        <config:org-unit name="Tel Aviv University"                                        type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="The Group School, Cambridge"                                type="http://vivoweb.org/ontology/core#School" />
+        <config:org-unit name="The Hebrew University of Jerusalem"                         type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="The Institute for Advanced Study"                           type="http://vivoweb.org/ontology/core#Institute" />
+        <config:org-unit name="The University of Chicago"                                  type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="The University of Michigan"                                 type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="UC Berkeley"                                                type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="UC Davis"                                                   type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="UCL"                                                        type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="UMR"                                                        type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:org-unit name="University College London"                                  type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="University of Bristol"                                      type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="University of California"                                   type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="University of California at Berkeley"                       type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="University of California at Davis"                          type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="University of Cambridge"                                    type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="University of Cambridge, Churchill College"                 type="http://vivoweb.org/ontology/core#College" />
+        <config:org-unit name="University of Chicago"                                      type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="University of East Anglia"                                  type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="University of Edinburgh"                                    type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="University of Hawaii Institute for Astronomy"               type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="University of Illinois at Urbana-Champaign"                 type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="University of Manchester Institute of Science and Technology"  type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="University of Minnesota"                                    type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="University of Missouri-Rolla"                               type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="University of New Mexico"                                   type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="University of North Carolina"                               type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="University of Paris VII"                                    type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="University of Pennsylvania"                                 type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="University of Rochester"                                    type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="University of Science and Technology of China"              type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="University of Southampton"                                  type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="University of Sussex"                                       type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="University of Toronto"                                      type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="University of Vienna"                                       type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="University of Western Australia"                            type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="University of Wisconsin - Madison"                          type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="US National Committee for the International Astronomical Union"  type="http://vivoweb.org/ontology/core#GovernmentAgency" />
+        <config:org-unit name="US-Israel Binational Science Foundation"                    type="http://vivoweb.org/ontology/core#FundingOrganization" />
+        <config:org-unit name="Vassar College"                                             type="http://vivoweb.org/ontology/core#College" />
+        <config:org-unit name="Virginia Polytechnic Institute and State University"        type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="Visterra"                                                   type="http://vivoweb.org/ontology/core#Company" />
+        <config:org-unit name="Washington University in St. Louis"                         type="http://vivoweb.org/ontology/core#University" />
+        <config:org-unit name="Wellesley College"                                          type="http://vivoweb.org/ontology/core#College" />
+        <config:org-unit name="Yale University"                                            type="http://vivoweb.org/ontology/core#University" />
+    </config:organization-overrides>
 
     <config:country-types>
-        <config:country-type name="Afghanistan" uri="http://aims.fao.org/aos/geopolitical.owl#Afghanistan" />
-        <config:country-type name="Albania" uri="http://aims.fao.org/aos/geopolitical.owl#Albania" />
-        <config:country-type name="Algeria" uri="http://aims.fao.org/aos/geopolitical.owl#Algeria" />
-        <config:country-type name="Andorra" uri="http://aims.fao.org/aos/geopolitical.owl#Andorra" />
-        <config:country-type name="Angola" uri="http://aims.fao.org/aos/geopolitical.owl#Angola" />
-        <config:country-type name="Antigua and Barbuda" uri="http://aims.fao.org/aos/geopolitical.owl#Antigua_and_Barbuda" />
-        <config:country-type name="Argentina" uri="http://aims.fao.org/aos/geopolitical.owl#Argentina" />
-        <config:country-type name="Armenia" uri="http://aims.fao.org/aos/geopolitical.owl#Armenia" />
-        <config:country-type name="Australia" uri="http://aims.fao.org/aos/geopolitical.owl#Australia" />
-        <config:country-type name="Austria" uri="http://aims.fao.org/aos/geopolitical.owl#Austria" />
-        <config:country-type name="Azerbaijan" uri="http://aims.fao.org/aos/geopolitical.owl#Azerbaijan" />
-        <config:country-type name="Bahamas" uri="http://aims.fao.org/aos/geopolitical.owl#Bahamas_the" />
-        <config:country-type name="Bahrain" uri="http://aims.fao.org/aos/geopolitical.owl#Bahrain" />
-        <config:country-type name="Bangladesh" uri="http://aims.fao.org/aos/geopolitical.owl#Bangladesh" />
-        <config:country-type name="Barbados" uri="http://aims.fao.org/aos/geopolitical.owl#Barbados" />
-        <config:country-type name="Belarus" uri="http://aims.fao.org/aos/geopolitical.owl#Belarus" />
-        <config:country-type name="Belgium" uri="http://aims.fao.org/aos/geopolitical.owl#Belgium" />
-        <config:country-type name="Belize" uri="http://aims.fao.org/aos/geopolitical.owl#Belize" />
-        <config:country-type name="Benin" uri="http://aims.fao.org/aos/geopolitical.owl#Benin" />
-        <config:country-type name="Bhutan" uri="http://aims.fao.org/aos/geopolitical.owl#Bhutan" />
-        <config:country-type name="Bolivia (Plurinational State of)" uri="http://aims.fao.org/aos/geopolitical.owl#Bolivia" />
-        <config:country-type name="Bosnia and Herzegovina" uri="http://aims.fao.org/aos/geopolitical.owl#Bosnia_and_Herzegovina" />
-        <config:country-type name="Botswana" uri="http://aims.fao.org/aos/geopolitical.owl#Botswana" />
-        <config:country-type name="Brazil" uri="http://aims.fao.org/aos/geopolitical.owl#Brazil" />
-        <config:country-type name="Brunei Darussalam" uri="http://aims.fao.org/aos/geopolitical.owl#Brunei_Darussalam" />
-        <config:country-type name="Bulgaria" uri="http://aims.fao.org/aos/geopolitical.owl#Bulgaria" />
-        <config:country-type name="Burkina Faso" uri="http://aims.fao.org/aos/geopolitical.owl#Burkina_Faso" />
-        <config:country-type name="Burundi" uri="http://aims.fao.org/aos/geopolitical.owl#Burundi" />
-        <config:country-type name="Cambodia" uri="http://aims.fao.org/aos/geopolitical.owl#Cambodia" />
-        <config:country-type name="Cameroon" uri="http://aims.fao.org/aos/geopolitical.owl#Cameroon" />
-        <config:country-type name="Canada" uri="http://aims.fao.org/aos/geopolitical.owl#Canada" />
-        <config:country-type name="Cape Verde" uri="http://aims.fao.org/aos/geopolitical.owl#Cape_Verde" />
-        <config:country-type name="Central African Republic" uri="http://aims.fao.org/aos/geopolitical.owl#Central_African_Republic_the" />
-        <config:country-type name="Chad" uri="http://aims.fao.org/aos/geopolitical.owl#Chad" />
-        <config:country-type name="Chile" uri="http://aims.fao.org/aos/geopolitical.owl#Chile" />
-        <config:country-type name="China" uri="http://aims.fao.org/aos/geopolitical.owl#China" />
-        <config:country-type name="Colombia" uri="http://aims.fao.org/aos/geopolitical.owl#Colombia" />
-        <config:country-type name="Comoros" uri="http://aims.fao.org/aos/geopolitical.owl#Comoros_the" />
-        <config:country-type name="Congo" uri="http://aims.fao.org/aos/geopolitical.owl#Congo_the" />
-        <config:country-type name="Cook Islands" uri="http://aims.fao.org/aos/geopolitical.owl#Cook_Islands_the" />
-        <config:country-type name="Costa Rica" uri="http://aims.fao.org/aos/geopolitical.owl#Costa_Rica" />
-        <config:country-type name="Côte d'Ivoire" uri="http://aims.fao.org/aos/geopolitical.owl#Cote_d_Ivoire" />
-        <config:country-type name="Croatia" uri="http://aims.fao.org/aos/geopolitical.owl#Croatia" />
-        <config:country-type name="Cuba" uri="http://aims.fao.org/aos/geopolitical.owl#Cuba" />
-        <config:country-type name="Cyprus" uri="http://aims.fao.org/aos/geopolitical.owl#Cyprus" />
-        <config:country-type name="Czech Republic" uri="http://aims.fao.org/aos/geopolitical.owl#Czech_Republic_the" />
-        <config:country-type name="Czechoslovakia" uri="http://aims.fao.org/aos/geopolitical.owl#Czechoslovakia" />
-        <config:country-type name="Democratic Republic of the Congo" uri="http://aims.fao.org/aos/geopolitical.owl#Democratic_Republic_of_the_Congo" />
-        <config:country-type name="Denmark" uri="http://aims.fao.org/aos/geopolitical.owl#Denmark" />
-        <config:country-type name="Djibouti" uri="http://aims.fao.org/aos/geopolitical.owl#Djibouti" />
-        <config:country-type name="Dominica" uri="http://aims.fao.org/aos/geopolitical.owl#Dominica" />
-        <config:country-type name="Dominican Republic" uri="http://aims.fao.org/aos/geopolitical.owl#Dominican_Republic_the" />
-        <config:country-type name="Ecuador" uri="http://aims.fao.org/aos/geopolitical.owl#Ecuador" />
-        <config:country-type name="Egypt" uri="http://aims.fao.org/aos/geopolitical.owl#Egypt" />
-        <config:country-type name="El Salvador" uri="http://aims.fao.org/aos/geopolitical.owl#El_Salvador" />
-        <config:country-type name="Equatorial Guinea" uri="http://aims.fao.org/aos/geopolitical.owl#Equatorial_Guinea" />
-        <config:country-type name="Eritrea" uri="http://aims.fao.org/aos/geopolitical.owl#Eritrea" />
-        <config:country-type name="Estonia" uri="http://aims.fao.org/aos/geopolitical.owl#Estonia" />
-        <config:country-type name="Ethiopia" uri="http://aims.fao.org/aos/geopolitical.owl#Ethiopia" />
-        <config:country-type name="Ethiopia_1993" uri="http://aims.fao.org/aos/geopolitical.owl#Ethiopia_1993" />
-        <config:country-type name="Faroe Islands" uri="http://aims.fao.org/aos/geopolitical.owl#Faroe_Islands" />
-        <config:country-type name="Fiji" uri="http://aims.fao.org/aos/geopolitical.owl#Fiji" />
-        <config:country-type name="Finland" uri="http://aims.fao.org/aos/geopolitical.owl#Finland" />
-        <config:country-type name="France" uri="http://aims.fao.org/aos/geopolitical.owl#France" />
-        <config:country-type name="Gabon" uri="http://aims.fao.org/aos/geopolitical.owl#Gabon" />
-        <config:country-type name="Gambia" uri="http://aims.fao.org/aos/geopolitical.owl#Gambia__the" />
-        <config:country-type name="Georgia" uri="http://aims.fao.org/aos/geopolitical.owl#Georgia" />
-        <config:country-type name="German Democratic Republic" uri="http://aims.fao.org/aos/geopolitical.owl#German_Democratic_Republic_the" />
-        <config:country-type name="Germany" uri="http://aims.fao.org/aos/geopolitical.owl#Germany" />
-        <config:country-type name="Germany, Federal Republic of" uri="http://aims.fao.org/aos/geopolitical.owl#Federal_Republic_of_Germany_the" />
-        <config:country-type name="Ghana" uri="http://aims.fao.org/aos/geopolitical.owl#Ghana" />
-        <config:country-type name="Greece" uri="http://aims.fao.org/aos/geopolitical.owl#Greece" />
-        <config:country-type name="Grenada" uri="http://aims.fao.org/aos/geopolitical.owl#Grenada" />
-        <config:country-type name="Guatemala" uri="http://aims.fao.org/aos/geopolitical.owl#Guatemala" />
-        <config:country-type name="Guinea" uri="http://aims.fao.org/aos/geopolitical.owl#Guinea" />
-        <config:country-type name="Guinea-Bissau" uri="http://aims.fao.org/aos/geopolitical.owl#Guinea-Bissau" />
-        <config:country-type name="Guyana" uri="http://aims.fao.org/aos/geopolitical.owl#Guyana" />
-        <config:country-type name="Haiti" uri="http://aims.fao.org/aos/geopolitical.owl#Haiti" />
-        <config:country-type name="Holy See" uri="http://aims.fao.org/aos/geopolitical.owl#Holy_See" />
-        <config:country-type name="Honduras" uri="http://aims.fao.org/aos/geopolitical.owl#Honduras" />
-        <config:country-type name="Hungary" uri="http://aims.fao.org/aos/geopolitical.owl#Hungary" />
-        <config:country-type name="Iceland" uri="http://aims.fao.org/aos/geopolitical.owl#Iceland" />
-        <config:country-type name="India" uri="http://aims.fao.org/aos/geopolitical.owl#India" />
-        <config:country-type name="Indonesia" uri="http://aims.fao.org/aos/geopolitical.owl#Indonesia" />
-        <config:country-type name="Iran (Islamic Republic of)" uri="http://aims.fao.org/aos/geopolitical.owl#Iran_Islamic_Rep_of_" />
-        <config:country-type name="Iraq" uri="http://aims.fao.org/aos/geopolitical.owl#Iraq" />
-        <config:country-type name="Ireland" uri="http://aims.fao.org/aos/geopolitical.owl#Ireland" />
-        <config:country-type name="Israel" uri="http://aims.fao.org/aos/geopolitical.owl#Israel" />
-        <config:country-type name="Italy" uri="http://aims.fao.org/aos/geopolitical.owl#Italy" />
-        <config:country-type name="Jamaica" uri="http://aims.fao.org/aos/geopolitical.owl#Jamaica" />
-        <config:country-type name="Japan" uri="http://aims.fao.org/aos/geopolitical.owl#Japan" />
-        <config:country-type name="Jordan" uri="http://aims.fao.org/aos/geopolitical.owl#Jordan" />
-        <config:country-type name="Kazakhstan" uri="http://aims.fao.org/aos/geopolitical.owl#Kazakhstan" />
-        <config:country-type name="Kenya" uri="http://aims.fao.org/aos/geopolitical.owl#Kenya" />
-        <config:country-type name="Kiribati" uri="http://aims.fao.org/aos/geopolitical.owl#Kiribati" />
-        <config:country-type name="Kuwait" uri="http://aims.fao.org/aos/geopolitical.owl#Kuwait" />
-        <config:country-type name="Kyrgyzstan" uri="http://aims.fao.org/aos/geopolitical.owl#Kyrgyzstan" />
-        <config:country-type name="Lao People's Democratic Republic" uri="http://aims.fao.org/aos/geopolitical.owl#Lao_People_s_Democratic_Republic__the" />
-        <config:country-type name="Latvia" uri="http://aims.fao.org/aos/geopolitical.owl#Latvia" />
-        <config:country-type name="Lebanon" uri="http://aims.fao.org/aos/geopolitical.owl#Lebanon" />
-        <config:country-type name="Lesotho" uri="http://aims.fao.org/aos/geopolitical.owl#Lesotho" />
-        <config:country-type name="Liberia" uri="http://aims.fao.org/aos/geopolitical.owl#Liberia" />
-        <config:country-type name="Libyan Arab Jamahiriya" uri="http://aims.fao.org/aos/geopolitical.owl#Libyan_Arab_Jamahiriya__the" />
-        <config:country-type name="Liechtenstein" uri="http://aims.fao.org/aos/geopolitical.owl#Liechtenstein" />
-        <config:country-type name="Lithuania" uri="http://aims.fao.org/aos/geopolitical.owl#Lithuania" />
-        <config:country-type name="Luxembourg" uri="http://aims.fao.org/aos/geopolitical.owl#Luxembourg" />
-        <config:country-type name="Madagascar" uri="http://aims.fao.org/aos/geopolitical.owl#Madagascar" />
-        <config:country-type name="Malawi" uri="http://aims.fao.org/aos/geopolitical.owl#Malawi" />
-        <config:country-type name="Malaysia" uri="http://aims.fao.org/aos/geopolitical.owl#Malaysia" />
-        <config:country-type name="Maldives" uri="http://aims.fao.org/aos/geopolitical.owl#Maldives" />
-        <config:country-type name="Mali" uri="http://aims.fao.org/aos/geopolitical.owl#Mali" />
-        <config:country-type name="Malta" uri="http://aims.fao.org/aos/geopolitical.owl#Malta" />
-        <config:country-type name="Marshall Islands" uri="http://aims.fao.org/aos/geopolitical.owl#Marshall_Islands__the" />
-        <config:country-type name="Mauritania" uri="http://aims.fao.org/aos/geopolitical.owl#Mauritania" />
-        <config:country-type name="Mauritius" uri="http://aims.fao.org/aos/geopolitical.owl#Mauritius" />
-        <config:country-type name="Mexico" uri="http://aims.fao.org/aos/geopolitical.owl#Mexico" />
-        <config:country-type name="Micronesia (Federated States of)" uri="http://aims.fao.org/aos/geopolitical.owl#Micronesia__Fed_States_of_" />
-        <config:country-type name="Monaco" uri="http://aims.fao.org/aos/geopolitical.owl#Monaco" />
-        <config:country-type name="Mongolia" uri="http://aims.fao.org/aos/geopolitical.owl#Mongolia" />
-        <config:country-type name="Montenegro" uri="http://aims.fao.org/aos/geopolitical.owl#Montenegro" />
-        <config:country-type name="Morocco" uri="http://aims.fao.org/aos/geopolitical.owl#Morocco" />
-        <config:country-type name="Mozambique" uri="http://aims.fao.org/aos/geopolitical.owl#Mozambique" />
-        <config:country-type name="Myanmar" uri="http://aims.fao.org/aos/geopolitical.owl#Myanmar" />
-        <config:country-type name="Namibia" uri="http://aims.fao.org/aos/geopolitical.owl#Namibia" />
-        <config:country-type name="Nauru" uri="http://aims.fao.org/aos/geopolitical.owl#Nauru" />
-        <config:country-type name="Nepal" uri="http://aims.fao.org/aos/geopolitical.owl#Nepal" />
-        <config:country-type name="Netherlands" uri="http://aims.fao.org/aos/geopolitical.owl#Netherlands_the" />
-        <config:country-type name="New Zealand" uri="http://aims.fao.org/aos/geopolitical.owl#New_Zealand" />
-        <config:country-type name="Nicaragua" uri="http://aims.fao.org/aos/geopolitical.owl#Nicaragua" />
-        <config:country-type name="Niger" uri="http://aims.fao.org/aos/geopolitical.owl#Niger_the" />
-        <config:country-type name="Nigeria" uri="http://aims.fao.org/aos/geopolitical.owl#Nigeria" />
-        <config:country-type name="Niue" uri="http://aims.fao.org/aos/geopolitical.owl#Niue" />
-        <config:country-type name="North Korea" uri="http://aims.fao.org/aos/geopolitical.owl#Democratic_People_s_Republic_of_Korea_the" />
-        <config:country-type name="Norway" uri="http://aims.fao.org/aos/geopolitical.owl#Norway" />
-        <config:country-type name="Oman" uri="http://aims.fao.org/aos/geopolitical.owl#Oman" />
-        <config:country-type name="Pakistan" uri="http://aims.fao.org/aos/geopolitical.owl#Pakistan" />
-        <config:country-type name="Palau" uri="http://aims.fao.org/aos/geopolitical.owl#Palau" />
-        <config:country-type name="Panama" uri="http://aims.fao.org/aos/geopolitical.owl#Panama" />
-        <config:country-type name="Papua New Guinea" uri="http://aims.fao.org/aos/geopolitical.owl#Papua_New_Guinea" />
-        <config:country-type name="Paraguay" uri="http://aims.fao.org/aos/geopolitical.owl#Paraguay" />
-        <config:country-type name="Peru" uri="http://aims.fao.org/aos/geopolitical.owl#Peru" />
-        <config:country-type name="Philippines" uri="http://aims.fao.org/aos/geopolitical.owl#Philippines__the" />
-        <config:country-type name="Poland" uri="http://aims.fao.org/aos/geopolitical.owl#Poland" />
-        <config:country-type name="Portugal" uri="http://aims.fao.org/aos/geopolitical.owl#Portugal" />
-        <config:country-type name="Qatar" uri="http://aims.fao.org/aos/geopolitical.owl#Qatar" />
-        <config:country-type name="Republic of Moldova" uri="http://aims.fao.org/aos/geopolitical.owl#Republic_of_Moldova" />
-        <config:country-type name="Romania" uri="http://aims.fao.org/aos/geopolitical.owl#Romania" />
-        <config:country-type name="Russian Federation" uri="http://aims.fao.org/aos/geopolitical.owl#Russian_Federation__the" />
-        <config:country-type name="Rwanda" uri="http://aims.fao.org/aos/geopolitical.owl#Rwanda" />
-        <config:country-type name="Saint Kitts and Nevis" uri="http://aims.fao.org/aos/geopolitical.owl#Saint_Kitts_and_Nevis" />
-        <config:country-type name="Saint Lucia" uri="http://aims.fao.org/aos/geopolitical.owl#Saint_Lucia" />
-        <config:country-type name="Saint Vincent and the Grenadines" uri="http://aims.fao.org/aos/geopolitical.owl#Saint_Vincent_and_the_Grenadines" />
-        <config:country-type name="Samoa" uri="http://aims.fao.org/aos/geopolitical.owl#Samoa" />
-        <config:country-type name="San Marino" uri="http://aims.fao.org/aos/geopolitical.owl#San_Marino" />
-        <config:country-type name="Sao Tome and Principe" uri="http://aims.fao.org/aos/geopolitical.owl#Sao_Tome_and_Principe" />
-        <config:country-type name="Saudi Arabia" uri="http://aims.fao.org/aos/geopolitical.owl#Saudi_Arabia" />
-        <config:country-type name="Senegal" uri="http://aims.fao.org/aos/geopolitical.owl#Senegal" />
-        <config:country-type name="Serbia" uri="http://aims.fao.org/aos/geopolitical.owl#Serbia" />
-        <config:country-type name="Serbia and Montenegro" uri="http://aims.fao.org/aos/geopolitical.owl#Serbia_and_Montenegro" />
-        <config:country-type name="Seychelles" uri="http://aims.fao.org/aos/geopolitical.owl#Seychelles" />
-        <config:country-type name="Sierra Leone" uri="http://aims.fao.org/aos/geopolitical.owl#Sierra_Leone" />
-        <config:country-type name="Singapore" uri="http://aims.fao.org/aos/geopolitical.owl#Singapore" />
-        <config:country-type name="Slovakia" uri="http://aims.fao.org/aos/geopolitical.owl#Slovakia" />
-        <config:country-type name="Slovenia" uri="http://aims.fao.org/aos/geopolitical.owl#Slovenia" />
-        <config:country-type name="Solomon Islands" uri="http://aims.fao.org/aos/geopolitical.owl#Solomon_Islands" />
-        <config:country-type name="Somalia" uri="http://aims.fao.org/aos/geopolitical.owl#Somalia" />
-        <config:country-type name="South Africa" uri="http://aims.fao.org/aos/geopolitical.owl#South_Africa" />
-        <config:country-type name="South Korea" uri="http://aims.fao.org/aos/geopolitical.owl#Republic_of_Korea__the" />
-        <config:country-type name="South Sudan" uri="http://aims.fao.org/aos/geopolitical.owl#South_Sudan" />
-        <config:country-type name="Spain" uri="http://aims.fao.org/aos/geopolitical.owl#Spain" />
-        <config:country-type name="Sri Lanka" uri="http://aims.fao.org/aos/geopolitical.owl#Sri_Lanka" />
-        <!--<config:country-type name="Sudan" uri="http://aims.fao.org/aos/geopolitical.owl#Sudan_the_1956" />-->
-        <config:country-type name="Sudan" uri="http://aims.fao.org/aos/geopolitical.owl#Sudan_the" />
-        <config:country-type name="Suriname" uri="http://aims.fao.org/aos/geopolitical.owl#Suriname" />
-        <config:country-type name="Swaziland" uri="http://aims.fao.org/aos/geopolitical.owl#Swaziland" />
-        <config:country-type name="Sweden" uri="http://aims.fao.org/aos/geopolitical.owl#Sweden" />
-        <config:country-type name="Switzerland" uri="http://aims.fao.org/aos/geopolitical.owl#Switzerland" />
-        <config:country-type name="Syrian Arab Republic" uri="http://aims.fao.org/aos/geopolitical.owl#Syrian_Arab_Republic_the" />
-        <config:country-type name="Tajikistan" uri="http://aims.fao.org/aos/geopolitical.owl#Tajikistan" />
-        <config:country-type name="Thailand" uri="http://aims.fao.org/aos/geopolitical.owl#Thailand" />
-        <config:country-type name="Timor-Leste" uri="http://aims.fao.org/aos/geopolitical.owl#Timor-Leste" />
-        <config:country-type name="Togo" uri="http://aims.fao.org/aos/geopolitical.owl#Togo" />
-        <config:country-type name="Tokelau" uri="http://aims.fao.org/aos/geopolitical.owl#Tokelau" />
-        <config:country-type name="Tonga" uri="http://aims.fao.org/aos/geopolitical.owl#Tonga" />
-        <config:country-type name="Trinidad and Tobago" uri="http://aims.fao.org/aos/geopolitical.owl#Trinidad_and_Tobago" />
-        <config:country-type name="Tunisia" uri="http://aims.fao.org/aos/geopolitical.owl#Tunisia" />
-        <config:country-type name="Turkey" uri="http://aims.fao.org/aos/geopolitical.owl#Turkey" />
-        <config:country-type name="Turkmenistan" uri="http://aims.fao.org/aos/geopolitical.owl#Turkmenistan" />
-        <config:country-type name="Tuvalu" uri="http://aims.fao.org/aos/geopolitical.owl#Tuvalu" />
-        <config:country-type name="Uganda" uri="http://aims.fao.org/aos/geopolitical.owl#Uganda" />
-        <config:country-type name="Ukraine" uri="http://aims.fao.org/aos/geopolitical.owl#Ukraine" />
-        <config:country-type name="Union of Soviet Socialist Republic" uri="http://aims.fao.org/aos/geopolitical.owl#Union_of_Soviet_Socialist_Republic_the" />
-        <config:country-type name="United Arab Emirates" uri="http://aims.fao.org/aos/geopolitical.owl#United_Arab_Emirates__the" />
-        <config:country-type name="United Kingdom" uri="http://aims.fao.org/aos/geopolitical.owl#United_Kingdom_of_Great_Britain_and_Northern_Ireland__the" />
-        <config:country-type name="United Republic of Tanzania" uri="http://aims.fao.org/aos/geopolitical.owl#United_Republic_of_Tanzania__the" />
-        <config:country-type name="United States of America" uri="http://aims.fao.org/aos/geopolitical.owl#United_States_of_America" />
-        <config:country-type name="Uruguay" uri="http://aims.fao.org/aos/geopolitical.owl#Uruguay" />
-        <config:country-type name="Uzbekistan" uri="http://aims.fao.org/aos/geopolitical.owl#Uzbekistan" />
-        <config:country-type name="Vanuatu" uri="http://aims.fao.org/aos/geopolitical.owl#Vanuatu" />
-        <config:country-type name="Venezuela (Bolivarian Republic of)" uri="http://aims.fao.org/aos/geopolitical.owl#Venezuela" />
-        <config:country-type name="Viet Nam" uri="http://aims.fao.org/aos/geopolitical.owl#Viet_Nam" />
-        <config:country-type name="Yemen" uri="http://aims.fao.org/aos/geopolitical.owl#Yemen" />
-        <config:country-type name="Yemen, Democratic" uri="http://aims.fao.org/aos/geopolitical.owl#Democratic_Yemen" />
-        <config:country-type name="Yemen_1990" uri="http://aims.fao.org/aos/geopolitical.owl#Yemen_1990" />
-        <config:country-type name="Yugoslav, former Yugoslav Republic of Macedonia" uri="http://aims.fao.org/aos/geopolitical.owl#The_former_Yugoslav_Republic_of_Macedonia" />
-        <config:country-type name="Yugoslavia" uri="http://aims.fao.org/aos/geopolitical.owl#Yugoslavia" />
-        <config:country-type name="Yugoslavia, Socialist Federal Republic of" uri="http://aims.fao.org/aos/geopolitical.owl#Socialist_Federal_Republic_of_Yugoslavia_the" />
-        <config:country-type name="Zaire" uri="http://aims.fao.org/aos/geopolitical.owl#Zaire" />
-        <config:country-type name="Zambia" uri="http://aims.fao.org/aos/geopolitical.owl#Zambia" />
-        <config:country-type name="Zimbabwe" uri="http://aims.fao.org/aos/geopolitical.owl#Zimbabwe" />
-        <!-- aliases -->
+        <config:country-type name= "Afghanistan" iso-code= "AF" uri= "http://aims.fao.org/aos/geopolitical.owl#Afghanistan" />
+        <config:country-type name= "Albania" iso-code= "AL" uri= "http://aims.fao.org/aos/geopolitical.owl#Albania" />
+        <config:country-type name= "Algeria" iso-code= "DZ" uri= "http://aims.fao.org/aos/geopolitical.owl#Algeria" />
+        <config:country-type name= "Andorra" iso-code= "AD" uri= "http://aims.fao.org/aos/geopolitical.owl#Andorra" />
+        <config:country-type name= "Angola" iso-code= "AO" uri= "http://aims.fao.org/aos/geopolitical.owl#Angola" />
+        <config:country-type name= "Antigua and Barbuda" iso-code= "AG" uri= "http://aims.fao.org/aos/geopolitical.owl#Antigua_and_Barbuda" />
+        <config:country-type name= "Argentina" iso-code= "AR" uri= "http://aims.fao.org/aos/geopolitical.owl#Argentina" />
+        <config:country-type name= "Armenia" iso-code= "AM" uri= "http://aims.fao.org/aos/geopolitical.owl#Armenia" />
+        <config:country-type name= "Australia" iso-code= "AU" uri= "http://aims.fao.org/aos/geopolitical.owl#Australia" />
+        <config:country-type name= "Austria" iso-code= "AT" uri= "http://aims.fao.org/aos/geopolitical.owl#Austria" />
+        <config:country-type name= "Azerbaijan" iso-code= "AZ" uri= "http://aims.fao.org/aos/geopolitical.owl#Azerbaijan" />
+        <config:country-type name= "Bahamas" iso-code= "BS" uri= "http://aims.fao.org/aos/geopolitical.owl#Bahamas_the" />
+        <config:country-type name= "Bahrain" iso-code= "BH" uri= "http://aims.fao.org/aos/geopolitical.owl#Bahrain" />
+        <config:country-type name= "Bangladesh" iso-code= "BD" uri= "http://aims.fao.org/aos/geopolitical.owl#Bangladesh" />
+        <config:country-type name= "Barbados" iso-code= "BB" uri= "http://aims.fao.org/aos/geopolitical.owl#Barbados" />
+        <config:country-type name= "Belarus" iso-code= "BY" uri= "http://aims.fao.org/aos/geopolitical.owl#Belarus" />
+        <config:country-type name= "Belgium" iso-code= "BE" uri= "http://aims.fao.org/aos/geopolitical.owl#Belgium" />
+        <config:country-type name= "Belize" iso-code= "BZ" uri= "http://aims.fao.org/aos/geopolitical.owl#Belize" />
+        <config:country-type name= "Benin" iso-code= "BJ" uri= "http://aims.fao.org/aos/geopolitical.owl#Benin" />
+        <config:country-type name= "Bhutan" iso-code= "BT" uri= "http://aims.fao.org/aos/geopolitical.owl#Bhutan" />
+        <config:country-type name= "Bolivia (Plurinational State of)" iso-code= "BO" uri= "http://aims.fao.org/aos/geopolitical.owl#Bolivia" />
+        <config:country-type name= "Bosnia and Herzegovina" iso-code= "BA" uri= "http://aims.fao.org/aos/geopolitical.owl#Bosnia_and_Herzegovina" />
+        <config:country-type name= "Botswana" iso-code= "BW" uri= "http://aims.fao.org/aos/geopolitical.owl#Botswana" />
+        <config:country-type name= "Brazil" iso-code= "BR" uri= "http://aims.fao.org/aos/geopolitical.owl#Brazil" />
+        <config:country-type name= "Brunei Darussalam" iso-code= "BN" uri= "http://aims.fao.org/aos/geopolitical.owl#Brunei_Darussalam" />
+        <config:country-type name= "Bulgaria" iso-code= "BG" uri= "http://aims.fao.org/aos/geopolitical.owl#Bulgaria" />
+        <config:country-type name= "Burkina Faso" iso-code= "BF" uri= "http://aims.fao.org/aos/geopolitical.owl#Burkina_Faso" />
+        <config:country-type name= "Burundi" iso-code= "BI" uri= "http://aims.fao.org/aos/geopolitical.owl#Burundi" />
+        <config:country-type name= "Cambodia" iso-code= "KH" uri= "http://aims.fao.org/aos/geopolitical.owl#Cambodia" />
+        <config:country-type name= "Cameroon" iso-code= "CM" uri= "http://aims.fao.org/aos/geopolitical.owl#Cameroon" />
+        <config:country-type name= "Canada" iso-code= "CA" uri= "http://aims.fao.org/aos/geopolitical.owl#Canada" />
+        <config:country-type name= "Cape Verde" iso-code= "CV" uri= "http://aims.fao.org/aos/geopolitical.owl#Cape_Verde" />
+        <config:country-type name= "Central African Republic" iso-code= "CF" uri= "http://aims.fao.org/aos/geopolitical.owl#Central_African_Republic_the" />
+        <config:country-type name= "Chad" iso-code= "TD" uri= "http://aims.fao.org/aos/geopolitical.owl#Chad" />
+        <config:country-type name= "Chile" iso-code= "CL" uri= "http://aims.fao.org/aos/geopolitical.owl#Chile" />
+        <config:country-type name= "China" iso-code= "CN" uri= "http://aims.fao.org/aos/geopolitical.owl#China" />
+        <config:country-type name= "Colombia" iso-code= "CO" uri= "http://aims.fao.org/aos/geopolitical.owl#Colombia" />
+        <config:country-type name= "Comoros" iso-code= "KM" uri= "http://aims.fao.org/aos/geopolitical.owl#Comoros_the" />
+        <config:country-type name= "Congo" iso-code= "CG" uri= "http://aims.fao.org/aos/geopolitical.owl#Congo_the" />
+        <config:country-type name= "Cook Islands" iso-code= "CK" uri= "http://aims.fao.org/aos/geopolitical.owl#Cook_Islands_the" />
+        <config:country-type name= "Costa Rica" iso-code= "CR" uri= "http://aims.fao.org/aos/geopolitical.owl#Costa_Rica" />
+        <config:country-type name= "Croatia" iso-code= "HR" uri= "http://aims.fao.org/aos/geopolitical.owl#Croatia" />
+        <config:country-type name= "Cuba" iso-code= "CU" uri= "http://aims.fao.org/aos/geopolitical.owl#Cuba" />
+        <config:country-type name= "Cyprus" iso-code= "CY" uri= "http://aims.fao.org/aos/geopolitical.owl#Cyprus" />
+        <config:country-type name= "Czech Republic" iso-code= "CZ" uri= "http://aims.fao.org/aos/geopolitical.owl#Czech_Republic_the" />
+        <config:country-type name= "Czechoslovakia" uri= "http://aims.fao.org/aos/geopolitical.owl#Czechoslovakia" />
+        <config:country-type name= "CÃƒÂ´te d'Ivoire" iso-code= "CI" uri= "http://aims.fao.org/aos/geopolitical.owl#Cote_d_Ivoire" />
+        <config:country-type name= "Democratic Republic of the Congo" iso-code= "CD" uri= "http://aims.fao.org/aos/geopolitical.owl#Democratic_Republic_of_the_Congo" />
+        <config:country-type name= "Denmark" iso-code= "DK" uri= "http://aims.fao.org/aos/geopolitical.owl#Denmark" />
+        <config:country-type name= "Djibouti" iso-code= "DJ" uri= "http://aims.fao.org/aos/geopolitical.owl#Djibouti" />
+        <config:country-type name= "Dominica" iso-code= "DM" uri= "http://aims.fao.org/aos/geopolitical.owl#Dominica" />
+        <config:country-type name= "Dominican Republic" iso-code= "DO" uri= "http://aims.fao.org/aos/geopolitical.owl#Dominican_Republic_the" />
+        <config:country-type name= "Ecuador" iso-code= "EC" uri= "http://aims.fao.org/aos/geopolitical.owl#Ecuador" />
+        <config:country-type name= "Egypt" iso-code= "EG" uri= "http://aims.fao.org/aos/geopolitical.owl#Egypt" />
+        <config:country-type name= "El Salvador" iso-code= "SV" uri= "http://aims.fao.org/aos/geopolitical.owl#El_Salvador" />
+        <config:country-type name= "Equatorial Guinea" iso-code= "GQ" uri= "http://aims.fao.org/aos/geopolitical.owl#Equatorial_Guinea" />
+        <config:country-type name= "Eritrea" iso-code= "ER" uri= "http://aims.fao.org/aos/geopolitical.owl#Eritrea" />
+        <config:country-type name= "Estonia" iso-code= "EE" uri= "http://aims.fao.org/aos/geopolitical.owl#Estonia" />
+        <config:country-type name= "Ethiopia" iso-code= "ET" uri= "http://aims.fao.org/aos/geopolitical.owl#Ethiopia" />
+        <config:country-type name= "Ethiopia_1993" uri= "http://aims.fao.org/aos/geopolitical.owl#Ethiopia_1993" />
+        <config:country-type name= "Faroe Islands" iso-code= "FO" uri= "http://aims.fao.org/aos/geopolitical.owl#Faroe_Islands" />
+        <config:country-type name= "Fiji" iso-code= "FJ" uri= "http://aims.fao.org/aos/geopolitical.owl#Fiji" />
+        <config:country-type name= "Finland" iso-code= "FI" uri= "http://aims.fao.org/aos/geopolitical.owl#Finland" />
+        <config:country-type name= "France" iso-code= "FR" uri= "http://aims.fao.org/aos/geopolitical.owl#France" />
+        <config:country-type name= "Gabon" iso-code= "GA" uri= "http://aims.fao.org/aos/geopolitical.owl#Gabon" />
+        <config:country-type name= "Gambia" iso-code= "GM" uri= "http://aims.fao.org/aos/geopolitical.owl#Gambia__the" />
+        <config:country-type name= "Georgia" iso-code= "GE" uri= "http://aims.fao.org/aos/geopolitical.owl#Georgia" />
+        <config:country-type name= "German Democratic Republic" uri= "http://aims.fao.org/aos/geopolitical.owl#German_Democratic_Republic_the" />
+        <config:country-type name= "Germany" iso-code= "DE" uri= "http://aims.fao.org/aos/geopolitical.owl#Germany" />
+        <config:country-type name= "Germany, Federal Republic of" uri= "http://aims.fao.org/aos/geopolitical.owl#Federal_Republic_of_Germany_the" />
+        <config:country-type name= "Ghana" iso-code= "GH" uri= "http://aims.fao.org/aos/geopolitical.owl#Ghana" />
+        <config:country-type name= "Greece" iso-code= "GR" uri= "http://aims.fao.org/aos/geopolitical.owl#Greece" />
+        <config:country-type name= "Grenada" iso-code= "GD" uri= "http://aims.fao.org/aos/geopolitical.owl#Grenada" />
+        <config:country-type name= "Guatemala" iso-code= "GT" uri= "http://aims.fao.org/aos/geopolitical.owl#Guatemala" />
+        <config:country-type name= "Guinea" iso-code= "GN" uri= "http://aims.fao.org/aos/geopolitical.owl#Guinea" />
+        <config:country-type name= "Guinea-Bissau" iso-code= "GW" uri= "http://aims.fao.org/aos/geopolitical.owl#Guinea-Bissau" />
+        <config:country-type name= "Guyana" iso-code= "GY" uri= "http://aims.fao.org/aos/geopolitical.owl#Guyana" />
+        <config:country-type name= "Haiti" iso-code= "HT" uri= "http://aims.fao.org/aos/geopolitical.owl#Haiti" />
+        <config:country-type name= "Holy See" iso-code= "VA" uri= "http://aims.fao.org/aos/geopolitical.owl#Holy_See" />
+        <config:country-type name= "Honduras" iso-code= "HN" uri= "http://aims.fao.org/aos/geopolitical.owl#Honduras" />
+        <config:country-type name= "Hungary" iso-code= "HU" uri= "http://aims.fao.org/aos/geopolitical.owl#Hungary" />
+        <config:country-type name= "Iceland" iso-code= "IS" uri= "http://aims.fao.org/aos/geopolitical.owl#Iceland" />
+        <config:country-type name= "India" iso-code= "IN" uri= "http://aims.fao.org/aos/geopolitical.owl#India" />
+        <config:country-type name= "Indonesia" iso-code= "ID" uri= "http://aims.fao.org/aos/geopolitical.owl#Indonesia" />
+        <config:country-type name= "Iran (Islamic Republic of)" iso-code= "IR" uri= "http://aims.fao.org/aos/geopolitical.owl#Iran_Islamic_Rep_of_" />
+        <config:country-type name= "Iraq" iso-code= "IQ" uri= "http://aims.fao.org/aos/geopolitical.owl#Iraq" />
+        <config:country-type name= "Ireland" iso-code= "IE" uri= "http://aims.fao.org/aos/geopolitical.owl#Ireland" />
+        <config:country-type name= "Israel" iso-code= "IL" uri= "http://aims.fao.org/aos/geopolitical.owl#Israel" />
+        <config:country-type name= "Italy" iso-code= "IT" uri= "http://aims.fao.org/aos/geopolitical.owl#Italy" />
+        <config:country-type name= "Jamaica" iso-code= "JM" uri= "http://aims.fao.org/aos/geopolitical.owl#Jamaica" />
+        <config:country-type name= "Japan" iso-code= "JP" uri= "http://aims.fao.org/aos/geopolitical.owl#Japan" />
+        <config:country-type name= "Jordan" iso-code= "JO" uri= "http://aims.fao.org/aos/geopolitical.owl#Jordan" />
+        <config:country-type name= "Kazakhstan" iso-code= "KZ" uri= "http://aims.fao.org/aos/geopolitical.owl#Kazakhstan" />
+        <config:country-type name= "Kenya" iso-code= "KE" uri= "http://aims.fao.org/aos/geopolitical.owl#Kenya" />
+        <config:country-type name= "Kiribati" iso-code= "KI" uri= "http://aims.fao.org/aos/geopolitical.owl#Kiribati" />
+        <config:country-type name= "Kuwait" iso-code= "KW" uri= "http://aims.fao.org/aos/geopolitical.owl#Kuwait" />
+        <config:country-type name= "Kyrgyzstan" iso-code= "KG" uri= "http://aims.fao.org/aos/geopolitical.owl#Kyrgyzstan" />
+        <config:country-type name= "Lao People's Democratic Republic" iso-code= "LA" uri= "http://aims.fao.org/aos/geopolitical.owl#Lao_People_s_Democratic_Republic__the" />
+        <config:country-type name= "Latvia" iso-code= "LV" uri= "http://aims.fao.org/aos/geopolitical.owl#Latvia" />
+        <config:country-type name= "Lebanon" iso-code= "LB" uri= "http://aims.fao.org/aos/geopolitical.owl#Lebanon" />
+        <config:country-type name= "Lesotho" iso-code= "LS" uri= "http://aims.fao.org/aos/geopolitical.owl#Lesotho" />
+        <config:country-type name= "Liberia" iso-code= "LR" uri= "http://aims.fao.org/aos/geopolitical.owl#Liberia" />
+        <config:country-type name= "Libyan Arab Jamahiriya" iso-code= "LY" uri= "http://aims.fao.org/aos/geopolitical.owl#Libyan_Arab_Jamahiriya__the" />
+        <config:country-type name= "Liechtenstein" iso-code= "LI" uri= "http://aims.fao.org/aos/geopolitical.owl#Liechtenstein" />
+        <config:country-type name= "Lithuania" iso-code= "LT" uri= "http://aims.fao.org/aos/geopolitical.owl#Lithuania" />
+        <config:country-type name= "Luxembourg" iso-code= "LU" uri= "http://aims.fao.org/aos/geopolitical.owl#Luxembourg" />
+        <config:country-type name= "Madagascar" iso-code= "MG" uri= "http://aims.fao.org/aos/geopolitical.owl#Madagascar" />
+        <config:country-type name= "Malawi" iso-code= "MW" uri= "http://aims.fao.org/aos/geopolitical.owl#Malawi" />
+        <config:country-type name= "Malaysia" iso-code= "MY" uri= "http://aims.fao.org/aos/geopolitical.owl#Malaysia" />
+        <config:country-type name= "Maldives" iso-code= "MV" uri= "http://aims.fao.org/aos/geopolitical.owl#Maldives" />
+        <config:country-type name= "Mali" iso-code= "ML" uri= "http://aims.fao.org/aos/geopolitical.owl#Mali" />
+        <config:country-type name= "Malta" iso-code= "MT" uri= "http://aims.fao.org/aos/geopolitical.owl#Malta" />
+        <config:country-type name= "Marshall Islands" iso-code= "MH" uri= "http://aims.fao.org/aos/geopolitical.owl#Marshall_Islands__the" />
+        <config:country-type name= "Mauritania" iso-code= "MR" uri= "http://aims.fao.org/aos/geopolitical.owl#Mauritania" />
+        <config:country-type name= "Mauritius" iso-code= "MU" uri= "http://aims.fao.org/aos/geopolitical.owl#Mauritius" />
+        <config:country-type name= "Mexico" iso-code= "MX" uri= "http://aims.fao.org/aos/geopolitical.owl#Mexico" />
+        <config:country-type name= "Micronesia (Federated States of)" iso-code= "FM" uri= "http://aims.fao.org/aos/geopolitical.owl#Micronesia__Fed_States_of_" />
+        <config:country-type name= "Monaco" iso-code= "MC" uri= "http://aims.fao.org/aos/geopolitical.owl#Monaco" />
+        <config:country-type name= "Mongolia" iso-code= "MN" uri= "http://aims.fao.org/aos/geopolitical.owl#Mongolia" />
+        <config:country-type name= "Montenegro" iso-code= "ME" uri= "http://aims.fao.org/aos/geopolitical.owl#Montenegro" />
+        <config:country-type name= "Morocco" iso-code= "MA" uri= "http://aims.fao.org/aos/geopolitical.owl#Morocco" />
+        <config:country-type name= "Mozambique" iso-code= "MZ" uri= "http://aims.fao.org/aos/geopolitical.owl#Mozambique" />
+        <config:country-type name= "Myanmar" iso-code= "MM" uri= "http://aims.fao.org/aos/geopolitical.owl#Myanmar" />
+        <config:country-type name= "Namibia" iso-code= "NA" uri= "http://aims.fao.org/aos/geopolitical.owl#Namibia" />
+        <config:country-type name= "Nauru" iso-code= "NR" uri= "http://aims.fao.org/aos/geopolitical.owl#Nauru" />
+        <config:country-type name= "Nepal" iso-code= "NP" uri= "http://aims.fao.org/aos/geopolitical.owl#Nepal" />
+        <config:country-type name= "Netherlands" iso-code= "NL" uri= "http://aims.fao.org/aos/geopolitical.owl#Netherlands_the" />
+        <config:country-type name= "New Zealand" iso-code= "NZ" uri= "http://aims.fao.org/aos/geopolitical.owl#New_Zealand" />
+        <config:country-type name= "Nicaragua" iso-code= "NI" uri= "http://aims.fao.org/aos/geopolitical.owl#Nicaragua" />
+        <config:country-type name= "Niger" iso-code= "NE" uri= "http://aims.fao.org/aos/geopolitical.owl#Niger_the" />
+        <config:country-type name= "Nigeria" iso-code= "NG" uri= "http://aims.fao.org/aos/geopolitical.owl#Nigeria" />
+        <config:country-type name= "Niue" iso-code= "NU" uri= "http://aims.fao.org/aos/geopolitical.owl#Niue" />
+        <config:country-type name= "North Korea" iso-code= "KP" uri= "http://aims.fao.org/aos/geopolitical.owl#Democratic_People_s_Republic_of_Korea_the" />
+        <config:country-type name= "Norway" iso-code= "NO" uri= "http://aims.fao.org/aos/geopolitical.owl#Norway" />
+        <config:country-type name= "Oman" iso-code= "OM" uri= "http://aims.fao.org/aos/geopolitical.owl#Oman" />
+        <config:country-type name= "Pakistan" iso-code= "PK" uri= "http://aims.fao.org/aos/geopolitical.owl#Pakistan" />
+        <config:country-type name= "Palau" iso-code= "PW" uri= "http://aims.fao.org/aos/geopolitical.owl#Palau" />
+        <config:country-type name= "Panama" iso-code= "PA" uri= "http://aims.fao.org/aos/geopolitical.owl#Panama" />
+        <config:country-type name= "Papua New Guinea" iso-code= "PG" uri= "http://aims.fao.org/aos/geopolitical.owl#Papua_New_Guinea" />
+        <config:country-type name= "Paraguay" iso-code= "PY" uri= "http://aims.fao.org/aos/geopolitical.owl#Paraguay" />
+        <config:country-type name= "Peru" iso-code= "PE" uri= "http://aims.fao.org/aos/geopolitical.owl#Peru" />
+        <config:country-type name= "Philippines" iso-code= "PH" uri= "http://aims.fao.org/aos/geopolitical.owl#Philippines__the" />
+        <config:country-type name= "Poland" iso-code= "PL" uri= "http://aims.fao.org/aos/geopolitical.owl#Poland" />
+        <config:country-type name= "Portugal" iso-code= "PT" uri= "http://aims.fao.org/aos/geopolitical.owl#Portugal" />
+        <config:country-type name= "Qatar" iso-code= "QA" uri= "http://aims.fao.org/aos/geopolitical.owl#Qatar" />
+        <config:country-type name= "Republic of Moldova" iso-code= "MD" uri= "http://aims.fao.org/aos/geopolitical.owl#Republic_of_Moldova" />
+        <config:country-type name= "Romania" iso-code= "RO" uri= "http://aims.fao.org/aos/geopolitical.owl#Romania" />
+        <config:country-type name= "Russian Federation" iso-code= "RU" uri= "http://aims.fao.org/aos/geopolitical.owl#Russian_Federation__the" />
+        <config:country-type name= "Rwanda" iso-code= "RW" uri= "http://aims.fao.org/aos/geopolitical.owl#Rwanda" />
+        <config:country-type name= "Saint Kitts and Nevis" iso-code= "KN" uri= "http://aims.fao.org/aos/geopolitical.owl#Saint_Kitts_and_Nevis" />
+        <config:country-type name= "Saint Lucia" iso-code= "LC" uri= "http://aims.fao.org/aos/geopolitical.owl#Saint_Lucia" />
+        <config:country-type name= "Saint Vincent and the Grenadines" iso-code= "VC" uri= "http://aims.fao.org/aos/geopolitical.owl#Saint_Vincent_and_the_Grenadines" />
+        <config:country-type name= "Samoa" iso-code= "WS" uri= "http://aims.fao.org/aos/geopolitical.owl#Samoa" />
+        <config:country-type name= "San Marino" iso-code= "SM" uri= "http://aims.fao.org/aos/geopolitical.owl#San_Marino" />
+        <config:country-type name= "Sao Tome and Principe" iso-code= "ST" uri= "http://aims.fao.org/aos/geopolitical.owl#Sao_Tome_and_Principe" />
+        <config:country-type name= "Saudi Arabia" iso-code= "SA" uri= "http://aims.fao.org/aos/geopolitical.owl#Saudi_Arabia" />
+        <config:country-type name= "Senegal" iso-code= "SN" uri= "http://aims.fao.org/aos/geopolitical.owl#Senegal" />
+        <config:country-type name= "Serbia" iso-code= "RS" uri= "http://aims.fao.org/aos/geopolitical.owl#Serbia" />
+        <config:country-type name= "Serbia and Montenegro" iso-code= "CS" uri= "http://aims.fao.org/aos/geopolitical.owl#Serbia_and_Montenegro" />
+        <config:country-type name= "Seychelles" iso-code= "SC" uri= "http://aims.fao.org/aos/geopolitical.owl#Seychelles" />
+        <config:country-type name= "Sierra Leone" iso-code= "SL" uri= "http://aims.fao.org/aos/geopolitical.owl#Sierra_Leone" />
+        <config:country-type name= "Singapore" iso-code= "SG" uri= "http://aims.fao.org/aos/geopolitical.owl#Singapore" />
+        <config:country-type name= "Slovakia" iso-code= "SK" uri= "http://aims.fao.org/aos/geopolitical.owl#Slovakia" />
+        <config:country-type name= "Slovenia" iso-code= "SI" uri= "http://aims.fao.org/aos/geopolitical.owl#Slovenia" />
+        <config:country-type name= "Solomon Islands" iso-code= "SB" uri= "http://aims.fao.org/aos/geopolitical.owl#Solomon_Islands" />
+        <config:country-type name= "Somalia" iso-code= "SO" uri= "http://aims.fao.org/aos/geopolitical.owl#Somalia" />
+        <config:country-type name= "South Africa" iso-code= "ZA" uri= "http://aims.fao.org/aos/geopolitical.owl#South_Africa" />
+        <config:country-type name= "South Korea" iso-code= "KR" uri= "http://aims.fao.org/aos/geopolitical.owl#Republic_of_Korea__the" />
+        <config:country-type name= "South Sudan " iso-code= "SS" uri= "http://aims.fao.org/aos/geopolitical.owl#South_Sudan" />
+        <config:country-type name= "Spain" iso-code= "ES" uri= "http://aims.fao.org/aos/geopolitical.owl#Spain" />
+        <config:country-type name= "Sri Lanka" iso-code= "LK" uri= "http://aims.fao.org/aos/geopolitical.owl#Sri_Lanka" />
+        <config:country-type name= "Sudan" iso-code= "SD" uri= "http://aims.fao.org/aos/geopolitical.owl#Sudan_the" />
+        <!--<config:country-type name= "Sudan" iso-code= "SD" uri= "http://aims.fao.org/aos/geopolitical.owl#Sudan_the_1956" />-->
+        <config:country-type name= "Suriname" iso-code= "SR" uri= "http://aims.fao.org/aos/geopolitical.owl#Suriname" />
+        <config:country-type name= "Swaziland" iso-code= "SZ" uri= "http://aims.fao.org/aos/geopolitical.owl#Swaziland" />
+        <config:country-type name= "Sweden" iso-code= "SE" uri= "http://aims.fao.org/aos/geopolitical.owl#Sweden" />
+        <config:country-type name= "Switzerland" iso-code= "CH" uri= "http://aims.fao.org/aos/geopolitical.owl#Switzerland" />
+        <config:country-type name= "Syrian Arab Republic" iso-code= "SY" uri= "http://aims.fao.org/aos/geopolitical.owl#Syrian_Arab_Republic_the" />
+        <config:country-type name= "Tajikistan" iso-code= "TJ" uri= "http://aims.fao.org/aos/geopolitical.owl#Tajikistan" />
+        <config:country-type name= "Thailand" iso-code= "TH" uri= "http://aims.fao.org/aos/geopolitical.owl#Thailand" />
+        <config:country-type name= "Timor-Leste" iso-code= "TL" uri= "http://aims.fao.org/aos/geopolitical.owl#Timor-Leste" />
+        <config:country-type name= "Togo" iso-code= "TG" uri= "http://aims.fao.org/aos/geopolitical.owl#Togo" />
+        <config:country-type name= "Tokelau" iso-code= "TK" uri= "http://aims.fao.org/aos/geopolitical.owl#Tokelau" />
+        <config:country-type name= "Tonga" iso-code= "TO" uri= "http://aims.fao.org/aos/geopolitical.owl#Tonga" />
+        <config:country-type name= "Trinidad and Tobago" iso-code= "TT" uri= "http://aims.fao.org/aos/geopolitical.owl#Trinidad_and_Tobago" />
+        <config:country-type name= "Tunisia" iso-code= "TN" uri= "http://aims.fao.org/aos/geopolitical.owl#Tunisia" />
+        <config:country-type name= "Turkey" iso-code= "TR" uri= "http://aims.fao.org/aos/geopolitical.owl#Turkey" />
+        <config:country-type name= "Turkmenistan" iso-code= "TM" uri= "http://aims.fao.org/aos/geopolitical.owl#Turkmenistan" />
+        <config:country-type name= "Tuvalu" iso-code= "TV" uri= "http://aims.fao.org/aos/geopolitical.owl#Tuvalu" />
+        <config:country-type name= "Uganda" iso-code= "UG" uri= "http://aims.fao.org/aos/geopolitical.owl#Uganda" />
+        <config:country-type name= "Ukraine" iso-code= "UA" uri= "http://aims.fao.org/aos/geopolitical.owl#Ukraine" />
+        <config:country-type name= "Union of Soviet Socialist Republic" uri= "http://aims.fao.org/aos/geopolitical.owl#Union_of_Soviet_Socialist_Republic_the" />
+        <config:country-type name= "United Arab Emirates" iso-code= "AE" uri= "http://aims.fao.org/aos/geopolitical.owl#United_Arab_Emirates__the" />
+        <config:country-type name= "United Kingdom" iso-code= "GB" uri= "http://aims.fao.org/aos/geopolitical.owl#United_Kingdom_of_Great_Britain_and_Northern_Ireland__the" />
+        <config:country-type name= "United Republic of Tanzania" iso-code= "TZ" uri= "http://aims.fao.org/aos/geopolitical.owl#United_Republic_of_Tanzania__the" />
+        <config:country-type name= "United States of America" iso-code= "US" uri= "http://aims.fao.org/aos/geopolitical.owl#United_States_of_America" />
+        <config:country-type name= "Uruguay" iso-code= "UY" uri= "http://aims.fao.org/aos/geopolitical.owl#Uruguay" />
+        <config:country-type name= "Uzbekistan" iso-code= "UZ" uri= "http://aims.fao.org/aos/geopolitical.owl#Uzbekistan" />
+        <config:country-type name= "Vanuatu" iso-code= "VU" uri= "http://aims.fao.org/aos/geopolitical.owl#Vanuatu" />
+        <config:country-type name= "Venezuela (Bolivarian Republic of)" iso-code= "VE" uri= "http://aims.fao.org/aos/geopolitical.owl#Venezuela" />
+        <config:country-type name= "Viet Nam" iso-code= "VN" uri= "http://aims.fao.org/aos/geopolitical.owl#Viet_Nam" />
+        <config:country-type name= "Yemen" iso-code= "YE" uri= "http://aims.fao.org/aos/geopolitical.owl#Yemen" />
+        <config:country-type name= "Yemen, Democratic" uri= "http://aims.fao.org/aos/geopolitical.owl#Democratic_Yemen" />
+        <config:country-type name= "Yemen_1990" uri= "http://aims.fao.org/aos/geopolitical.owl#Yemen_1990" />
+        <config:country-type name= "Yugoslav, former Yugoslav Republic of Macedonia" iso-code= "MK" uri= "http://aims.fao.org/aos/geopolitical.owl#The_former_Yugoslav_Republic_of_Macedonia" />
+        <config:country-type name= "Yugoslavia" uri= "http://aims.fao.org/aos/geopolitical.owl#Yugoslavia" />
+        <config:country-type name= "Yugoslavia, Socialist Federal Republic of" uri= "http://aims.fao.org/aos/geopolitical.owl#Socialist_Federal_Republic_of_Yugoslavia_the" />
+        <config:country-type name= "Zaire" uri= "http://aims.fao.org/aos/geopolitical.owl#Zaire" />
+        <config:country-type name= "Zambia" iso-code= "ZM" uri= "http://aims.fao.org/aos/geopolitical.owl#Zambia" />
+        <config:country-type name= "Zimbabwe" iso-code= "ZW" uri= "http://aims.fao.org/aos/geopolitical.owl#Zimbabwe" />
+
+        <!-- aliasses -->
         <config:country-type name="Bolivia" uri="http://aims.fao.org/aos/geopolitical.owl#Bolivia" />
         <config:country-type name="Cabo Verde" uri="http://aims.fao.org/aos/geopolitical.owl#Cape_Verde" />
         <config:country-type name="Democratic People's Republic of Korea (North Korea)" uri="http://aims.fao.org/aos/geopolitical.owl#Democratic_People_s_Republic_of_Korea_the" />
@@ -698,9 +720,9 @@
         <config:country-type name="United Kingdom of Great Britain and Northern Ireland" uri="http://aims.fao.org/aos/geopolitical.owl#United_Kingdom_of_Great_Britain_and_Northern_Ireland__the" />
         <config:country-type name="Great Britain" uri="http://aims.fao.org/aos/geopolitical.owl#United_Kingdom_of_Great_Britain_and_Northern_Ireland__the" />
         <config:country-type name="UK" uri="http://aims.fao.org/aos/geopolitical.owl#United_Kingdom_of_Great_Britain_and_Northern_Ireland__the" />
+        <config:country-type name="USA" uri="http://aims.fao.org/aos/geopolitical.owl#United_States_of_America" />
         <config:country-type name="Vietnam" uri="http://aims.fao.org/aos/geopolitical.owl#Viet_Nam" />
         <config:country-type name="Venezuela" uri="http://aims.fao.org/aos/geopolitical.owl#Venezuela" />
-
     </config:country-types>
 
     <!-- Note Experimental changes to resolve issues with Skos concepts representing labels having multiple values -->

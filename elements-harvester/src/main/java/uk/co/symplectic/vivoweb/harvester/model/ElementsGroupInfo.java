@@ -223,16 +223,27 @@ public class ElementsGroupInfo extends ElementsItemInfo{
             if(user != null && user.getItemSubType() == ElementsObjectCategory.USER) explicitUsers.add(user);
         }
 
+
+        public Element getXMLElementDescriptor(Document contextDocument){
+            return getXMLElementDescriptor(contextDocument, false);
+        }
+
         /**
          * Method to turn a hierarchy wrapper into a simple XML descriptor - useful for sending into the XSLT framework as a descriptor.
          * @param contextDocument The Document you expect the XML Element describing this group to be written into.
          * @return an XML Element describing this group.
          */
-        public Element getXMLElementDescriptor(Document contextDocument){
+        public Element getXMLElementDescriptor(Document contextDocument, boolean walkTree){
             Element element = contextDocument.createElement("group");
             element.setAttribute("id", Integer.toString(getGroupInfo().getItemId().getId()));
             element.setAttribute("name", getGroupInfo().getName());
             element.setAttribute("unique-name", getUniqueName());
+            if(walkTree){
+                for(GroupHierarchyWrapper child : children){
+                    Element childElement = child.getXMLElementDescriptor(contextDocument, walkTree);
+                    element.appendChild(childElement);
+                }
+            }
             return element;
         }
     }
